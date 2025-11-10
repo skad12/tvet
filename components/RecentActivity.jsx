@@ -2,7 +2,7 @@ import React from "react";
 
 export default function RecentActivity({ activities }) {
   return (
-    <section className="lg:col-span-2 bg-white rounded-lg border shadow-sm p-6">
+    <section className="lg:col-span-2 bg-white rounded-lg border border-slate-200 shadow-sm p-6">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-xl font-medium text-slate-800">Recent Activity</h3>
       </div>
@@ -10,7 +10,7 @@ export default function RecentActivity({ activities }) {
         {activities.map((r, idx) => (
           <li
             key={idx}
-            className="flex items-center justify-between bg-slate-50 rounded p-3 border"
+            className="flex items-center justify-between bg-slate-50 rounded p-3 border border-slate-200"
           >
             <div>
               <div className="font-medium text-slate-800">{r.name}</div>

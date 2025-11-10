@@ -140,7 +140,7 @@ export default function Sidebar() {
 
               // link base classes
               const baseClasses =
-                "flex items-center gap-3 px-4 py-2  rounded-xs transition";
+                "flex items-center gap-3 px-4 py-2 text-slate-200 rounded-xs transition";
 
               // when collapsed we center icons and reduce padding
               const collapsedClasses = collapsed

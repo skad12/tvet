@@ -2,7 +2,7 @@ import React from "react";
 
 export default function AiPerformance() {
   return (
-    <div className="bg-white rounded-lg border p-6 shadow-sm">
+    <div className="bg-white rounded-lg border border-slate-200 p-6 shadow-sm">
       <div className="flex items-center justify-between">
         <div>
           <div className="text-sm text-slate-500">AI Resolution Rate</div>
