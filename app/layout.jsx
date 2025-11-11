@@ -24,10 +24,9 @@ export default function RootLayout({ children }) {
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         {children}
+        {/* Floating support widget */}
+        <FloatingWidget />
       </body>
-
-      {/* Floating support widget */}
-      <FloatingWidget />
     </html>
   );
 }

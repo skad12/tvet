@@ -108,7 +108,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import api from "../lib/axios";
+import api from "../../lib/axios";
 
 // react-icons
 import { FiBell, FiSettings, FiUserCheck, FiCheckCircle } from "react-icons/fi";

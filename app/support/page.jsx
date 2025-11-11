@@ -1,8 +1,8 @@
 "use client";
 
 import { motion } from "framer-motion";
-import TicketForm from "../../components/TicketForm";
-import FAQ from "../../components/Faq";
+import TicketForm from "../../components/support/TicketForm";
+import FAQ from "../../components/support/Faq";
 import NavBar from "../../components/NavBar";
 import Footer from "../../components/Footer";
 

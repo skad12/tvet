@@ -1,82 +1,3 @@
-// "use client";
-
-// import { useState } from "react";
-// import Link from "next/link";
-// import {
-//   LayoutDashboard,
-//   Ticket,
-//   Users,
-//   Tags,
-//   Settings,
-//   Menu,
-// } from "lucide-react";
-
-// const navItems = [
-//   { name: "Analytics", href: "/admin/dashboard", icon: LayoutDashboard },
-//   { name: "Tickets", href: "/admin/tickets", icon: Ticket },
-//   { name: "Agents", href: "/admin/agents", icon: Users },
-//   { name: "Categories", href: "/admin/categories", icon: Tags },
-//   { name: "Settings", href: "/admin/settings", icon: Settings },
-//   { name: "Logout", href: "/", icon: Ticket },
-// ];
-
-// export default function Sidebar() {
-//   const [collapsed, setCollapsed] = useState(false);
-
-//   return (
-//     <aside
-//       className={`fixe left-0 top-0 h-screen bg-white text-slate-800 flex flex-col justify-between transition-all duration-300 shadow-lg z-40 ${
-//         collapsed ? "w-20" : "w-64"
-//       }`}
-//     >
-//       {/* Top Logo / Toggle */}
-//       <div>
-//         <div className="flex items-center justify-between p-4 border-b border-slate-800">
-//           {!collapsed && (
-//             <h2 className="text-lg font-semibold text-gray-800 tracking-tight">
-//               TVET Support
-//             </h2>
-//           )}
-//           <button
-//             onClick={() => setCollapsed(!collapsed)}
-//             className="p-2  rounded hover:bg-slate-800 text-gray-800 hover:text-white"
-//           >
-//             <Menu size={20} />
-//           </button>
-//         </div>
-
-//         {/* Nav links */}
-//         <div className="">
-//           <nav className="mt-4 space-y-1">
-//             {navItems.map((item) => {
-//               const Icon = item.icon;
-//               return (
-//                 <Link
-//                   key={item.name}
-//                   href={item.href}
-//                   className="flex items-center gap-3 px-4 py-2 hover:bg-slate-800 hover:text-white rounded-md transition"
-//                 >
-//                   <Icon size={20} />
-//                   {!collapsed && <span className="text-sm">{item.name}</span>}
-//                 </Link>
-//               );
-//             })}
-//           </nav>
-//         </div>
-//       </div>
-
-//       {/* Footer area */}
-//       {!collapsed && (
-//         <>
-//           <div className="p-4 text-xs text-gray-800 border-t border-slate-800">
-//             © {new Date().getFullYear()} TVET Support
-//           </div>
-//         </>
-//       )}
-//     </aside>
-//   );
-// }
-
 "use client";
 
 import { useState } from "react";
@@ -93,11 +14,15 @@ import {
 } from "lucide-react";
 
 const navItems = [
-  { name: "Analytics", href: "/admin/dashboard", icon: LayoutDashboard },
-  { name: "Tickets", href: "/admin/tickets", icon: Ticket },
-  { name: "Agents", href: "/admin/agents", icon: Users },
-  { name: "Categories", href: "/admin/categories", icon: Tags },
-  { name: "Settings", href: "/admin/settings", icon: Settings },
+  {
+    name: "Analytics",
+    href: "/admin/dashboard/analytics",
+    icon: LayoutDashboard,
+  },
+  { name: "Tickets", href: "/admin/dashboard/tickets", icon: Ticket },
+  { name: "Agents", href: "/admin/dashboard/agents", icon: Users },
+  { name: "Categories", href: "/admin/dashboard/categories", icon: Tags },
+  { name: "Settings", href: "/admin/dashboard/settings", icon: Settings },
   { name: "Logout", href: "/", icon: Ticket },
 ];
 
@@ -149,8 +74,8 @@ export default function Sidebar() {
 
               // active / inactive classes
               const activeClasses = isActive
-                ? "bg-slate-800 text-white"
-                : "text-slate-800 hover:bg-slate-800 hover:text-white";
+                ? "bg-blue-800 text-white"
+                : "text-slate-800 hover:bg-blue-600 hover:text-white";
 
               return (
                 <Link

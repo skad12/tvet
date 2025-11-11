@@ -2,11 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import Sidebar from "@/components/SideBar";
-import Topbar from "@/components/Topbar";
-import MetricCard from "@/components/MetricCards";
-import RecentActivity from "@/components/RecentActivity";
-import AiPerformance from "@/components/AiPerformance";
+
+import MetricCard from "@/components/admin/MetricCards";
+import RecentActivity from "@/components/admin/RecentActivity";
+import AiPerformance from "@/components/admin/AiPerformance";
 import api from "@/lib/axios";
 
 // react-icons
@@ -112,9 +111,7 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex">
-      <Sidebar />
       <div className="flex-1">
-        <Topbar />
         <main className="max-w-7xl mx-auto px-4 py-8">
           {/* Header with motion */}
           <motion.h1

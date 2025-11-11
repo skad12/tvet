@@ -248,7 +248,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import api from "../lib/axios";
+import { useRouter } from "next/navigation";
+
+import api from "../../lib/axios";
 import { motion } from "framer-motion";
 
 export default function TicketForm() {
@@ -262,6 +264,8 @@ export default function TicketForm() {
 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
+
+  const router = useRouter();
 
   // fetch categories on mount
   useEffect(() => {
@@ -329,6 +333,8 @@ export default function TicketForm() {
         setCategoryId("");
         setDescription("");
         setEmail("");
+        localStorage.setItem("tvet_user_email", email.trim());
+        router.push("/customer/dashboard");
       } else {
         setMessage({
           type: "error",
