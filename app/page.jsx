@@ -272,8 +272,6 @@ export default function Home() {
         </motion.main>
       </motion.div>
 
-      {/* Floating support widget */}
-      <FloatingWidget />
       <Footer />
     </>
   );

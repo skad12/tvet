@@ -1,5 +1,6 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import FloatingWidget from "@/components/FloatingWidget";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -24,6 +25,9 @@ export default function RootLayout({ children }) {
       >
         {children}
       </body>
+
+      {/* Floating support widget */}
+      <FloatingWidget />
     </html>
   );
 }

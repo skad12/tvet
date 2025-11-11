@@ -1,6 +1,8 @@
 "use client";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import Image from "next/image";
+import logo from "@/public/images/tvet-logo.png";
 
 export default function NavBar() {
   return (
@@ -8,9 +10,7 @@ export default function NavBar() {
       <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
         <Link href="/">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-cyan-400 flex items-center justify-center text-white font-bold">
-              TS
-            </div>
+            <Image src={logo} alt="logo" width={40} height={40} />
             <span className="font-semibold text-lg">TVET Support</span>
           </div>
         </Link>
