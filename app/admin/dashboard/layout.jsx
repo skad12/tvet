@@ -6,7 +6,8 @@ export default function SupportLayout({ children }) {
     <>
       <div className="min-h-screen bg-slate-50 flex">
         <Sidebar />
-        <div className="flex-1">
+
+        <div className="flex-1 ">
           <Topbar />
           {children}
         </div>

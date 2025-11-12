@@ -49,8 +49,8 @@ export default function AdminLoginForm({ demoCredentials = true }) {
             className="rounded object-cover"
             priority
           />
-          <h3 className="text-xl font-semibold mb-4  text-slate-800 ">
-            Admin Login
+          <h3 className="text-2xl font-semibold mb-4  text-slate-800 ">
+            Login
           </h3>
         </div>
 

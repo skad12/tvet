@@ -1,7 +1,7 @@
 // "use client";
 
 // import React, { useEffect, useState } from "react";
-// import api from "../lib/axios";
+// import api from "../../lib/axios";
 
 // // react-icons
 // import { FiBell, FiSettings, FiUserCheck, FiCheckCircle } from "react-icons/fi";
@@ -17,11 +17,31 @@
 
 //     const fetchAnalytics = async () => {
 //       try {
-//         const res = await api.get("/api/analytics");
-//         if (mounted) setData(res.data);
+//         // Try the direct client request first (axios uses NEXT_PUBLIC_API_BASE)
+//         const res = await api.get("/get-analytics/");
+//         if (!mounted) return;
+//         setData(res.data);
+//         setError(null);
 //       } catch (err) {
-//         console.error("Failed to fetch analytics:", err);
-//         if (mounted) setError("Failed to load analytics");
+//         console.warn(
+//           "Direct API request failed, trying server proxy...",
+//           err?.message ?? err
+//         );
+//         // If network / CORS error, try the server-side proxy route
+//         try {
+//           const proxied = await fetch("/api/analytics");
+//           if (!mounted) return;
+//           if (!proxied.ok) {
+//             const text = await proxied.text();
+//             throw new Error(`Proxy failed: ${proxied.status} ${text}`);
+//           }
+//           const json = await proxied.json();
+//           setData(json);
+//           setError(null);
+//         } catch (proxyErr) {
+//           console.error("Proxy request failed:", proxyErr);
+//           if (mounted) setError("Failed to load analytics");
+//         }
 //       } finally {
 //         if (mounted) setLoading(false);
 //       }
@@ -66,7 +86,7 @@
 //         <div className="flex items-center gap-3">
 //           <input
 //             placeholder="Search..."
-//             className="hidden sm:inline-block w-64 border border-slate-200  rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
+//             className="hidden sm:inline-block w-64 border border-slate-200 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
 //           />
 
 //           {/* Notification bell */}
@@ -84,7 +104,7 @@
 //             type="button"
 //             aria-label="Settings"
 //             title="Settings"
-//             className="p-2 rounded-full te hover:bg-slate-100 text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-100"
+//             className="p-2 rounded-full hover:bg-slate-100 text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-100"
 //           >
 //             <FiSettings className="w-5 h-5" />
 //           </button>
@@ -109,6 +129,7 @@
 
 import React, { useEffect, useState } from "react";
 import api from "../../lib/axios";
+import { motion } from "framer-motion";
 
 // react-icons
 import { FiBell, FiSettings, FiUserCheck, FiCheckCircle } from "react-icons/fi";
@@ -124,7 +145,6 @@ export default function Topbar() {
 
     const fetchAnalytics = async () => {
       try {
-        // Try the direct client request first (axios uses NEXT_PUBLIC_API_BASE)
         const res = await api.get("/get-analytics/");
         if (!mounted) return;
         setData(res.data);
@@ -134,7 +154,6 @@ export default function Topbar() {
           "Direct API request failed, trying server proxy...",
           err?.message ?? err
         );
-        // If network / CORS error, try the server-side proxy route
         try {
           const proxied = await fetch("/api/analytics");
           if (!mounted) return;
@@ -155,7 +174,6 @@ export default function Topbar() {
     };
 
     fetchAnalytics();
-
     return () => {
       mounted = false;
     };
@@ -166,8 +184,13 @@ export default function Topbar() {
   const resolvedToday = loading ? "—" : data?.tickets_handled_by_human ?? 0;
 
   return (
-    <div className="bg-white border-b border-slate-200">
-      <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between gap-4">
+    <motion.header
+      initial={{ opacity: 0, y: -8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35 }}
+      className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-slate-200"
+    >
+      <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
         {/* left stats */}
         <div className="hidden md:flex items-center gap-4">
           <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-50 text-blue-700 text-sm">
@@ -228,6 +251,6 @@ export default function Topbar() {
           {error}
         </div>
       )}
-    </div>
+    </motion.header>
   );
 }

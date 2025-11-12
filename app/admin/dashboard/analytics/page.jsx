@@ -3,9 +3,9 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 
-import MetricCard from "@/components/admin/MetricCards";
-import RecentActivity from "@/components/admin/RecentActivity";
-import AiPerformance from "@/components/admin/AiPerformance";
+import MetricCard from "@/components/admin/analytics/MetricCards";
+import RecentActivity from "@/components/admin/analytics/RecentActivity";
+import AiPerformance from "@/components/admin/analytics/AiPerformance";
 import api from "@/lib/axios";
 
 // react-icons
