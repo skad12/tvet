@@ -362,7 +362,7 @@ export default function TicketForm() {
       {catError && <div className="mb-3 text-sm text-red-600">{catError}</div>}
 
       <form onSubmit={submit} className="space-y-4">
-        <label className="block text-sm font-medium">
+        {/* <label className="block text-sm font-medium">
           Category <span className="text-red-600">*</span>
         </label>
         <select
@@ -381,11 +381,9 @@ export default function TicketForm() {
               {c.title?.trim() ?? c.title}
             </option>
           ))}
-        </select>
+        </select> */}
 
-        <label className="block text-sm font-medium">
-          Description (optional)
-        </label>
+        <label className="block text-sm font-medium">Description</label>
         <textarea
           value={description}
           onChange={(e) => setDescription(e.target.value)}
