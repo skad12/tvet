@@ -280,10 +280,10 @@ export default function Topbar() {
 
           <div className="hidden sm:flex flex-col text-right text-xs text-slate-500">
             <span className="text-sm font-semibold text-slate-700">
-              {user?.name ?? user?.full_name ?? user?.username ?? "Admin"}
+              {user?.email ?? user?.username ?? "Admin"}
             </span>
-            <span>
-              ID: {userId ? String(userId) : "—"} • {accountType}
+            <span className="uppercase tracking-wide text-slate-500">
+              {String(accountType || "admin")}
             </span>
           </div>
 

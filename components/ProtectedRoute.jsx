@@ -4,20 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 
-/**
- * Relaxed client guard:
- * - By default it does not redirect users away if no role is present.
- * - If `allowed` prop is provided, it will redirect only when the user has
- *   a role and that role is NOT in the allowed list.
- *
- * Usage:
- *  <ProtectedRoute>{children}</ProtectedRoute>
- *  or
- *  <ProtectedRoute allowed={['admin']}>{children}</ProtectedRoute>
- *
- * Note: this is a UX helper only. Middleware previously enforced server-side
- * protection. The middleware above is currently permissive.
- */
 export default function ProtectedRoute({
   allowed,
   fallback = "/auth/login",
