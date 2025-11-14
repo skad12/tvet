@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 import logo from "@/public/images/tvet-logo.png";
 import { useAuth } from "@/context/AuthContext"; // adjust if needed
 
@@ -20,8 +21,8 @@ export default function LoginForm({ demoCredentials = true }) {
   // canonical route map (accepts 'agents' plural)
   const ROUTES = {
     admin: "/admin/dashboard/analytics",
-    agent: "/agent/dashboard", // if you use singular route
-    agents: "/agents/dashboard", // handle plural explicitly
+    agent: "/agent/dashboard",
+    agents: "/agent/dashboard", // handle plural explicitly
     customer: "/customer/dashboard",
     user: "/dashboard",
   };
@@ -157,17 +158,45 @@ export default function LoginForm({ demoCredentials = true }) {
       console.debug("[Login] authUser from context:", authUser);
 
       if (!result || result.ok === false) {
-        const message = result?.error || "Invalid credentials — try again";
+        // prefer explicit server error, then raw.message/detail, then generic
+        const message =
+          result?.error ||
+          result?.raw?.error ||
+          result?.raw?.detail ||
+          result?.raw?.message ||
+          "Invalid credentials — try again";
         setError(message);
         return;
       }
 
-      // derive account_type (will be 'admin' | 'customer' | 'agents' in your case)
-      const acct = deriveAccountType(result, authUser) || "customer";
-      let role = normalizeRole(acct) || "customer";
+      // Prioritize role from signIn result, then derive from user object
+      let role = null;
 
-      // If backend returns plural 'agents', keep it; routeForRole handles it.
-      console.debug("[Login] derived account_type:", role);
+      // First, check if signIn returned a role directly
+      if (result.role) {
+        role = normalizeRole(result.role);
+      }
+
+      // If no role, check the user object from result
+      if (!role && result.user) {
+        role = normalizeRole(
+          result.user.account_type ||
+            result.user.accountType ||
+            result.user.role ||
+            result.user.type
+        );
+      }
+
+      // Fallback: use deriveAccountType function
+      if (!role) {
+        const acct = deriveAccountType(result, authUser);
+        role = normalizeRole(acct);
+      }
+
+      // Final fallback to customer
+      role = role || "customer";
+
+      console.debug("[Login] resolved account_type:", role);
 
       const rawDest = routeForRole(role);
       const dest = ensureAbsolutePath(rawDest);
@@ -259,13 +288,16 @@ export default function LoginForm({ demoCredentials = true }) {
             {error}
           </motion.div>
         )}
-        {/* 
-        {demoCredentials && (
-          <div className="mt-4 text-xs text-slate-500">
-            Demo credentials: <strong>admin@tvet.local</strong> /{" "}
-            <strong>secret</strong>
-          </div>
-        )} */}
+
+        <div className="mt-4 text-sm text-slate-600 text-center">
+          <span className="mr-1">Don&apos;t have an account?</span>
+          <Link
+            href="/register"
+            className="font-medium text-blue-600 hover:underline"
+          >
+            Create account
+          </Link>
+        </div>
       </div>
     </motion.form>
   );

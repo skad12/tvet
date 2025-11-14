@@ -7,6 +7,7 @@ import supportImage from "../public/images/support.jpg";
 import NavBar from "../components/NavBar";
 import Footer from "../components/Footer";
 import FloatingWidget from "@/components/FloatingWidget";
+import FAQ from "@/components/support/Faq";
 
 const fadeInUp = {
   hidden: { opacity: 0, y: 20 },
@@ -142,32 +143,7 @@ export default function Home() {
               </h2>
 
               <div className="space-y-3">
-                {[
-                  {
-                    q: "Who can apply?",
-                    a: "Any eligible applicant meeting the program requirements — check the specific course page for qualification details.",
-                  },
-                  {
-                    q: "How long does registration take?",
-                    a: "Registration is typically processed within 24–48 hours, depending on document verification.",
-                  },
-                  {
-                    q: "What documents are required?",
-                    a: "Valid ID, proof of residence, and any relevant certificates if applicable.",
-                  },
-                ].map(({ q, a }) => (
-                  <motion.details
-                    key={q}
-                    variants={fadeInUp}
-                    transition={{ duration: 0.3 }}
-                    className="p-3 border rounded"
-                  >
-                    <summary className="font-medium cursor-pointer">
-                      {q}
-                    </summary>
-                    <p className="mt-2 text-gray-600 text-sm">{a}</p>
-                  </motion.details>
-                ))}
+                <FAQ />
               </div>
             </motion.section>
 

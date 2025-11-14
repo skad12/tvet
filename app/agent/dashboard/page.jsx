@@ -9,7 +9,7 @@ import Navbar from "@/components/customer/Topbar";
 import ChatBox from "@/components/customer/ChatBox";
 import ChatList from "@/components/customer/ChatList";
 
-export default function CustomerDashboardPage() {
+export default function AgentDashboardPage() {
   const [tickets, setTickets] = useState([]);
   const [loadingTickets, setLoadingTickets] = useState(true);
   const [ticketsError, setTicketsError] = useState(null);
@@ -48,25 +48,16 @@ export default function CustomerDashboardPage() {
     if (!ticket) return false;
     if (uid) {
       const idCandidates = [
-        ticket.user_id,
-        ticket.userId,
-        ticket.owner_id,
-        ticket.ownerId,
-        ticket.created_by,
-        ticket.createdBy,
-        ticket.requester_id,
-        ticket.requesterId,
-        ticket.requester,
         ticket.agent_id,
         ticket.agentId,
-        ticket.customer_id,
-        ticket.customerId,
-        ticket.client_id,
-        ticket.clientId,
         ticket.assignee_id,
         ticket.assigneeId,
         ticket.assigned_to,
         ticket.assignedTo,
+        ticket.owner_id,
+        ticket.ownerId,
+        ticket.user_id,
+        ticket.userId,
       ];
       if (
         idCandidates.some(
@@ -82,13 +73,11 @@ export default function CustomerDashboardPage() {
 
     if (email) {
       const emailCandidates = [
+        ticket.agent_email,
+        ticket.agentEmail,
         ticket.email,
-        ticket.user_email,
-        ticket.userEmail,
         ticket.requester_email,
         ticket.requesterEmail,
-        ticket.customer_email,
-        ticket.customerEmail,
       ];
       if (
         emailCandidates.some(
@@ -161,7 +150,7 @@ export default function CustomerDashboardPage() {
   }, [tickets, userId, userEmail]);
 
   return (
-    <ProtectedRoute allowed={["customer"]}>
+    <ProtectedRoute allowed={["agent"]}>
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
@@ -185,7 +174,7 @@ export default function CustomerDashboardPage() {
                 loading={loadingTickets}
                 userId={userId ?? undefined}
               />
-              {/* <AdBox /> */}
+              {/* Additional agent-specific components can be added here */}
             </div>
           </div>
         </div>

@@ -46,6 +46,27 @@ export default function Navbar({ userEmail }) {
   // set to true if you want a confirm dialog before signing out
   const confirmOnSignOut = false;
 
+  const userId =
+    user?.app_user_id ??
+    user?.appUserId ??
+    user?.user_id ??
+    user?.userId ??
+    user?.id ??
+    user?.uid ??
+    user?.pk ??
+    null;
+
+  const accountType =
+    user?.account_type ?? user?.role ?? user?.type ?? "user";
+
+  const displayName =
+    user?.name ??
+    user?.full_name ??
+    user?.fullName ??
+    (userEmail ? userEmail.split("@")[0] : "User");
+
+  const displayEmail = userEmail ?? user?.email ?? user?.username ?? "";
+
   async function handleSignOut(e) {
     e.preventDefault();
     if (confirmOnSignOut) {
@@ -75,10 +96,19 @@ export default function Navbar({ userEmail }) {
     >
       <div>
         <h2 className="text-2xl font-semibold">
-          Hi {userEmail ? userEmail.split("@")[0] : user?.name ?? "User"} 👋
+          Hi {displayName} 👋
         </h2>
         <div className="text-sm text-slate-500 mt-1">
-          {userEmail ?? user?.email ?? "You are viewing your dashboard."}
+          {displayEmail || "You are viewing your dashboard."}
+        </div>
+        <div className="mt-1 text-xs text-slate-500">
+          <span className="font-medium text-slate-600">
+            ID: {userId ? String(userId) : "—"}
+          </span>
+          <span className="mx-2">•</span>
+          <span className="uppercase tracking-wide text-slate-500">
+            {String(accountType || "user")}
+          </span>
         </div>
       </div>
 

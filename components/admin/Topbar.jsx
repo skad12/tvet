@@ -127,9 +127,10 @@
 
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import api from "../../lib/axios";
 import { motion } from "framer-motion";
+import { useAuth } from "@/context/AuthContext";
 
 // react-icons
 import { FiBell, FiSettings, FiUserCheck, FiCheckCircle } from "react-icons/fi";
@@ -139,6 +140,44 @@ export default function Topbar() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const { user } = useAuth();
+
+  const userId = useMemo(() => {
+    if (!user) return null;
+    const candidates = [
+      user.app_user_id,
+      user.appUserId,
+      user.user_id,
+      user.userId,
+      user.id,
+      user.uid,
+      user.pk,
+    ];
+    for (const c of candidates) {
+      if (c !== undefined && c !== null && c !== "") return c;
+    }
+    return null;
+  }, [user]);
+
+  const initials = useMemo(() => {
+    const source =
+      user?.name ??
+      user?.full_name ??
+      user?.fullName ??
+      user?.username ??
+      user?.email ??
+      "";
+    if (!source) return "AD";
+    const parts = source.split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return source.slice(0, 2).toUpperCase();
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }, [user]);
+
+  const accountType = useMemo(() => {
+    const value = user?.account_type ?? user?.role ?? user?.type ?? "admin";
+    return String(value).toUpperCase();
+  }, [user]);
 
   useEffect(() => {
     let mounted = true;
@@ -239,9 +278,18 @@ export default function Topbar() {
             <FiSettings className="w-5 h-5" />
           </button>
 
+          <div className="hidden sm:flex flex-col text-right text-xs text-slate-500">
+            <span className="text-sm font-semibold text-slate-700">
+              {user?.name ?? user?.full_name ?? user?.username ?? "Admin"}
+            </span>
+            <span>
+              ID: {userId ? String(userId) : "—"} • {accountType}
+            </span>
+          </div>
+
           {/* Avatar */}
           <div className="w-9 h-9 rounded-full bg-blue-600 text-white flex items-center justify-center font-medium">
-            AG
+            {initials}
           </div>
         </div>
       </div>
