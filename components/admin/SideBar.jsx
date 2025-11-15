@@ -344,10 +344,6 @@ export default function Sidebar() {
                 <h2 className="text-lg font-semibold text-slate-800 tracking-tight">
                   TVET Support
                 </h2>
-                <div className="text-xs text-slate-500">
-                  {/* show current user's name/email if available */}
-                  {user?.name ?? user?.username ?? user?.email ?? "Admin"}
-                </div>
               </div>
             )}
           </div>
