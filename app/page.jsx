@@ -176,7 +176,7 @@ export default function Home() {
               transition={{ duration: 0.4 }}
               className="grid md:grid-cols-2 gap-8 items-start"
             >
-              <div className="bg-white p-6 rounded shadow">
+              <div className="bg-white p-6 rounded  border border-slate-200 shadow">
                 <h2 className="text-2xl font-semibold">Contact Us</h2>
                 <p className="mt-2 text-gray-600">
                   Prefer email or phone? Use the details below.
@@ -206,7 +206,7 @@ export default function Home() {
               <motion.div
                 variants={fadeInUp}
                 transition={{ delay: 0.1 }}
-                className="bg-white p-6 rounded shadow"
+                className="bg-white p-6 rounded  border border-slate-200 shadow"
               >
                 <h3 className="font-medium">Send a quick message</h3>
                 <p className="text-sm text-gray-600 mt-2">
@@ -217,19 +217,19 @@ export default function Home() {
                   <input
                     name="name"
                     placeholder="Your name"
-                    className="border px-3 py-2 rounded"
+                    className="border border-slate-400 px-3 py-2 rounded"
                   />
                   <input
                     name="email"
                     type="email"
                     placeholder="Email"
-                    className="border px-3 py-2 rounded"
+                    className="border border-slate-400 px-3 py-2 rounded"
                   />
                   <textarea
                     name="message"
                     rows={4}
                     placeholder="Message"
-                    className="border px-3 py-2 rounded"
+                    className="border border-slate-400 px-3 py-2 rounded"
                   />
                   <div className="flex justify-end">
                     <motion.button

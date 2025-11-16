@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useEffect, useMemo, useState } from "react";
 import {
   useReactTable,
@@ -9,50 +11,119 @@ import { motion, AnimatePresence } from "framer-motion";
 import { FiClock } from "react-icons/fi";
 import api from "@/lib/axios";
 
+/**
+ * TicketsTable
+ * - Loads tickets from `/tickets/`
+ * - Normalizes server response (see sample you provided) into the shape the table expects:
+ *   { id, email, categoryTitle, preview, createdAt, status, messages, raw }
+ */
+
 export default function TicketsTable({ onOpenChat, selectedId }) {
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [pageSize, setPageSize] = useState(5);
+  const [error, setError] = useState(null);
 
+  // normalize single server ticket -> table row
+  function normalizeTicketForTable(t) {
+    const id = t?.id ?? String(Math.random()).slice(2, 10);
+
+    // If email empty, use name (your response shows many empty emails)
+    const email =
+      t?.email && String(t.email).trim() !== ""
+        ? String(t.email).trim()
+        : t?.name ?? "";
+
+    // Category/subject attempt: subject -> name -> fallback
+    const categoryTitle = t?.subject ?? t?.name ?? "From Widget";
+
+    // Preview: prefer preview, then subject, then otp/progress
+    const preview =
+      (t?.preview && String(t.preview)) ||
+      (t?.subject && String(t.subject)) ||
+      (t?.otp ? `OTP: ${t.otp}` : "") ||
+      (t?.progress ? String(t.progress) : "") ||
+      "";
+
+    // createdAt: prefer machine timestamp (created_at or pub_date); created_at_display is used in UI formatting area if needed
+    const createdAt = t?.created_at ?? t?.pub_date ?? new Date().toISOString();
+
+    // status mapping: boolean (server) => resolved/open/active; fallback to string if server already returns textual
+    let status;
+    if (typeof t?.status === "boolean") {
+      status = t.status ? "resolved" : "active";
+    } else {
+      status = String(t?.status ?? "active");
+    }
+
+    return {
+      id,
+      email,
+      categoryTitle,
+      preview,
+      createdAt,
+      status,
+      messages: Array.isArray(t?.messages) ? t.messages : [],
+      raw: t,
+    };
+  }
+
+  // load from /tickets/
   useEffect(() => {
     let mounted = true;
-    const load = async () => {
+    const ac = new AbortController();
+
+    async function load() {
       setLoading(true);
+      setError(null);
+
       try {
-        const res = api ? await api.get("/tickets") : null;
-        const data = res?.data ?? [
-          {
-            id: "t-01",
-            email: "chukwuma.o@example.com",
-            categoryTitle: "Issues with the Center",
-            preview:
-              "I need help with my course enrollment for the welding program.",
-            createdAt: new Date().toISOString(),
-            status: "pending",
-            messages: [],
-          },
-          {
-            id: "t-02",
-            email: "aisha.moh@example.com",
-            categoryTitle: "Onboarding issues and sign in",
-            preview: "When does the next semester start?",
-            createdAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-            status: "active",
-            messages: [],
-          },
-        ];
-        if (mounted) setTickets(data);
+        let data;
+        if (api && typeof api.get === "function") {
+          const res = await api.get("/tickets/", { signal: ac.signal });
+          data = res?.data;
+        } else {
+          const res = await fetch("/tickets/", {
+            method: "GET",
+            headers: { "Content-Type": "application/json" },
+            signal: ac.signal,
+            credentials: "include",
+          });
+          if (!res.ok) {
+            const txt = await res.text().catch(() => "");
+            throw new Error(`Failed to load tickets (${res.status}) ${txt}`);
+          }
+          data = await res.json().catch(() => null);
+        }
+
+        if (!mounted) return;
+
+        // normalize: server returns array per your sample
+        let arr = [];
+        if (!data) arr = [];
+        else if (Array.isArray(data)) arr = data;
+        else if (Array.isArray(data.results)) arr = data.results;
+        else if (Array.isArray(data.data)) arr = data.data;
+        else arr = [data];
+
+        const normalized = arr.map(normalizeTicketForTable);
+        setTickets(normalized);
       } catch (err) {
-        console.error("Failed to load tickets", err);
-        if (mounted) setTickets([]);
+        if (err.name === "AbortError") return;
+        console.error("Failed to load /tickets/:", err);
+        setError(err?.message ?? "Failed to load tickets");
+        setTickets([]);
       } finally {
         if (mounted) setLoading(false);
       }
-    };
+    }
 
     load();
-    return () => (mounted = false);
+    return () => {
+      mounted = false;
+      ac.abort();
+    };
   }, []);
 
   const filtered = useMemo(() => {
@@ -92,15 +163,15 @@ export default function TicketsTable({ onOpenChat, selectedId }) {
           );
         },
       },
-      {
-        accessorKey: "preview",
-        header: "Preview",
-        cell: ({ getValue }) => (
-          <div className="text-sm text-slate-600 truncate max-w-md">
-            {getValue()}
-          </div>
-        ),
-      },
+      // {
+      //   accessorKey: "preview",
+      //   header: "Preview",
+      //   cell: ({ getValue }) => (
+      //     <div className="text-sm text-slate-600 truncate max-w-md">
+      //       {getValue()}
+      //     </div>
+      //   ),
+      // },
       {
         accessorKey: "createdAt",
         header: () => (
@@ -108,11 +179,21 @@ export default function TicketsTable({ onOpenChat, selectedId }) {
             <FiClock className="w-4 h-4" /> Date
           </span>
         ),
-        cell: ({ getValue }) => (
-          <div className="text-xs text-slate-500">
-            {new Date(getValue()).toLocaleString()}
-          </div>
-        ),
+        cell: ({ getValue, row }) => {
+          // prefer server display if available (row.original.raw.created_at_display)
+          const display = row.original?.raw?.created_at_display;
+          const ts = getValue();
+          const d = display ?? ts;
+          try {
+            return (
+              <div className="text-xs text-slate-500">
+                {new Date(d).toLocaleString()}
+              </div>
+            );
+          } catch {
+            return <div className="text-xs text-slate-500">{String(d)}</div>;
+          }
+        },
         enableSorting: false,
       },
       {
@@ -215,7 +296,7 @@ export default function TicketsTable({ onOpenChat, selectedId }) {
             ))}
           </thead>
 
-          <tbody className="bg-white">
+          <tbody className="bg-white divide-y divide-slate-00">
             {loading ? (
               <tr>
                 <td
@@ -290,7 +371,7 @@ export default function TicketsTable({ onOpenChat, selectedId }) {
             Prev
           </button>
 
-          <span className="px-2">
+          <span className="px-2 text-gray-800">
             Page <strong>{table.getState().pagination.pageIndex + 1}</strong> of{" "}
             {table.getPageCount()}
           </span>
@@ -316,6 +397,7 @@ export default function TicketsTable({ onOpenChat, selectedId }) {
           filtered
         </div>
       </div>
+      {error && <div className="mt-2 text-sm text-red-600">{error}</div>}
     </aside>
   );
 }

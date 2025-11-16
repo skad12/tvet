@@ -608,7 +608,7 @@ export default function LoginForm({ demoCredentials = true }) {
             href="/register"
             className="font-medium text-blue-600 hover:underline"
           >
-            Create account
+            Create an account
           </Link>
         </div>
       </div>

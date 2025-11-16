@@ -29,12 +29,12 @@ export default function AiSettings() {
   };
 
   const inputClass =
-    "w-28 border rounded px-3 py-2 outline-none focus:ring-2 focus:shadow-md";
+    "w-28 border border-slate-400 rounded px-3 py-2 outline-none focus:ring-1 focus:shadow-md";
 
   return (
     <form onSubmit={save} className="space-y-6">
       <div>
-        <h3 className="text-xl font-semibold text-slate-800">
+        <h3 className="text-xl font-semibold text-slate-700">
           AI Assistant Configuration
         </h3>
         <p className="text-sm text-slate-500 mt-1">
@@ -45,7 +45,7 @@ export default function AiSettings() {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <div className="font-medium text-slate-800">
+            <div className="font-medium text-slate-700">
               Enable AI Auto-Response
             </div>
             <div className="text-sm text-slate-500">
@@ -59,14 +59,14 @@ export default function AiSettings() {
               checked={config.autoRespond}
               onChange={() => toggle("autoRespond")}
             />
-            <div className="w-11 h-6 bg-slate-200 rounded-full peer-checked:bg-blue-600 transition" />
+            <div className="w-12 h-6 bg-slate-200 rounded-full peer-checked:bg-blue-600 transition" />
             <span className="dot absolute left-1 top-0.5 w-5 h-5 bg-white rounded-full shadow transform transition peer-checked:translate-x-5" />
           </label>
         </div>
 
         <div className="flex items-center justify-between">
           <div>
-            <div className="font-medium text-slate-800">Smart Routing</div>
+            <div className="font-medium text-slate-700">Smart Routing</div>
             <div className="text-sm text-slate-500">
               AI routes tickets to the best agent
             </div>
@@ -78,14 +78,14 @@ export default function AiSettings() {
               checked={config.smartRouting}
               onChange={() => toggle("smartRouting")}
             />
-            <div className="w-11 h-6 bg-slate-200 rounded-full peer-checked:bg-blue-600 transition" />
+            <div className="w-12 h-6 bg-slate-200 rounded-full peer-checked:bg-blue-600 transition" />
             <span className="dot absolute left-1 top-0.5 w-5 h-5 bg-white rounded-full shadow transform transition peer-checked:translate-x-5" />
           </label>
         </div>
 
         <div className="grid md:grid-cols-2 gap-4 items-center">
           <div>
-            <div className="font-medium text-slate-800">
+            <div className="font-medium text-slate-700">
               AI Confidence Threshold
             </div>
             <div className="text-sm text-slate-500">

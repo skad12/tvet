@@ -4,7 +4,7 @@ import Link from "next/link";
 
 export default function Footer() {
   return (
-    <footer className="bg-slate-900 text-slate-200 mt-20">
+    <footer className="bg-slate-900 text-slate-200 mt-20 ">
       <div className="max-w-6xl mx-auto px-4 py-8 flex flex-col md:flex-row justify-between gap-6 items-start">
         <div>
           <h4 className="font-semibold text-white">TVET Support</h4>

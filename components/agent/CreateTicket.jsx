@@ -1,3 +1,4 @@
+// components/CreateTicket.jsx
 // "use client";
 
 // import { useEffect, useRef, useState } from "react";
@@ -17,6 +18,8 @@
 //   const [catError, setCatError] = useState(null);
 
 //   const [categoryId, setCategoryId] = useState("");
+//   const [subject, setSubject] = useState(""); // NEW
+//   const [priority, setPriority] = useState("Low"); // NEW: Low | Medium | High | Urgent
 //   const [description, setDescription] = useState("");
 //   const [email, setEmail] = useState(defaultReporterEmail || "");
 
@@ -134,12 +137,21 @@
 //       setMessage({ type: "error", text: "Please pick a category." });
 //       return;
 //     }
+//     if (!subject.trim()) {
+//       setMessage({
+//         type: "error",
+//         text: "Please enter a subject for the ticket.",
+//       });
+//       return;
+//     }
 
 //     setLoading(true);
 //     try {
 //       const payload = {
 //         email: email.trim(),
 //         category_id: categoryId,
+//         subject: subject.trim(), // NEW
+//         priority: priority || "Low", // NEW
 //         description: description.trim(),
 //       };
 
@@ -182,8 +194,11 @@
 //           localStorage.setItem("tvet_user_email", email.trim());
 //       } catch (e) {}
 
-//       // clear fields
+//       // clear fields (preserve category default if you want)
+//       setSubject("");
+//       setPriority("Low");
 //       setDescription("");
+
 //       // optionally redirect or just close
 //       setTimeout(() => {
 //         if (redirectAfter) {
@@ -264,6 +279,34 @@
 //             </select>
 //           </div>
 
+//           {/* NEW: Subject */}
+//           <div>
+//             <label className="block text-sm font-medium">Subject</label>
+//             <input
+//               value={subject}
+//               onChange={(e) => setSubject(e.target.value)}
+//               type="text"
+//               placeholder="Brief summary of the issue"
+//               className="w-full border border-slate-300 rounded px-3 py-2"
+//               required
+//             />
+//           </div>
+
+//           {/* NEW: Priority */}
+//           <div>
+//             <label className="block text-sm font-medium">Priority</label>
+//             <select
+//               value={priority}
+//               onChange={(e) => setPriority(e.target.value)}
+//               className="w-full border border-slate-300 rounded px-3 py-2"
+//             >
+//               <option value="Low">Low</option>
+//               <option value="Medium">Medium</option>
+//               <option value="High">High</option>
+//               <option value="Urgent">Urgent</option>
+//             </select>
+//           </div>
+
 //           <div>
 //             <label className="block text-sm font-medium">Description</label>
 //             <textarea
@@ -323,36 +366,45 @@
 //   );
 // }
 
-// components/CreateTicket.jsx
 "use client";
 
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import api from "@/lib/axios"; // adjust path if needed
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 
 export default function CreateTicket({
   isOpen = false,
   onClose = () => {},
-  defaultReporterEmail = "",
   redirectAfter = null, // optional: "/customer/dashboard"
 }) {
   const router = useRouter();
+  const { user } = useAuth?.() ?? {};
+  const subjectRef = useRef(null);
+  const modalRef = useRef(null);
+
+  // derive reporter email from auth user (no fallback)
+  const authEmail = user?.email ?? user?.username ?? null;
+
   const [categories, setCategories] = useState([]);
   const [catLoading, setCatLoading] = useState(true);
   const [catError, setCatError] = useState(null);
 
   const [categoryId, setCategoryId] = useState("");
-  const [subject, setSubject] = useState(""); // NEW
-  const [priority, setPriority] = useState("Low"); // NEW: Low | Medium | High | Urgent
+  const [subject, setSubject] = useState("");
+  const [priority, setPriority] = useState("Low");
   const [description, setDescription] = useState("");
-  const [email, setEmail] = useState(defaultReporterEmail || "");
 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
 
-  const emailRef = useRef(null);
-  const modalRef = useRef(null);
+  // focus subject on open
+  useEffect(() => {
+    if (isOpen) {
+      setTimeout(() => subjectRef.current?.focus?.(), 60);
+    }
+  }, [isOpen]);
 
   // prevent body scroll while open
   useEffect(() => {
@@ -420,16 +472,6 @@ export default function CreateTicket({
     }
   }, [catLoading, categories, categoryId]);
 
-  // focus email on open & set default email
-  useEffect(() => {
-    if (isOpen) {
-      setTimeout(() => {
-        if (defaultReporterEmail) setEmail(defaultReporterEmail);
-        emailRef.current?.focus?.();
-      }, 60);
-    }
-  }, [isOpen, defaultReporterEmail]);
-
   // close on Escape
   useEffect(() => {
     function onKey(e) {
@@ -454,8 +496,14 @@ export default function CreateTicket({
     ev.preventDefault();
     setMessage(null);
 
-    if (!email.trim()) {
-      setMessage({ type: "error", text: "Please enter your email." });
+    // REQUIRED: must be authenticated — no fallback email
+    const reporterEmail = authEmail ? String(authEmail).trim() : "";
+
+    if (!reporterEmail) {
+      setMessage({
+        type: "error",
+        text: "You must be signed in to create a ticket. Please sign in and try again.",
+      });
       return;
     }
     if (!categoryId) {
@@ -473,10 +521,10 @@ export default function CreateTicket({
     setLoading(true);
     try {
       const payload = {
-        email: email.trim(),
+        email: reporterEmail,
         category_id: categoryId,
-        subject: subject.trim(), // NEW
-        priority: priority || "Low", // NEW
+        subject: subject.trim(),
+        priority: priority || "Low",
         description: description.trim(),
       };
 
@@ -514,12 +562,8 @@ export default function CreateTicket({
       }
 
       setMessage({ type: "success", text: "Ticket created successfully." });
-      try {
-        if (typeof window !== "undefined")
-          localStorage.setItem("tvet_user_email", email.trim());
-      } catch (e) {}
 
-      // clear fields (preserve category default if you want)
+      // clear fields
       setSubject("");
       setPriority("Low");
       setDescription("");
@@ -604,10 +648,11 @@ export default function CreateTicket({
             </select>
           </div>
 
-          {/* NEW: Subject */}
+          {/* Subject */}
           <div>
             <label className="block text-sm font-medium">Subject</label>
             <input
+              ref={subjectRef}
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
               type="text"
@@ -617,7 +662,7 @@ export default function CreateTicket({
             />
           </div>
 
-          {/* NEW: Priority */}
+          {/* Priority */}
           <div>
             <label className="block text-sm font-medium">Priority</label>
             <select
@@ -643,23 +688,18 @@ export default function CreateTicket({
             />
           </div>
 
+          {/* Reporter: show auth email or prompt to sign in (no editable fallback) */}
           <div>
-            <label className="block text-sm font-medium">Email Address</label>
-            <input
-              ref={emailRef}
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              type="email"
-              placeholder="your@email.com"
-              className="w-full border border-slate-300 rounded px-3 py-2"
-              required
-            />
+            <label className="block text-sm font-medium">Reporter</label>
+            <div className="w-full border border-slate-200 rounded px-3 py-2 bg-slate-50 text-slate-700">
+              {authEmail ? authEmail : "Sign in to create a ticket"}
+            </div>
           </div>
 
           <div className="flex items-center gap-2">
             <button
               type="submit"
-              disabled={loading || catLoading}
+              disabled={loading || catLoading || !authEmail}
               className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-60"
             >
               {loading ? "Submitting..." : "Submit Ticket"}
