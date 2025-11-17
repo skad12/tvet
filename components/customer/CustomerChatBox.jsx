@@ -322,12 +322,13 @@ export default function ChatBox({ selected, userEmail: propUserEmail }) {
 
           <div
             ref={containerRef}
-            className="space-y-3 max-h-[400px] md:max-h-[500px] overflow-y-auto mb-4 flex-1 scroll-smooth"
+            className="flex-1 overflow-y-auto mb-4 space-y-3 p-4 bg-slate-50 rounded-lg border border-slate-200"
+            style={{ maxHeight: "500px", minHeight: "400px" }}
           >
             <motion.div
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-blue-600 text-white rounded p-3 text-sm"
+              className="bg-blue-600 text-white rounded-lg p-3 text-sm shadow-sm"
             >
               Support — Welcome to HelpDesk! Your ticket is being routed, an
               agent will join shortly.
@@ -349,55 +350,69 @@ export default function ChatBox({ selected, userEmail: propUserEmail }) {
                 </motion.div>
               ) : null}
 
-              {messages.map((m) => (
-                <motion.div
-                  key={m.id}
-                  variants={{
-                    hidden: { opacity: 0, y: 6 },
-                    visible: { opacity: 1, y: 0 },
-                    exit: { opacity: 0, y: -6 },
-                  }}
-                  initial="hidden"
-                  animate="visible"
-                  exit="exit"
-                  className={`p-3 rounded-lg max-w-[85%] md:max-w-[75%] ${
-                    m.role === CURRENT_ROLE
-                      ? "bg-blue-600 text-white ml-auto"
-                      : "bg-slate-100 text-slate-800 border border-slate-200"
-                  }`}
-                >
-                  <div className="text-sm whitespace-pre-wrap break-words">
-                    {m.text}
-                  </div>
-                  <div
-                    className={`text-xs mt-1 flex items-center gap-2 ${
-                      m.role === CURRENT_ROLE
-                        ? "text-blue-100"
-                        : "text-slate-400"
+              {messages.map((m) => {
+                const isCustomer =
+                  m.role === "customer" || m.role === CURRENT_ROLE;
+                return (
+                  <motion.div
+                    key={m.id}
+                    variants={{
+                      hidden: { opacity: 0, y: 6 },
+                      visible: { opacity: 1, y: 0 },
+                      exit: { opacity: 0, y: -6 },
+                    }}
+                    initial="hidden"
+                    animate="visible"
+                    exit="exit"
+                    className={`flex ${
+                      isCustomer ? "justify-end" : "justify-start"
                     }`}
                   >
-                    <span>{format(new Date(m.at), "h:mm a")}</span>
-                    {m.status === "pending" && (
-                      <span className="text-xs text-amber-600">• Sending…</span>
-                    )}
-                    {m.status === "failed" && (
-                      <>
-                        <span className="text-xs text-red-600">• Failed</span>
-                        <button
-                          onClick={() => retryMessage(m)}
-                          className="ml-2 text-xs text-blue-600 underline"
-                        >
-                          Retry
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </motion.div>
-              ))}
+                    <div
+                      className={`p-3 rounded-lg max-w-[75%] shadow-sm ${
+                        isCustomer
+                          ? "bg-blue-600 text-white rounded-tr-none"
+                          : "bg-gray-200 text-gray-800 rounded-tl-none"
+                      }`}
+                    >
+                      <div className="text-sm whitespace-pre-wrap break-words">
+                        {m.text}
+                      </div>
+                      <div
+                        className={`text-xs mt-1.5 flex items-center gap-2 ${
+                          isCustomer ? "text-blue-100" : "text-gray-600"
+                        }`}
+                      >
+                        <span>{format(new Date(m.at), "h:mm a")}</span>
+                        {m.status === "pending" && (
+                          <span className="text-xs text-amber-400">
+                            • Sending…
+                          </span>
+                        )}
+                        {m.status === "failed" && (
+                          <>
+                            <span className="text-xs text-red-300">
+                              • Failed
+                            </span>
+                            <button
+                              onClick={() => retryMessage(m)}
+                              className="ml-2 text-xs underline hover:opacity-80"
+                            >
+                              Retry
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })}
             </AnimatePresence>
 
             {messages.length === 0 && !loading && (
-              <div className="text-sm text-slate-400">No messages yet.</div>
+              <div className="text-sm text-slate-400 text-center py-8">
+                No messages yet.
+              </div>
             )}
           </div>
 

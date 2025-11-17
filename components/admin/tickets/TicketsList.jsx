@@ -148,14 +148,14 @@ export default function TicketsTable({ onOpenChat, selectedId }) {
           const short = (email || "").split?.("@")?.[0] ?? email;
           return (
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center font-medium text-slate-700">
+              <div className="w-11 h-11 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center font-semibold text-white shadow-sm">
                 {String(short).slice(0, 2).toUpperCase()}
               </div>
               <div className="min-w-0">
-                <div className="font-medium text-slate-800 truncate">
+                <div className="font-semibold text-slate-800 truncate">
                   {short}
                 </div>
-                <div className="text-xs text-slate-500 truncate">
+                <div className="text-xs text-slate-500 truncate mt-0.5">
                   {row.original.categoryTitle ?? "No subject"}
                 </div>
               </div>
@@ -203,13 +203,15 @@ export default function TicketsTable({ onOpenChat, selectedId }) {
           const s = getValue();
           const classes =
             s === "resolved"
-              ? "bg-green-50 text-green-700"
+              ? "bg-emerald-100 text-emerald-700 border-emerald-200"
               : s === "pending"
-              ? "bg-amber-50 text-amber-700"
-              : "bg-slate-50 text-slate-700";
+              ? "bg-amber-100 text-amber-700 border-amber-200"
+              : s === "active"
+              ? "bg-blue-100 text-blue-700 border-blue-200"
+              : "bg-slate-100 text-slate-700 border-slate-200";
           return (
             <span
-              className={`inline-block text-xs px-2 py-0.5 rounded ${classes}`}
+              className={`inline-flex items-center text-xs font-semibold px-3 py-1 rounded-full border ${classes}`}
             >
               {s}
             </span>
@@ -271,130 +273,143 @@ export default function TicketsTable({ onOpenChat, selectedId }) {
       <motion.div
         layout
         transition={{ layout: { duration: 0.3, type: "spring" } }}
-        className="rounded-md border border-slate-300 overflow-auto"
+        className="rounded-lg border border-slate-200 overflow-hidden shadow-sm bg-white"
       >
-        <table className="min-w-full divide-y">
-          <thead className="bg-slate-50">
-            {table.getHeaderGroups().map((hg) => (
-              <tr key={hg.id}>
-                {hg.headers.map((header) => (
-                  <th
-                    key={header.id}
-                    className="text-left px-4 py-3 text-xs text-slate-600 font-medium"
-                  >
-                    {header.isPlaceholder ? null : (
-                      <div>
-                        {flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
-                      </div>
-                    )}
-                  </th>
-                ))}
-              </tr>
-            ))}
-          </thead>
-
-          <tbody className="bg-white divide-y divide-slate-00">
-            {loading ? (
-              <tr>
-                <td
-                  colSpan={columns.length}
-                  className="text-center py-8 text-sm  text-slate-500"
-                >
-                  Loading tickets…
-                </td>
-              </tr>
-            ) : table.getRowModel().rows.length === 0 ? (
-              <tr>
-                <td
-                  colSpan={columns.length}
-                  className="text-center py-8 text-sm  text-slate-500"
-                >
-                  No tickets found
-                </td>
-              </tr>
-            ) : (
-              <AnimatePresence>
-                {table.getRowModel().rows.map((row) => {
-                  const t = row.original;
-                  const isSelected = selectedId === t.id;
-                  return (
-                    <motion.tr
-                      key={row.id}
-                      layout
-                      whileHover={{ scale: 1.01 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.2 }}
-                      onClick={() => onOpenChat?.(t)}
-                      className={`cursor-pointer hover:bg-slate-50 border border-slate-100 rounded-md ${
-                        isSelected
-                          ? "bg-slate-50 border-l-4 border-blue-400"
-                          : ""
-                      }`}
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-slate-200">
+            <thead className="bg-gradient-to-r from-slate-50 to-slate-100">
+              {table.getHeaderGroups().map((hg) => (
+                <tr key={hg.id}>
+                  {hg.headers.map((header) => (
+                    <th
+                      key={header.id}
+                      className="text-left px-6 py-4 text-xs font-semibold text-slate-700 uppercase tracking-wider"
                     >
-                      {row.getVisibleCells().map((cell) => (
-                        <td key={cell.id} className="px-4 py-3 align-top">
+                      {header.isPlaceholder ? null : (
+                        <div>
                           {flexRender(
-                            cell.column.columnDef.cell,
-                            cell.getContext()
+                            header.column.columnDef.header,
+                            header.getContext()
                           )}
-                        </td>
-                      ))}
-                    </motion.tr>
-                  );
-                })}
-              </AnimatePresence>
-            )}
-          </tbody>
-        </table>
+                        </div>
+                      )}
+                    </th>
+                  ))}
+                </tr>
+              ))}
+            </thead>
+
+            <tbody className="bg-white divide-y divide-slate-100">
+              {loading ? (
+                <tr>
+                  <td
+                    colSpan={columns.length}
+                    className="text-center py-12 text-sm text-slate-500"
+                  >
+                    <div className="flex items-center justify-center gap-2">
+                      <div className="w-5 h-5 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
+                      <span>Loading tickets…</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : table.getRowModel().rows.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={columns.length}
+                    className="text-center py-12 text-sm text-slate-500"
+                  >
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="text-4xl">📋</div>
+                      <span>No tickets found</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                <AnimatePresence>
+                  {table.getRowModel().rows.map((row) => {
+                    const t = row.original;
+                    const isSelected = selectedId === t.id;
+                    return (
+                      <motion.tr
+                        key={row.id}
+                        layout
+                        whileHover={{ backgroundColor: "#f8fafc", scale: 1.002 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.2 }}
+                        onClick={() => onOpenChat?.(t)}
+                        className={`cursor-pointer transition-all duration-200 ${
+                          isSelected
+                            ? "bg-blue-50 border-l-4 border-blue-500 shadow-sm"
+                            : "hover:bg-slate-50"
+                        }`}
+                      >
+                        {row.getVisibleCells().map((cell) => (
+                          <td
+                            key={cell.id}
+                            className={`px-6 py-4 align-top ${
+                              isSelected ? "text-slate-800" : "text-slate-700"
+                            }`}
+                          >
+                            {flexRender(
+                              cell.column.columnDef.cell,
+                              cell.getContext()
+                            )}
+                          </td>
+                        ))}
+                      </motion.tr>
+                    );
+                  })}
+                </AnimatePresence>
+              )}
+            </tbody>
+          </table>
+        </div>
       </motion.div>
 
       {/* Pagination */}
-      <div className="mt-3 flex items-center justify-between gap-4 text-sm">
+      <div className="mt-4 flex items-center justify-between gap-4 text-sm bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
         <div className="flex items-center gap-2">
           <button
             onClick={() => table.setPageIndex(0)}
             disabled={!table.getCanPreviousPage()}
-            className="px-3 py-1 border border-slate-300 rounded disabled:opacity-40"
+            className="px-4 py-2 border border-slate-300 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 transition-colors font-medium"
           >
             First
           </button>
           <button
             onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
-            className="px-3 py-1 border border-slate-300 rounded disabled:opacity-40"
+            className="px-4 py-2 border border-slate-300 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 transition-colors font-medium"
           >
             Prev
           </button>
 
-          <span className="px-2 text-gray-800">
-            Page <strong>{table.getState().pagination.pageIndex + 1}</strong> of{" "}
-            {table.getPageCount()}
+          <span className="px-4 py-2 text-slate-700 font-medium bg-slate-50 rounded-lg">
+            Page <strong className="text-blue-600">{table.getState().pagination.pageIndex + 1}</strong> of{" "}
+            <strong>{table.getPageCount()}</strong>
           </span>
 
           <button
             onClick={() => table.nextPage()}
             disabled={!table.getCanNextPage()}
-            className="px-3 py-1 border border-slate-300  rounded disabled:opacity-40"
+            className="px-4 py-2 border border-slate-300 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 transition-colors font-medium"
           >
             Next
           </button>
           <button
             onClick={() => table.setPageIndex(table.getPageCount() - 1)}
             disabled={!table.getCanNextPage()}
-            className="px-3 py-1 border border-slate-300  rounded disabled:opacity-40"
+            className="px-4 py-2 border border-slate-300 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 transition-colors font-medium"
           >
             Last
           </button>
         </div>
 
-        <div className="text-slate-500">
-          Showing {table.getRowModel().rows.length} of {filtered.length}{" "}
-          filtered
+        <div className="text-slate-600 font-medium">
+          Showing <span className="text-blue-600 font-semibold">{table.getRowModel().rows.length}</span> of{" "}
+          <span className="text-blue-600 font-semibold">{filtered.length}</span> tickets
         </div>
       </div>
       {error && <div className="mt-2 text-sm text-red-600">{error}</div>}

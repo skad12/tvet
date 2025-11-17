@@ -26,10 +26,7 @@ export default function Navbar({
     null;
   const accountType = user?.account_type ?? user?.role ?? user?.type ?? "user";
   const displayName =
-    user?.name ??
-    user?.full_name ??
-    user?.fullName ??
-    (userEmail ? userEmail.split("@")[0] : "User");
+    user?.username ?? (userEmail ? userEmail.split("@")[0] : "User");
   const displayEmail = userEmail ?? user?.email ?? user?.username ?? "";
   const displayRole = (accountType || "user").toString().toLowerCase();
 
@@ -68,7 +65,7 @@ export default function Navbar({
             <span className="font-medium text-slate-600">
               ID: {userId ? String(userId) : "—"}
             </span>
-            <span className="hidden sm:inline">•</span>
+
             <span className="uppercase tracking-wide text-slate-500">
               {String(accountType || "user")}
             </span>
@@ -76,12 +73,12 @@ export default function Navbar({
         </div>
 
         <div className="flex items-center gap-3 shrink-0 flex-wrap justify-end">
-          <div className="text-right text-xs sm:text-sm">
+          {/* <div className="text-right text-xs sm:text-sm">
             <div className="font-semibold text-slate-800">{displayName}</div>
             <div className="uppercase tracking-wide text-slate-500">
               {displayRole}
             </div>
-          </div>
+          </div> */}
 
           {showCreateTicket && (
             <button

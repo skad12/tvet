@@ -249,12 +249,13 @@ export default function ChatBox({ selected, userEmail: propUserEmail }) {
 
           <div
             ref={containerRef}
-            className="space-y-3 max-h-[320px] overflow-auto mb-4 flex-1"
+            className="flex-1 overflow-y-auto mb-4 space-y-3 p-4 bg-slate-50 rounded-lg border border-slate-200"
+            style={{ maxHeight: "500px", minHeight: "400px" }}
           >
             <motion.div
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-blue-600 text-white rounded p-3 text-sm"
+              className="bg-blue-600 text-white rounded-lg p-3 text-sm shadow-sm"
             >
               Support — Welcome to HelpDesk! Your ticket is being routed, an
               agent will join shortly.
@@ -264,53 +265,76 @@ export default function ChatBox({ selected, userEmail: propUserEmail }) {
               {loading ? (
                 <motion.div
                   key="loading"
-                  className="text-sm text-slate-500 p-3"
+                  className="flex items-center justify-center p-6"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
                 >
-                  Loading messages…
+                  <div className="flex items-center gap-2 text-sm text-slate-500">
+                    <div className="w-4 h-4 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
+                    <span>Loading messages…</span>
+                  </div>
                 </motion.div>
               ) : null}
 
-              {messages.map((m) => (
-                <motion.div
-                  key={m.id}
-                  variants={{
-                    hidden: { opacity: 0, y: 6 },
-                    visible: { opacity: 1, y: 0 },
-                    exit: { opacity: 0, y: -6 },
-                  }}
-                  initial="hidden"
-                  animate="visible"
-                  exit="exit"
-                  className={`p-3 rounded max-w-[90%] ${
-                    m.role === CURRENT_ROLE
-                      ? "bg-slate-100 self-end ml-auto text-slate-800"
-                      : "bg-white border text-slate-800"
-                  }`}
-                >
-                  <div className="text-sm">{m.text}</div>
-                  <div className="text-xs text-slate-400 mt-1 flex items-center gap-2">
-                    <span>{format(new Date(m.at), "PPpp")}</span>
-                    {m.status === "pending" && (
-                      <span className="text-xs text-amber-600">• Sending…</span>
-                    )}
-                    {m.status === "failed" && (
-                      <>
-                        <span className="text-xs text-red-600">• Failed</span>
-                        <button
-                          onClick={() => retryMessage(m)}
-                          className="ml-2 text-xs text-blue-600 underline"
-                        >
-                          Retry
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </motion.div>
-              ))}
+              {messages.map((m) => {
+                const isAgent = m.role === "agent" || m.role === CURRENT_ROLE;
+                return (
+                  <motion.div
+                    key={m.id}
+                    variants={{
+                      hidden: { opacity: 0, y: 6 },
+                      visible: { opacity: 1, y: 0 },
+                      exit: { opacity: 0, y: -6 },
+                    }}
+                    initial="hidden"
+                    animate="visible"
+                    exit="exit"
+                    className={`flex ${isAgent ? "justify-end" : "justify-start"}`}
+                  >
+                    <div
+                      className={`p-3 rounded-lg max-w-[75%] shadow-sm ${
+                        isAgent
+                          ? "bg-gray-200 text-gray-800 rounded-tr-none"
+                          : "bg-blue-600 text-white rounded-tl-none"
+                      }`}
+                    >
+                      <div className="text-sm whitespace-pre-wrap break-words">
+                        {m.text}
+                      </div>
+                      <div
+                        className={`text-xs mt-1.5 flex items-center gap-2 ${
+                          isAgent
+                            ? "text-gray-600"
+                            : "text-blue-100"
+                        }`}
+                      >
+                        <span>{format(new Date(m.at), "h:mm a")}</span>
+                        {m.status === "pending" && (
+                          <span className="text-xs text-amber-600">• Sending…</span>
+                        )}
+                        {m.status === "failed" && (
+                          <>
+                            <span className="text-xs text-red-600">• Failed</span>
+                            <button
+                              onClick={() => retryMessage(m)}
+                              className="ml-2 text-xs underline hover:opacity-80"
+                            >
+                              Retry
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })}
             </AnimatePresence>
 
             {messages.length === 0 && !loading && (
-              <div className="text-sm text-slate-400">No messages yet.</div>
+              <div className="text-sm text-slate-400 text-center py-8">
+                No messages yet.
+              </div>
             )}
           </div>
 

@@ -368,12 +368,12 @@ export default function CreateTicket({
             </div>
           )}
 
-          <div className="text-xs text-slate-500">
+          {/* <div className="text-xs text-slate-500">
             Submitting as:{" "}
             <span className="font-medium text-slate-700">
               {reporterEmail || "—"}
             </span>
-          </div>
+          </div> */}
         </form>
       </motion.div>
     </div>
