@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { format, isValid } from "date-fns";
 import { useAuth } from "@/context/AuthContext";
+import { useUsersDirectory } from "@/hooks/useUsersDirectory";
 
 let api = null;
 try {
@@ -15,9 +16,10 @@ try {
 /**
  * ChatList
  *
- * - Fetches tickets only from /filter-ticket/by-user-id/{id}/ when ticketsProp is not supplied.
- * - Normalizes the response shape you supplied (id, name, email, subject, status boolean, created_at, created_at_display, pub_date).
- * - Maps boolean `status` => 'resolved' (true) or 'active' (false) for tab filtering.
+ * - Always fetches tickets from `/filter-ticket/by-user-id/{id}/` when no tickets prop
+ * - When `tickets` prop is provided we still normalize *and filter* those tickets by the
+ *   effective user id so the UI always shows tickets for that user only.
+ * - Normalizes many possible shapes for ticket objects and status values.
  */
 export default function ChatList({
   tickets: ticketsProp = null,
@@ -25,8 +27,12 @@ export default function ChatList({
   setSelected,
   loading: loadingProp = false,
   userId: propUserId = null,
+  userEmail: propUserEmail = null,
+  // if true, force fetching from the server even when ticketsProp is provided
+  forceFetch = false,
 }) {
   const { user, token } = useAuth?.() ?? {};
+  const { users: directory } = useUsersDirectory({ enabled: true });
 
   const authUserId =
     user?.app_user_id ??
@@ -38,10 +44,18 @@ export default function ChatList({
     user?.pk ??
     null;
 
+  const authUserEmail =
+    user?.email ??
+    user?.username ??
+    (Array.isArray(user?.emails) ? user.emails[0] : null) ??
+    user?.contact_email ??
+    null;
+
   const effectiveUserId = propUserId ?? authUserId;
+  const effectiveUserEmail = propUserEmail ?? authUserEmail;
 
   // always default to empty; we'll fetch by user id if ticketsProp is not provided
-  const [tickets, setTickets] = useState(ticketsProp ?? []);
+  const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(Boolean(loadingProp || !ticketsProp));
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState("all");
@@ -53,21 +67,55 @@ export default function ChatList({
     { id: "resolved", label: "Resolved" },
   ];
 
-  // Normalize a single ticket object from your provided API shape
+  // Normalize a single ticket object from various API shapes
   function normalizeTicket(t) {
     const id = t?.id ?? t?.pk ?? null;
     const subject = t?.subject ?? t?.title ?? null;
-    const name = t?.name ?? null;
+    const name = t?.name ?? t?.reporter_name ?? null;
     const email = t?.email ?? t?.reporter_email ?? "";
-    // status from supplied body is boolean - interpret true => resolved
-    const statusBool =
-      typeof t?.status === "boolean" ? t.status : Boolean(t?.status);
-    const status = statusBool ? "resolved" : "active"; // map to our status strings
+
+    const progressLabel =
+      typeof t?.progress === "string" && t.progress.trim().length > 0
+        ? t.progress.trim()
+        : null;
+    const statusBool = typeof t?.status === "boolean" ? t.status : undefined;
+    const statusStr = typeof t?.status === "string" ? t.status : undefined;
+    const fallbackStatus = statusBool ?? statusStr ?? t?.state ?? null;
+
+    let statusDisplay;
+    if (progressLabel) {
+      statusDisplay = progressLabel;
+    } else if (fallbackStatus === true) {
+      statusDisplay = "Resolved";
+    } else if (fallbackStatus === false) {
+      statusDisplay = "Active";
+    } else if (
+      typeof fallbackStatus === "string" &&
+      fallbackStatus.trim().length > 0
+    ) {
+      statusDisplay = fallbackStatus.trim();
+    } else {
+      statusDisplay = "Active";
+    }
+
+    const statusKey = statusDisplay ? statusDisplay.toLowerCase() : "active";
+
     const created_at = t?.created_at ?? t?.createdAt ?? t?.pub_date ?? null;
     const created_at_display = t?.created_at_display ?? null;
     const preview =
       t?.preview ??
       (t?.progress ? String(t.progress).slice(0, 80) : "") ??
+      null;
+
+    // capture a set of possible user id fields so we can filter by user later
+    const ticketUserId =
+      t?.user_id ??
+      t?.userId ??
+      t?.reporter_id ??
+      t?.owner ??
+      t?.created_by ??
+      t?.assigned_to_id ??
+      t?.assigned_to?.id ??
       null;
 
     return {
@@ -76,11 +124,13 @@ export default function ChatList({
       name,
       displaySubject: subject ?? name ?? "No subject",
       email,
-      status,
+      status: statusKey,
+      statusDisplay,
       created_at,
       created_at_display,
       preview,
       raw: t,
+      ticketUserId,
     };
   }
 
@@ -97,12 +147,62 @@ export default function ChatList({
     }
   }
 
+  // Helper: check whether a normalized ticket belongs to the effective user id
+  function ticketBelongsToUser(normalized, effId, effEmail) {
+    if (!effId && !effEmail) return false;
+    // compare to possible identifiers and emails
+    const raw = normalized.raw ?? {};
+    const idCandidates = [
+      normalized.ticketUserId,
+      raw?.user_id,
+      raw?.userId,
+      raw?.reporter_id,
+      raw?.owner,
+      raw?.created_by,
+      raw?.user?.id,
+      raw?.reporter?.id,
+      raw?.assigned_to_id,
+      raw?.assigned_to?.id,
+    ];
+    const emailCandidates = [
+      normalized.email,
+      raw?.email,
+      raw?.reporter_email,
+      raw?.user_email,
+      raw?.customer_email,
+      raw?.assigned_to_email,
+      raw?.reporter?.email,
+      raw?.user?.email,
+    ];
+
+    const idMatch = effId
+      ? idCandidates.some((c) => c != null && String(c) === String(effId))
+      : false;
+    const emailMatch = effEmail
+      ? emailCandidates.some(
+          (c) => c && String(c).toLowerCase() === String(effEmail).toLowerCase()
+        )
+      : false;
+
+    return idMatch || emailMatch;
+  }
+
   // Fetch tickets by user id using the required endpoint
   useEffect(() => {
-    // If tickets are supplied as prop, keep them (but still we normalize them)
-    if (ticketsProp) {
+    // If tickets are supplied as prop, normalize *and filter* them by user id
+    if (ticketsProp && !forceFetch) {
       const arr = Array.isArray(ticketsProp) ? ticketsProp : [ticketsProp];
-      setTickets(arr.map(normalizeTicket));
+      const normalized = arr.map(normalizeTicket);
+      const shouldFilter = Boolean(effectiveUserId || effectiveUserEmail);
+      const filteredByUser = shouldFilter
+        ? normalized.filter((n) =>
+            ticketBelongsToUser(n, effectiveUserId, effectiveUserEmail)
+          )
+        : normalized;
+
+      setTickets(filteredByUser);
+      if (filteredByUser.length > 0 && !selected)
+        setSelected?.(filteredByUser[0]);
       setLoading(false);
       setError(null);
       return;
@@ -112,19 +212,17 @@ export default function ChatList({
     const ac = new AbortController();
 
     async function load() {
-      if (!effectiveUserId) {
+      if (!effectiveUserId && !effectiveUserEmail) {
         setTickets([]);
         setLoading(false);
-        setError("No user id to fetch tickets for.");
+        setError("No user identity to fetch tickets for.");
         return;
       }
 
       setLoading(true);
       setError(null);
 
-      const endpointRelative = `/filter-ticket/by-user-id/${encodeURIComponent(
-        effectiveUserId
-      )}/`;
+      const endpointRelative = `/tickets/`;
 
       try {
         let data;
@@ -171,11 +269,20 @@ export default function ChatList({
         else arr = [data];
 
         const normalized = arr.map(normalizeTicket);
-        setTickets(normalized);
+
+        // double-check server-side filtering — keep only tickets that match the effective user id
+        const shouldFilter = Boolean(effectiveUserId || effectiveUserEmail);
+        const filteredByUser = shouldFilter
+          ? normalized.filter((n) =>
+              ticketBelongsToUser(n, effectiveUserId, effectiveUserEmail)
+            )
+          : normalized;
+
+        setTickets(filteredByUser);
 
         // auto-select first if none selected
-        if (normalized.length > 0 && !selected) {
-          setSelected?.(normalized[0]);
+        if (filteredByUser.length > 0 && !selected) {
+          setSelected?.(filteredByUser[0]);
         }
       } catch (err) {
         if (err.name === "AbortError") return;
@@ -193,8 +300,15 @@ export default function ChatList({
       mounted = false;
       ac.abort();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [effectiveUserId, token, ticketsProp, setSelected, selected]);
+  }, [
+    effectiveUserId,
+    effectiveUserEmail,
+    token,
+    ticketsProp,
+    setSelected,
+    selected,
+    forceFetch,
+  ]);
 
   const owned = useMemo(
     () => (Array.isArray(tickets) ? tickets : []),
@@ -205,10 +319,10 @@ export default function ChatList({
   const counts = useMemo(() => {
     const map = { all: owned.length, active: 0, pending: 0, resolved: 0 };
     owned.forEach((t) => {
-      const s = t.status ?? "";
-      if (s === "active") map.active++;
-      else if (s === "pending" || s === "waiting") map.pending++;
+      const s = (t.status ?? "").toLowerCase();
+      if (s === "pending" || s === "waiting") map.pending++;
       else if (s === "resolved") map.resolved++;
+      else map.active++;
     });
     return map;
   }, [owned]);
@@ -228,8 +342,8 @@ export default function ChatList({
   };
 
   return (
-    <motion.div layout className="bg-white rounded shadow-sm p-0">
-      <div className="h-[520px] md:h-[420px] overflow-auto">
+    <motion.div layout className="bg-white rounded-lg shadow-sm p-0">
+      <div className="h-[calc(100vh-300px)] md:h-[600px] lg:h-[520px] overflow-auto">
         <div className="sticky top-0 z-30 bg-white border-b border-slate-200">
           <div className="flex items-center justify-between p-4">
             <h3 className="text-lg font-medium text-slate-800">Your Tickets</h3>
@@ -273,28 +387,56 @@ export default function ChatList({
 
         <div className="p-4">
           {loading ? (
-            <div className="p-6 text-sm text-slate-500">Loading tickets…</div>
+            <div className="p-6 flex items-center justify-center gap-2 text-sm text-slate-500">
+              <div className="w-4 h-4 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
+              <span>Loading tickets…</span>
+            </div>
           ) : error ? (
             <div className="p-4 text-sm text-red-600">{error}</div>
           ) : filtered.length === 0 ? (
-            <div className="p-6 text-sm text-slate-500">
-              No tickets found for this user.
+            <div className="p-6 text-sm text-slate-500 text-center">
+              <p className="font-medium">No tickets found</p>
+              <p className="text-xs mt-1">Create a new ticket to get started</p>
             </div>
           ) : (
             <ul className="space-y-3">
               {filtered.map((t, idx) => {
                 const subject = t.displaySubject ?? "No subject";
                 const email = t.email ?? "";
-                const status = t.status ?? "—";
+                const statusKey = (t.status ?? "active").toLowerCase();
+                const statusLabel =
+                  t.statusDisplay ??
+                  (statusKey
+                    ? statusKey.charAt(0).toUpperCase() + statusKey.slice(1)
+                    : "—");
                 const time = t.created_at ?? t.created_at_display ?? "";
+                const assignedToId =
+                  t.raw?.assigned_to_id ??
+                  t.raw?.assigned_to ??
+                  t.raw?.agent_id ??
+                  t.assigned_to_id ??
+                  t.assigned_to ??
+                  null;
+                const assignedUser =
+                  directory.find(
+                    (person) =>
+                      person?.id && String(person.id) === String(assignedToId)
+                  ) ?? null;
+                const assignedLabel =
+                  assignedUser?.name && assignedUser.name !== "null"
+                    ? assignedUser.name
+                    : assignedUser?.username ??
+                      assignedUser?.email ??
+                      t.raw?.assigned_to_name ??
+                      null;
                 const pillClass =
-                  status === "resolved"
+                  statusKey === "resolved"
                     ? "bg-emerald-50 text-emerald-700 border border-emerald-100"
-                    : status === "waiting"
+                    : statusKey === "waiting"
                     ? "bg-amber-50 text-amber-700 border border-amber-100"
-                    : status === "pending"
+                    : statusKey === "pending"
                     ? "bg-amber-50 text-amber-700 border border-amber-100"
-                    : status === "active"
+                    : statusKey === "active" || statusKey === "open"
                     ? "bg-sky-50 text-sky-700 border border-sky-100"
                     : "bg-slate-50 text-slate-700 border border-slate-100";
 
@@ -304,12 +446,27 @@ export default function ChatList({
                     initial="hidden"
                     animate="visible"
                     variants={listItem}
-                    className={`bg-white rounded-lg p-4 border border-slate-200 flex items-center justify-between shadow-sm cursor-pointer ${
+                    className={`bg-white rounded-lg p-4 border border-slate-200 flex items-center justify-between shadow-sm cursor-pointer transition-colors ${
                       selected?.id === t.id
-                        ? "ring-2 ring-blue-200"
+                        ? "ring-2 ring-blue-500 bg-blue-50"
                         : "hover:bg-slate-50"
                     }`}
-                    onClick={() => setSelected?.(t)}
+                    onClick={() => {
+                      setSelected?.(t);
+                      // On mobile, scroll chat into view after selection
+                      if (window.innerWidth < 1024) {
+                        setTimeout(() => {
+                          const chatElement =
+                            document.querySelector("[data-chat-box]");
+                          if (chatElement) {
+                            chatElement.scrollIntoView({
+                              behavior: "smooth",
+                              block: "nearest",
+                            });
+                          }
+                        }, 100);
+                      }
+                    }}
                   >
                     <div className="min-w-0">
                       <div className="font-medium text-slate-800 truncate">
@@ -318,6 +475,11 @@ export default function ChatList({
                       <div className="text-xs text-slate-500 mt-1 truncate">
                         {email || t.name || "From Widget"}
                       </div>
+                      {assignedLabel && (
+                        <div className="text-[11px] uppercase text-slate-400 mt-0.5">
+                          Assigned to: {assignedLabel}
+                        </div>
+                      )}
                       {t.preview && (
                         <div className="text-xs text-slate-400 mt-1 truncate">
                           {t.preview}
@@ -329,7 +491,7 @@ export default function ChatList({
                       <span
                         className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-medium ${pillClass}`}
                       >
-                        {status}
+                        {statusLabel}
                       </span>
                       <div className="text-xs text-slate-400 mt-2">
                         {formatMaybeDate(time, t.created_at_display)}

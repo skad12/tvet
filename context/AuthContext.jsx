@@ -1,7 +1,8 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect } from "react";
 import api from "@/lib/axios";
+import { useUserStore } from "@/stores/useUserStore";
 
 const AuthContext = createContext(null);
 
@@ -9,27 +10,46 @@ const AuthContext = createContext(null);
  * Named export: AuthProvider
  * - Client component (use client)
  * - Exposes: user, token, loading, signIn, signOut
+ * - Now uses Zustand store internally for unified state management
  */
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-  const [token, setToken] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const {
+    user,
+    token,
+    loading,
+    setUser,
+    setToken,
+    clearUser,
+    setLoading,
+    setError,
+  } = useUserStore();
 
+  // Initialize from localStorage on mount
   useEffect(() => {
     try {
-      const rawUser =
-        typeof window !== "undefined" && localStorage.getItem("user");
-      const rawToken =
-        typeof window !== "undefined" && localStorage.getItem("token");
-      if (rawUser) setUser(JSON.parse(rawUser));
-      if (rawToken) setToken(rawToken);
+      if (typeof window === "undefined") return;
+      const rawUser = localStorage.getItem("user");
+      const rawToken = localStorage.getItem("token");
+      if (rawUser && !user) {
+        try {
+          const parsedUser = JSON.parse(rawUser);
+          setUser(parsedUser);
+        } catch (e) {
+          console.warn("Failed to parse user from localStorage", e);
+        }
+      }
+      if (rawToken && !token) {
+        setToken(rawToken);
+      }
     } catch (e) {
       console.warn("Auth bootstrap failed", e);
     }
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run once on mount
 
   async function signIn({ username, password }) {
     setLoading(true);
+    setError(null);
     try {
       const res = await api.post("/sign-in/", { username, password });
       const data = res?.data ?? {};
@@ -39,16 +59,27 @@ export function AuthProvider({ children }) {
         data.user ?? { id: data.id, account_type: data.account_type } ?? data;
 
       if (resolvedToken) {
+        setToken(resolvedToken);
+        // Also store in localStorage for backward compatibility
         try {
           localStorage.setItem("token", resolvedToken);
         } catch (e) {}
       }
-      try {
-        localStorage.setItem("user", JSON.stringify(returnedUser));
-      } catch (e) {}
-
-      setUser(returnedUser);
-      setToken(resolvedToken);
+      if (returnedUser) {
+        setUser(returnedUser);
+        // Also store in localStorage for backward compatibility
+        try {
+          localStorage.setItem("user", JSON.stringify(returnedUser));
+          const role =
+            returnedUser.account_type ??
+            returnedUser.role ??
+            returnedUser.type ??
+            null;
+          if (role) {
+            localStorage.setItem("account_type", role);
+          }
+        } catch (e) {}
+      }
 
       return { ok: true, user: returnedUser, token: resolvedToken, raw: data };
     } catch (err) {
@@ -57,6 +88,7 @@ export function AuthProvider({ children }) {
         err?.response?.data?.detail ||
         err?.message ||
         "Sign-in failed";
+      setError(message);
       return {
         ok: false,
         error: message,
@@ -68,13 +100,13 @@ export function AuthProvider({ children }) {
   }
 
   function signOut(redirect = null) {
-    try {
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-    } catch (e) {}
-    setUser(null);
-    setToken(null);
+    clearUser(); // This will clear both user and token, and localStorage
+    // Clear tickets as well when logging out
+    useUserStore.getState().setTickets([]);
     // optionally use the router to redirect if you want
+    if (redirect && typeof window !== "undefined") {
+      window.location.href = redirect;
+    }
   }
 
   return (

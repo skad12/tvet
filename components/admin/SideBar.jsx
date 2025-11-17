@@ -289,7 +289,7 @@ const navItems = [
   { name: "Logout", href: "/", icon: LogOut, isLogout: true },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({ onClose }) {
   const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
   const { user, signOut } = useAuth();
@@ -400,6 +400,12 @@ export default function Sidebar() {
                     href={item.href}
                     className={`${linkBase} ${collapsedLayout} ${activeClasses}`}
                     title={collapsed ? item.name : undefined}
+                    onClick={() => {
+                      // Close mobile menu on navigation
+                      if (onClose && window.innerWidth < 768) {
+                        onClose();
+                      }
+                    }}
                   >
                     <Icon size={18} aria-hidden />
                     {!collapsed && <span className="text-sm">{item.name}</span>}

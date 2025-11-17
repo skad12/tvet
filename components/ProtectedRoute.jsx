@@ -39,8 +39,9 @@ export default function ProtectedRoute({
 
   useEffect(() => {
     if (loading) return;
-
+    let cancelled = false;
     const doCheck = async () => {
+      if (!cancelled) setChecking(true);
       try {
         const normalizedFallback = normalizePath(fallback);
 
@@ -73,15 +74,18 @@ export default function ProtectedRoute({
           return;
         }
 
-        setChecking(false);
+        if (!cancelled) setChecking(false);
       } catch (err) {
         console.error("ProtectedRoute check failed (permissive):", err);
         // permissive fallback: render children
-        setChecking(false);
+        if (!cancelled) setChecking(false);
       }
     };
 
     doCheck();
+    return () => {
+      cancelled = true;
+    };
   }, [allowedRoles, fallback, loading, pathname, router, user]);
 
   if (loading || checking) {

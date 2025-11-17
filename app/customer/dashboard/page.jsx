@@ -1,37 +1,41 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { useAuth } from "@/context/AuthContext";
+import { useUserStore } from "@/stores/useUserStore";
 import api from "@/lib/axios";
 
 import Navbar from "@/components/customer/Topbar";
-import ChatBox from "@/components/customer/ChatBox";
-import ChatList from "@/components/customer/ChatList";
+import ChatBox from "@/components/customer/CustomerChatBox";
+import ChatList from "@/components/customer/CustomerChatList";
 
 export default function CustomerDashboardPage() {
-  const [tickets, setTickets] = useState([]);
-  const [loadingTickets, setLoadingTickets] = useState(true);
-  const [ticketsError, setTicketsError] = useState(null);
   const [selected, setSelected] = useState(null);
 
   const { user } = useAuth();
+  const {
+    tickets,
+    ticketsLoading,
+    ticketsError,
+    setTickets,
+    setTicketsLoading,
+    setTicketsError,
+  } = useUserStore();
 
+  // Get user info from user object
   const userId = useMemo(() => {
     if (!user) return null;
-    const candidates = [
-      user.app_user_id,
-      user.appUserId,
-      user.user_id,
-      user.userId,
-      user.id,
-      user.uid,
-      user.pk,
-    ];
-    for (const c of candidates) {
-      if (c !== undefined && c !== null && c !== "") return c;
-    }
-    return null;
+    return (
+      user.app_user_id ??
+      user.appUserId ??
+      user.user_id ??
+      user.userId ??
+      user.id ??
+      user.uid ??
+      user.pk ??
+      null
+    );
   }, [user]);
 
   const userEmail = useMemo(() => {
@@ -104,61 +108,91 @@ export default function CustomerDashboardPage() {
     return false;
   }
 
-  async function fetchTickets(currentUserId, currentEmail) {
-    setLoadingTickets(true);
-    setTicketsError(null);
-    try {
-      let data = null;
-      if (api && typeof api.get === "function") {
-        const res = await api.get("/tickets");
-        data = res?.data;
-      } else {
-        const res = await fetch("/tickets", {
-          method: "GET",
-          headers: { "Content-Type": "application/json" },
-        });
-        if (!res.ok) {
-          throw new Error(`Failed to fetch tickets (${res.status})`);
+  const fetchTickets = useCallback(
+    async (currentUserId, currentEmail) => {
+      setTicketsLoading(true);
+      setTicketsError(null);
+      try {
+        let data = null;
+        const endpointRelative = "/tickets/";
+        if (api && typeof api.get === "function") {
+          const res = await api.get(endpointRelative);
+          data = res?.data;
+        } else {
+          const res = await fetch(endpointRelative, {
+            method: "GET",
+            headers: { "Content-Type": "application/json" },
+          });
+          if (!res.ok) {
+            throw new Error(`Failed to fetch tickets (${res.status})`);
+          }
+          data = await res.json();
         }
-        data = await res.json();
+
+        const allTickets = Array.isArray(data)
+          ? data
+          : data?.tickets ?? data ?? [];
+
+        // Store all tickets in the store
+        setTickets(allTickets);
+
+        // Filter for current user and select first
+        const filtered = allTickets.filter((ticket) =>
+          ticketBelongsToUser(ticket, currentUserId, currentEmail)
+        );
+
+        if (filtered.length > 0 && !selected) {
+          setSelected(filtered[0]);
+        }
+      } catch (err) {
+        console.error("Failed to load tickets", err);
+        setTickets([]);
+        setTicketsError(err?.message ?? "Failed to load tickets");
+      } finally {
+        setTicketsLoading(false);
       }
+    },
+    [setTickets, setTicketsLoading, setTicketsError, selected]
+  );
 
-      const allTickets = Array.isArray(data)
-        ? data
-        : data?.tickets ?? data ?? [];
-
-      const filtered = allTickets.filter((ticket) =>
-        ticketBelongsToUser(ticket, currentUserId, currentEmail)
-      );
-
-      setTickets(allTickets);
-      setSelected(filtered.length > 0 ? filtered[0] : null);
-    } catch (err) {
-      console.error("Failed to load tickets", err);
-      setTickets([]);
-      setSelected(null);
-      setTicketsError(err?.message ?? "Failed to load tickets");
-    } finally {
-      setLoadingTickets(false);
-    }
-  }
-
+  // Fetch tickets when user is available
   useEffect(() => {
     if (!userId && !userEmail) return;
     fetchTickets(userId, userEmail);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId, userEmail]);
+  }, [userId, userEmail, fetchTickets]);
 
   useEffect(() => {
-    if (!selected || !userId) return;
-    if (!ticketBelongsToUser(selected, userId, userEmail)) {
-      const next = tickets.find((ticket) =>
-        ticketBelongsToUser(ticket, userId, userEmail)
-      );
-      setSelected(next ?? null);
+    if (!userId && !userEmail) return;
+    const interval = setInterval(
+      () => fetchTickets(userId, userEmail),
+      10000
+    );
+    return () => clearInterval(interval);
+  }, [userId, userEmail, fetchTickets]);
+
+  // Filter tickets for current user
+  const userTickets = useMemo(() => {
+    if (!tickets.length || (!userId && !userEmail)) return [];
+    return tickets.filter((ticket) =>
+      ticketBelongsToUser(ticket, userId, userEmail)
+    );
+  }, [tickets, userId, userEmail]);
+
+  // Update selected ticket when user tickets change
+  useEffect(() => {
+    if (!userTickets.length) {
+      setSelected(null);
+      return;
+    }
+
+    // If current selected ticket doesn't belong to user, select first user ticket
+    if (selected && !ticketBelongsToUser(selected, userId, userEmail)) {
+      setSelected(userTickets[0]);
+    } else if (!selected) {
+      setSelected(userTickets[0]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tickets, userId, userEmail]);
+  }, [userTickets, userId, userEmail]);
 
   return (
     <ProtectedRoute allowed={["customer"]}>
@@ -166,27 +200,86 @@ export default function CustomerDashboardPage() {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35 }}
-        className="min-h-screen bg-slate-50 py-4"
+        className="min-h-screen bg-slate-50 py-4 md:py-6"
       >
-        <div className="max-w-7xl mx-auto px-4">
-          <Navbar userEmail={userEmail || undefined} />
+        <div className="max-w-7xl mx-auto px-4 md:px-6">
+          <Navbar
+            userEmail={userEmail || undefined}
+            onTicketCreated={() => {
+              // Refresh tickets after creation
+              if (userId || userEmail) {
+                fetchTickets(userId, userEmail);
+              }
+            }}
+          />
           {ticketsError && (
-            <div className="mb-4 rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
               {ticketsError}
             </div>
           )}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <ChatBox selected={selected} userEmail={userEmail || undefined} />
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+            {/* Chat box - hidden on mobile when no ticket selected, shown on larger screens */}
+            <div className={`${selected ? "block" : "hidden"} lg:block`}>
+              <ChatBox selected={selected} userEmail={userEmail || undefined} />
+            </div>
+            {/* Chat list - full width on mobile, 2/3 on desktop */}
             <div className="lg:col-span-2">
               <ChatList
-                tickets={tickets}
+                tickets={userTickets}
                 selected={selected}
                 setSelected={setSelected}
-                loading={loadingTickets}
+                loading={ticketsLoading}
                 userId={userId ?? undefined}
+                userEmail={userEmail || undefined}
               />
-              {/* <AdBox /> */}
             </div>
+            {/* Mobile chat box - shown when ticket selected */}
+            {selected && (
+              <motion.div
+                initial={{ opacity: 0, y: 100 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 100 }}
+                className="lg:hidden fixed inset-x-4 bottom-4 z-50 max-h-[75vh]"
+              >
+                <div className="bg-white rounded-lg shadow-xl border border-slate-200 flex flex-col h-full">
+                  <div className="p-4 border-b border-slate-200 flex items-center justify-between flex-shrink-0">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-medium text-slate-800 text-sm truncate">
+                        {selected.subject || "Chat"}
+                      </h3>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        {selected.email || userEmail}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setSelected(null)}
+                      className="ml-2 p-2 rounded-lg text-slate-500 hover:bg-slate-100 flex-shrink-0"
+                      aria-label="Close chat"
+                    >
+                      <svg
+                        className="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M6 18L18 6M6 6l12 12"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                  <div className="flex-1 overflow-hidden min-h-0">
+                    <ChatBox
+                      selected={selected}
+                      userEmail={userEmail || undefined}
+                    />
+                  </div>
+                </div>
+              </motion.div>
+            )}
           </div>
         </div>
       </motion.div>

@@ -169,7 +169,7 @@ export default function TicketForm() {
 
       <form onSubmit={submit} className="space-y-4">
         {/* Category is defaulted to "General" and shown as a pill */}
-        <div>
+        {/* <div>
           <label className="block text-sm font-medium mb-2">Category</label>
           <div className="inline-flex items-center gap-2">
             <span className="inline-flex items-center justify-center px-3 py-1 rounded-full text-sm font-medium bg-slate-50 text-slate-700 border border-slate-200">
@@ -181,7 +181,7 @@ export default function TicketForm() {
               </span>
             )}
           </div>
-        </div>
+        </div> */}
 
         <label className="block text-sm font-medium">Description</label>
         <textarea

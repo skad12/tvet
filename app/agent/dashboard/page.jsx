@@ -6,8 +6,8 @@ import { useAuth } from "@/context/AuthContext";
 import api from "@/lib/axios";
 
 import Navbar from "@/components/customer/Topbar";
-import ChatBox from "@/components/customer/ChatBox";
-import ChatList from "@/components/customer/ChatList";
+import ChatBox from "@/components/customer/CustomerChatBox";
+import ChatList from "@/components/customer/CustomerChatList";
 
 export default function AgentDashboardPage() {
   const [tickets, setTickets] = useState([]);
@@ -50,6 +50,8 @@ export default function AgentDashboardPage() {
       const idCandidates = [
         ticket.agent_id,
         ticket.agentId,
+        ticket.assigned_to_id,
+        ticket.assigned_to?.id,
         ticket.assignee_id,
         ticket.assigneeId,
         ticket.assigned_to,
@@ -75,6 +77,8 @@ export default function AgentDashboardPage() {
       const emailCandidates = [
         ticket.agent_email,
         ticket.agentEmail,
+        ticket.assigned_to_email,
+        ticket.assigned_to?.email,
         ticket.email,
         ticket.requester_email,
         ticket.requesterEmail,
@@ -98,11 +102,12 @@ export default function AgentDashboardPage() {
     setTicketsError(null);
     try {
       let data = null;
+      const endpointRelative = "/tickets/";
       if (api && typeof api.get === "function") {
-        const res = await api.get("/tickets");
+        const res = await api.get(endpointRelative);
         data = res?.data;
       } else {
-        const res = await fetch("/tickets", {
+        const res = await fetch(endpointRelative, {
           method: "GET",
           headers: { "Content-Type": "application/json" },
         });
@@ -139,6 +144,16 @@ export default function AgentDashboardPage() {
   }, [userId, userEmail]);
 
   useEffect(() => {
+    if (!userId && !userEmail) return;
+    const interval = setInterval(
+      () => fetchTickets(userId, userEmail),
+      10000
+    );
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, userEmail]);
+
+  useEffect(() => {
     if (!selected || !userId) return;
     if (!ticketBelongsToUser(selected, userId, userEmail)) {
       const next = tickets.find((ticket) =>
@@ -158,7 +173,7 @@ export default function AgentDashboardPage() {
         className="min-h-screen bg-slate-50 py-4"
       >
         <div className="max-w-7xl mx-auto px-4">
-          <Navbar userEmail={userEmail || undefined} />
+          <Navbar userEmail={userEmail || undefined} showCreateTicket={false} />
           {ticketsError && (
             <div className="mb-4 rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
               {ticketsError}
@@ -173,6 +188,7 @@ export default function AgentDashboardPage() {
                 setSelected={setSelected}
                 loading={loadingTickets}
                 userId={userId ?? undefined}
+                userEmail={userEmail || undefined}
               />
               {/* Additional agent-specific components can be added here */}
             </div>

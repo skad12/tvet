@@ -9,6 +9,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import logo from "@/public/images/tvet-logo.png";
 import api from "@/lib/axios"; // if missing, the code falls back to fetch
+import { useUserStore } from "@/stores/useUserStore";
 
 // ----- validation schema -----
 const RegisterSchema = z
@@ -42,6 +43,7 @@ export default function RegisterForm({
   const [showPopup, setShowPopup] = useState(false);
   const [serverError, setServerError] = useState(null);
   const popupTimer = useRef(null);
+  const { setUser, setToken } = useUserStore();
 
   const {
     register,
@@ -114,15 +116,35 @@ export default function RegisterForm({
         returned.access_token ??
         returned.jwt ??
         null;
+      const fallbackUser = user ?? {
+        name: payload.name,
+        email: payload.email,
+        phone_number: payload.phone_number,
+        account_type: payload.account_type,
+        username: payload.username ?? payload.email.split("@")[0],
+      };
+      const resolvedUser = fallbackUser;
+      const resolvedRole =
+        resolvedUser.account_type ??
+        resolvedUser.role ??
+        resolvedUser.type ??
+        payload.account_type;
       try {
         if (typeof window !== "undefined") {
-          if (user) localStorage.setItem("user", JSON.stringify(user));
+          if (resolvedUser)
+            localStorage.setItem("user", JSON.stringify(resolvedUser));
           if (token) localStorage.setItem("token", token);
           localStorage.setItem("tvet_user_email", values.email.trim());
+          if (resolvedRole)
+            localStorage.setItem("account_type", String(resolvedRole));
         }
       } catch (err) {
         console.warn("localStorage save failed", err);
       }
+
+      // hydrate auth store immediately so dashboard has data without reload
+      setUser(resolvedUser);
+      setToken(token ?? null);
 
       // success UI
       setShowPopup(true);

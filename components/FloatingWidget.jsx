@@ -22,7 +22,7 @@ export default function FloatingWidget({
       {/* Popup container */}
       <div
         id="floating-iframe-popup"
-        className={`fixed bottom-24 right-5 sm:right-5 left-5 sm:left-auto w-[90vw] sm:w-[400px] h-[65vh] sm:h-[550px] bg-white rounded-xl shadow-lg overflow-hidden z-[999999] ${
+        className={`fixed bottom-24 right-5 w-[400px] h-[550px] bg-white rounded-xl shadow-lg overflow-hidden z-[999999] ${
           open ? "block" : "hidden"
         }`}
       >
