@@ -8,6 +8,7 @@ import NavBar from "../components/NavBar";
 import Footer from "../components/Footer";
 import FloatingWidget from "@/components/FloatingWidget";
 import FAQ from "@/components/support/Faq";
+import TicketForm from "@/components/support/TicketForm";
 
 const fadeInUp = {
   hidden: { opacity: 0, y: 20 },
@@ -40,7 +41,7 @@ export default function Home() {
                 general student onboarding — open a ticket and track progress
                 from start to finish.
               </p>
-
+              {/* 
               <motion.div
                 variants={fadeInUp}
                 transition={{ delay: 0.1 }}
@@ -58,7 +59,7 @@ export default function Home() {
                 >
                   Register
                 </Link>
-              </motion.div>
+              </motion.div> */}
             </motion.div>
 
             <motion.div
@@ -138,112 +139,18 @@ export default function Home() {
               transition={{ duration: 0.4 }}
               className="bg-white rounded shadow p-6"
             >
-              <h2 className="text-2xl font-semibold mb-4">
-                Frequently Asked Questions
-              </h2>
-
+              <div>
+                <TicketForm />
+              </div>
               <div className="space-y-3">
                 <FAQ />
               </div>
             </motion.section>
 
             {/* CTA */}
-            <motion.section
-              variants={fadeInUp}
-              transition={{ duration: 0.4 }}
-              className="flex flex-col md:flex-row items-center justify-between bg-gradient-to-r from-slate-50 to-slate-100 p-6 rounded shadow"
-            >
-              <div>
-                <h3 className="text-lg font-semibold">Need help now?</h3>
-                <p className="text-gray-600 mt-1">
-                  Open a ticket and one of our support agents will contact you.
-                </p>
-              </div>
-              <div className="mt-4 md:mt-0">
-                <Link
-                  href="/support"
-                  className="px-5 py-3 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
-                >
-                  Create Ticket
-                </Link>
-              </div>
-            </motion.section>
+            {/*  */}
 
             {/* Contact */}
-            <motion.section
-              id="contact"
-              variants={fadeInUp}
-              transition={{ duration: 0.4 }}
-              className="grid md:grid-cols-2 gap-8 items-start"
-            >
-              <div className="bg-white p-6 rounded  border border-slate-200 shadow">
-                <h2 className="text-2xl font-semibold">Contact Us</h2>
-                <p className="mt-2 text-gray-600">
-                  Prefer email or phone? Use the details below.
-                </p>
-                <div className="mt-4 space-y-2 text-gray-700">
-                  <div>
-                    <strong>Email:</strong>{" "}
-                    <a
-                      className="text-blue-600"
-                      href="mailto:support@tvet.local"
-                    >
-                      support@tvet.local
-                    </a>
-                  </div>
-                  <div>
-                    <strong>Phone:</strong>{" "}
-                    <a className="text-blue-600" href="tel:+2348000000000">
-                      +234 800 000 0000
-                    </a>
-                  </div>
-                  <div>
-                    <strong>Support hours:</strong> Mon–Fri, 8:00 — 17:00
-                  </div>
-                </div>
-              </div>
-
-              <motion.div
-                variants={fadeInUp}
-                transition={{ delay: 0.1 }}
-                className="bg-white p-6 rounded  border border-slate-200 shadow"
-              >
-                <h3 className="font-medium">Send a quick message</h3>
-                <p className="text-sm text-gray-600 mt-2">
-                  This is a UI-only form. Hook it to an API or mailer to make it
-                  functional.
-                </p>
-                <form className="mt-4 grid gap-3">
-                  <input
-                    name="name"
-                    placeholder="Your name"
-                    className="border border-slate-400 px-3 py-2 rounded"
-                  />
-                  <input
-                    name="email"
-                    type="email"
-                    placeholder="Email"
-                    className="border border-slate-400 px-3 py-2 rounded"
-                  />
-                  <textarea
-                    name="message"
-                    rows={4}
-                    placeholder="Message"
-                    className="border border-slate-400 px-3 py-2 rounded"
-                  />
-                  <div className="flex justify-end">
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      type="button"
-                      className="px-4 py-2 bg-blue-600 text-white rounded"
-                    >
-                      Send Message
-                    </motion.button>
-                  </div>
-                </form>
-              </motion.div>
-            </motion.section>
           </div>
         </motion.main>
       </motion.div>
