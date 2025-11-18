@@ -145,10 +145,7 @@ export default function AgentDashboardPage() {
 
   useEffect(() => {
     if (!userId && !userEmail) return;
-    const interval = setInterval(
-      () => fetchTickets(userId, userEmail),
-      10000
-    );
+    const interval = setInterval(() => fetchTickets(userId, userEmail), 10000);
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, userEmail]);
@@ -180,7 +177,7 @@ export default function AgentDashboardPage() {
             </div>
           )}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <ChatBox selected={selected} userEmail={userEmail || undefined} />
+            <ChatBox key={selected?.id} selected={selected} />
             <div className="lg:col-span-2">
               <ChatList
                 tickets={tickets}

@@ -163,10 +163,7 @@ export default function CustomerDashboardPage() {
 
   useEffect(() => {
     if (!userId && !userEmail) return;
-    const interval = setInterval(
-      () => fetchTickets(userId, userEmail),
-      10000
-    );
+    const interval = setInterval(() => fetchTickets(userId, userEmail), 10000);
     return () => clearInterval(interval);
   }, [userId, userEmail, fetchTickets]);
 
@@ -220,7 +217,7 @@ export default function CustomerDashboardPage() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
             {/* Chat box - hidden on mobile when no ticket selected, shown on larger screens */}
             <div className={`${selected ? "block" : "hidden"} lg:block`}>
-              <ChatBox selected={selected} userEmail={userEmail || undefined} />
+              <ChatBox key={selected?.id} selected={selected} />
             </div>
             {/* Chat list - full width on mobile, 2/3 on desktop */}
             <div className="lg:col-span-2">
