@@ -322,7 +322,7 @@ export default function ChatBox({ selected, userEmail: propUserEmail }) {
 
           <div
             ref={containerRef}
-            className="flex-1 overflow-y-auto mb-4 space-y-3 p-4 bg-slate-50 rounded-lg border border-slate-200"
+            className="flex-1 overflow-y-auto mb-4 space-y-1 p-4 bg-slate-50 rounded-lg border border-slate-200"
             style={{ maxHeight: "500px", minHeight: "400px" }}
           >
             <motion.div
@@ -350,9 +350,18 @@ export default function ChatBox({ selected, userEmail: propUserEmail }) {
                 </motion.div>
               ) : null}
 
-              {messages.map((m) => {
+              {messages.map((m, idx) => {
                 const isCustomer =
                   m.role === "customer" || m.role === CURRENT_ROLE;
+                const prevMessage = idx > 0 ? messages[idx - 1] : null;
+                const isSameSender =
+                  prevMessage &&
+                  ((isCustomer &&
+                    (prevMessage.role === "customer" ||
+                      prevMessage.role === CURRENT_ROLE)) ||
+                    (!isCustomer &&
+                      prevMessage.role !== "customer" &&
+                      prevMessage.role !== CURRENT_ROLE));
                 return (
                   <motion.div
                     key={m.id}
@@ -366,7 +375,7 @@ export default function ChatBox({ selected, userEmail: propUserEmail }) {
                     exit="exit"
                     className={`flex ${
                       isCustomer ? "justify-end" : "justify-start"
-                    }`}
+                    } ${isSameSender ? "mt-0.5" : "mt-2"}`}
                   >
                     <div
                       className={`p-3 rounded-lg max-w-[75%] shadow-sm ${

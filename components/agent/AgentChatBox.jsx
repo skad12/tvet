@@ -249,7 +249,7 @@ export default function ChatBox({ selected, userEmail: propUserEmail }) {
 
           <div
             ref={containerRef}
-            className="flex-1 overflow-y-auto mb-4 space-y-3 p-4 bg-slate-50 rounded-lg border border-slate-200"
+            className="flex-1 overflow-y-auto mb-4 space-y-1 p-4 bg-slate-50 rounded-lg border border-slate-200"
             style={{ maxHeight: "500px", minHeight: "400px" }}
           >
             <motion.div
@@ -277,8 +277,12 @@ export default function ChatBox({ selected, userEmail: propUserEmail }) {
                 </motion.div>
               ) : null}
 
-              {messages.map((m) => {
-                const isAgent = m.role === "agent" || m.role === CURRENT_ROLE;
+              {messages.map((m, idx) => {
+                const isSender = m.role === "agent" || m.role === CURRENT_ROLE;
+                const prevMessage = idx > 0 ? messages[idx - 1] : null;
+                const isSameSender = prevMessage && 
+                  ((isSender && (prevMessage.role === "agent" || prevMessage.role === CURRENT_ROLE)) ||
+                   (!isSender && prevMessage.role !== "agent" && prevMessage.role !== CURRENT_ROLE));
                 return (
                   <motion.div
                     key={m.id}
@@ -290,13 +294,13 @@ export default function ChatBox({ selected, userEmail: propUserEmail }) {
                     initial="hidden"
                     animate="visible"
                     exit="exit"
-                    className={`flex ${isAgent ? "justify-end" : "justify-start"}`}
+                    className={`flex ${isSender ? "justify-end" : "justify-start"} ${isSameSender ? "mt-0.5" : "mt-2"}`}
                   >
                     <div
                       className={`p-3 rounded-lg max-w-[75%] shadow-sm ${
-                        isAgent
-                          ? "bg-gray-200 text-gray-800 rounded-tr-none"
-                          : "bg-blue-600 text-white rounded-tl-none"
+                        isSender
+                          ? "bg-blue-600 text-white rounded-tr-none"
+                          : "bg-gray-200 text-gray-800 rounded-tl-none"
                       }`}
                     >
                       <div className="text-sm whitespace-pre-wrap break-words">
@@ -304,9 +308,9 @@ export default function ChatBox({ selected, userEmail: propUserEmail }) {
                       </div>
                       <div
                         className={`text-xs mt-1.5 flex items-center gap-2 ${
-                          isAgent
-                            ? "text-gray-600"
-                            : "text-blue-100"
+                          isSender
+                            ? "text-blue-100"
+                            : "text-gray-600"
                         }`}
                       >
                         <span>{format(new Date(m.at), "h:mm a")}</span>

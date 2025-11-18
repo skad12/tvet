@@ -278,8 +278,10 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { FiX, FiPaperclip, FiSmile, FiSend } from "react-icons/fi";
+import { FiX, FiPaperclip, FiSmile, FiSend, FiUserPlus } from "react-icons/fi";
 import { useAuth } from "@/context/AuthContext";
+import { useUsersDirectory } from "@/hooks/useUsersDirectory";
+import api from "@/lib/axios";
 import {
   DEFAULT_CHAT_POLL_MS,
   digestMessages,
@@ -321,6 +323,22 @@ export default function ChatModal({
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [showAssignMenu, setShowAssignMenu] = useState(false);
+  const [assigning, setAssigning] = useState(false);
+  const [showNotification, setShowNotification] = useState(false);
+  const [notificationMessage, setNotificationMessage] = useState("");
+  const { users: agents } = useUsersDirectory({ enabled: true });
+
+  // Get assigned agent info
+  const assignedAgentId =
+    ticket?.assigned_to_id ??
+    ticket?.assigned_to ??
+    ticket?.raw?.assigned_to_id ??
+    ticket?.raw?.assigned_to ??
+    null;
+  const assignedAgent = agents.find(
+    (a) => a.id && String(a.id) === String(assignedAgentId)
+  );
 
   const digestRef = useRef("");
   const controllerRef = useRef(null);
@@ -361,6 +379,18 @@ export default function ChatModal({
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [open, handleKeyDown]);
+
+  // Close assign menu when clicking outside
+  useEffect(() => {
+    if (!showAssignMenu) return;
+    const handleClickOutside = (e) => {
+      if (!e.target.closest(".assign-menu-container")) {
+        setShowAssignMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showAssignMenu]);
 
   useEffect(() => {
     if (!open || !ticketId) {
@@ -529,6 +559,103 @@ export default function ChatModal({
                 </div>
 
                 <div className="flex items-center gap-3">
+                  {assignedAgent && (
+                    <button
+                      onClick={() => setShowAssignMenu(!showAssignMenu)}
+                      className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 text-slate-700 rounded-lg text-xs font-medium hover:bg-slate-200 transition-colors"
+                      aria-label="Change assigned agent"
+                    >
+                      <FiUserPlus className="w-4 h-4" />
+                      <span>
+                        {assignedAgent.name ||
+                          assignedAgent.username ||
+                          assignedAgent.email}
+                      </span>
+                    </button>
+                  )}
+                  <div className="relative assign-menu-container">
+                    <button
+                      onClick={() => setShowAssignMenu(!showAssignMenu)}
+                      disabled={assigning || !ticketId}
+                      className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      aria-label="Assign ticket"
+                    >
+                      <FiUserPlus className="w-4 h-4" />
+                      {assigning ? "Assigning..." : "Assign"}
+                    </button>
+                    {showAssignMenu && (
+                      <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-lg shadow-lg border border-slate-200 z-50 max-h-64 overflow-y-auto assign-menu-container">
+                        <div className="p-2">
+                          <div className="text-xs font-semibold text-slate-700 px-2 py-1 mb-1">
+                            Select Agent
+                          </div>
+                          {agents.length === 0 ? (
+                            <div className="text-xs text-slate-500 px-2 py-4 text-center">
+                              No agents available
+                            </div>
+                          ) : (
+                            agents
+                              .filter((a) => a.account_type === "agent")
+                              .map((agent) => (
+                                <button
+                                  key={agent.id}
+                                  onClick={async () => {
+                                    setAssigning(true);
+                                    try {
+                                      await api.post(
+                                        "/assign-ticket/to-user/",
+                                        {
+                                          ticket_id: ticketId,
+                                          assigned_to_id: agent.id,
+                                        }
+                                      );
+                                      setShowAssignMenu(false);
+                                      // Show notification
+                                      setNotificationMessage(
+                                        `Ticket assigned to ${
+                                          agent.name ||
+                                          agent.username ||
+                                          agent.email
+                                        }`
+                                      );
+                                      setShowNotification(true);
+                                      setTimeout(() => {
+                                        setShowNotification(false);
+                                      }, 3000);
+                                      // Refresh ticket data
+                                      if (onMessageAdded) {
+                                        onMessageAdded({}, ticket);
+                                      }
+                                    } catch (err) {
+                                      console.error(
+                                        "Failed to assign ticket:",
+                                        err
+                                      );
+                                      setError(
+                                        err?.response?.data?.message ||
+                                          "Failed to assign ticket"
+                                      );
+                                    } finally {
+                                      setAssigning(false);
+                                    }
+                                  }}
+                                  className="w-full text-left px-3 py-2 text-sm hover:bg-slate-50 rounded transition-colors"
+                                >
+                                  <div className="font-medium text-slate-800">
+                                    {agent.name ||
+                                      agent.username ||
+                                      agent.email}
+                                  </div>
+                                  <div className="text-xs text-slate-500">
+                                    {agent.email}
+                                  </div>
+                                </button>
+                              ))
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                   <span className=" bg-green-200 px-2 py-1 rounded-full text-xs text-slate-500">
                     AI Assisted
                   </span>
@@ -550,7 +677,7 @@ export default function ChatModal({
 
               {/* messages */}
               <div
-                className="flex-1 overflow-y-auto p-6 space-y-3 bg-slate-50"
+                className="flex-1 overflow-y-auto p-6 space-y-1 bg-slate-50"
                 style={{ maxHeight: "calc(80vh - 200px)", minHeight: "400px" }}
               >
                 <motion.div
@@ -578,21 +705,31 @@ export default function ChatModal({
                 )}
 
                 {messages.map((m, idx) => {
-                  const isAgent = m.role === "agent" || m.role === CURRENT_ROLE;
+                  const isSender =
+                    m.role === "agent" || m.role === CURRENT_ROLE;
+                  const prevMessage = idx > 0 ? messages[idx - 1] : null;
+                  const isSameSender =
+                    prevMessage &&
+                    ((isSender &&
+                      (prevMessage.role === "agent" ||
+                        prevMessage.role === CURRENT_ROLE)) ||
+                      (!isSender &&
+                        prevMessage.role !== "agent" &&
+                        prevMessage.role !== CURRENT_ROLE));
                   return (
                     <motion.div
                       key={m.id ?? idx}
                       initial={{ opacity: 0, y: 6 }}
                       animate={{ opacity: 1, y: 0 }}
                       className={`flex ${
-                        isAgent ? "justify-end" : "justify-start"
-                      }`}
+                        isSender ? "justify-end" : "justify-start"
+                      } ${isSameSender ? "mt-0.5" : "mt-2"}`}
                     >
                       <div
                         className={`p-3 rounded-lg max-w-[75%] shadow-sm ${
-                          isAgent
-                            ? "bg-gray-200 text-gray-800 rounded-tr-none"
-                            : "bg-blue-600 text-white rounded-tl-none"
+                          isSender
+                            ? "bg-blue-600 text-white rounded-tr-none"
+                            : "bg-gray-200 text-gray-800 rounded-tl-none"
                         }`}
                       >
                         <div className="text-sm whitespace-pre-wrap break-words">
@@ -600,7 +737,7 @@ export default function ChatModal({
                         </div>
                         <div
                           className={`text-xs mt-1.5 flex items-center gap-2 ${
-                            isAgent ? "text-gray-600" : "text-blue-100"
+                            isSender ? "text-blue-100" : "text-gray-600"
                           }`}
                         >
                           <span>{new Date(m.at).toLocaleString()}</span>
@@ -665,6 +802,35 @@ export default function ChatModal({
                 <div className="px-6 pb-3 text-xs text-red-600">{error}</div>
               )}
             </div>
+
+            {/* Notification Toast */}
+            <AnimatePresence>
+              {showNotification && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 20 }}
+                  className="fixed bottom-4 right-4 bg-green-600 text-white px-4 py-3 rounded-lg shadow-lg z-50 flex items-center gap-2"
+                >
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M5 13l4 4L19 7"
+                    />
+                  </svg>
+                  <span className="text-sm font-medium">
+                    {notificationMessage}
+                  </span>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* Right: user details (compact) */}
             <aside className="w-80 border-l border-slate-400 p-6 overflow-auto">

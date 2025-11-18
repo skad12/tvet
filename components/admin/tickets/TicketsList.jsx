@@ -158,6 +158,26 @@ export default function TicketsTable({ onOpenChat, selectedId }) {
                 <div className="text-xs text-slate-500 truncate mt-0.5">
                   {row.original.categoryTitle ?? "No subject"}
                 </div>
+                {row.original.raw?.priority && (
+                  <div className="mt-1">
+                    <span
+                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                        row.original.raw.priority === "Urgent" ||
+                        row.original.raw.priority === "urgent"
+                          ? "bg-red-100 text-red-700 border border-red-200"
+                          : row.original.raw.priority === "High" ||
+                            row.original.raw.priority === "high"
+                          ? "bg-orange-100 text-orange-700 border border-orange-200"
+                          : row.original.raw.priority === "Medium" ||
+                            row.original.raw.priority === "medium"
+                          ? "bg-yellow-100 text-yellow-700 border border-yellow-200"
+                          : "bg-green-100 text-green-700 border border-green-200"
+                      }`}
+                    >
+                      {row.original.raw.priority}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           );

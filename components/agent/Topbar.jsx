@@ -37,7 +37,7 @@ export default function Navbar({ userEmail }) {
 
   return (
     <motion.div
-      className="flex items-center justify-between mb-8"
+      className="sticky top-0 z-40 bg-white/95 backdrop-blur-sm border-b border-slate-200 py-4 mb-8"
       initial={{ opacity: 0, y: -6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
