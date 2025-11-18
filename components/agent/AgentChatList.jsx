@@ -63,7 +63,7 @@ export default function ChatList({
 
   const TABS = [
     { id: "all", label: "All" },
-    { id: "active", label: "Active" },
+    // { id: "active", label: "Active" },
     { id: "pending", label: "Pending" },
     { id: "resolved", label: "Resolved" },
   ];
@@ -506,7 +506,8 @@ export default function ChatList({
                               ? "bg-red-100 text-red-700 border border-red-200"
                               : t.priority === "High" || t.priority === "high"
                               ? "bg-orange-100 text-orange-700 border border-orange-200"
-                              : t.priority === "Medium" || t.priority === "medium"
+                              : t.priority === "Medium" ||
+                                t.priority === "medium"
                               ? "bg-yellow-100 text-yellow-700 border border-yellow-200"
                               : "bg-green-100 text-green-700 border border-green-200"
                           }`}

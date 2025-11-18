@@ -262,20 +262,20 @@ export default function ChatBox({ selected, userEmail: propUserEmail }) {
             layout
             className="border border-slate-200 rounded-lg p-3 mb-4 bg-slate-50"
           >
-            <div className="text-sm font-semibold text-slate-800 mb-2">
+            <div className="text-sm font-semibold text-slate-800 mb-2 uppercase">
               {selected.subject ||
                 selected.category ||
                 selected.categoryTitle ||
                 "No Subject"}
             </div>
             <div className="flex flex-wrap items-center gap-3 text-xs">
-              <span className="text-slate-500">
+              {/* <span className="text-slate-500">
                 ID:{" "}
                 <span className="font-medium text-slate-700">
                   {selected.id}
                 </span>
-              </span>
-              <span className="text-slate-300">•</span>
+              </span> */}
+              {/* <span className="text-slate-300">•</span> */}
               <span className="text-slate-500">
                 Assigned to:{" "}
                 <span className="font-medium text-slate-700">
@@ -283,7 +283,7 @@ export default function ChatBox({ selected, userEmail: propUserEmail }) {
                 </span>
               </span>
               <span className="text-slate-300">•</span>
-              <span
+              {/* <span
                 className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                   selected.priority === "Urgent" ||
                   selected.priority === "urgent"
@@ -298,7 +298,8 @@ export default function ChatBox({ selected, userEmail: propUserEmail }) {
                 }`}
               >
                 {selected.priority || "Low"}
-              </span>
+              </span> */}
+              <div>{}</div>
               {(selected.status || selected.state) && (
                 <>
                   <span className="text-slate-300">•</span>

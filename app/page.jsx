@@ -137,7 +137,7 @@ export default function Home() {
               id="faq"
               variants={fadeInUp}
               transition={{ duration: 0.4 }}
-              className="bg-white rounded shadow p-6"
+              className="bg-white rounded shadow p-6 space-y-10"
             >
               <div>
                 <TicketForm />

@@ -6,8 +6,8 @@ import { useAuth } from "@/context/AuthContext";
 import api from "@/lib/axios";
 
 import Navbar from "@/components/customer/Topbar";
-import ChatBox from "@/components/customer/CustomerChatBox";
-import ChatList from "@/components/customer/CustomerChatList";
+import ChatBox from "@/components/agent/AgentChatBox";
+import ChatList from "@/components/agent/AgentChatList";
 
 export default function AgentDashboardPage() {
   const [tickets, setTickets] = useState([]);

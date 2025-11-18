@@ -62,7 +62,7 @@ export default function ChatList({
 
   const TABS = [
     { id: "all", label: "All" },
-    { id: "active", label: "Active" },
+
     { id: "pending", label: "Pending" },
     { id: "resolved", label: "Resolved" },
   ];
@@ -87,8 +87,6 @@ export default function ChatList({
       statusDisplay = progressLabel;
     } else if (fallbackStatus === true) {
       statusDisplay = "Resolved";
-    } else if (fallbackStatus === false) {
-      statusDisplay = "Active";
     } else if (
       typeof fallbackStatus === "string" &&
       fallbackStatus.trim().length > 0
@@ -341,6 +339,25 @@ export default function ChatList({
     visible: { opacity: 1, y: 0 },
   };
 
+  const assignedAgentId =
+    selected?.assigned_to_id ??
+    selected?.assigned_to ??
+    selected?.agent_id ??
+    selected?.agentId ??
+    null;
+
+  const assignedAgent =
+    directory.find(
+      (person) => person?.id && String(person.id) === String(assignedAgentId)
+    ) ?? null;
+  const assignedAgentLabel =
+    assignedAgent?.name && assignedAgent.name !== "null"
+      ? assignedAgent.name
+      : assignedAgent?.username ??
+        assignedAgent?.email ??
+        selected?.assigned_to_name ??
+        "Unassigned";
+
   return (
     <motion.div layout className="bg-white rounded-lg shadow-sm p-0">
       <div className="h-[calc(100vh-300px)] md:h-[600px] lg:h-[520px] overflow-auto">
@@ -476,8 +493,8 @@ export default function ChatList({
                         {email || t.name || "From Widget"}
                       </div>
                       {assignedLabel && (
-                        <div className="text-[11px] uppercase text-slate-400 mt-0.5">
-                          Assigned to: {assignedLabel}
+                        <div className="text-[11px]  text-slate-400 mt-0.5">
+                          Assigned to: {assignedAgentLabel}
                         </div>
                       )}
                       {t.preview && (
@@ -493,21 +510,22 @@ export default function ChatList({
                       >
                         {statusLabel}
                       </span>
-                      {t.priority && (
+                      {/* {t.priority && (
                         <span
                           className={`mt-1.5 inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[10px] font-medium ${
                             t.priority === "Urgent" || t.priority === "urgent"
                               ? "bg-red-100 text-red-700 border border-red-200"
                               : t.priority === "High" || t.priority === "high"
                               ? "bg-orange-100 text-orange-700 border border-orange-200"
-                              : t.priority === "Medium" || t.priority === "medium"
+                              : t.priority === "Medium" ||
+                                t.priority === "medium"
                               ? "bg-yellow-100 text-yellow-700 border border-yellow-200"
                               : "bg-green-100 text-green-700 border border-green-200"
                           }`}
                         >
                           {t.priority}
                         </span>
-                      )}
+                      )} */}
                       <div className="text-xs text-slate-400 mt-2">
                         {formatMaybeDate(time, t.created_at_display)}
                       </div>

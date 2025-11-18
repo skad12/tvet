@@ -193,7 +193,7 @@ export default function TicketForm() {
           className="w-full border rounded px-3 py-2 border-slate-500"
           rows="4"
         />
-        {/* 
+
         <label className="block text-sm font-medium">Priority</label>
         <select
           value={priority}
@@ -204,7 +204,7 @@ export default function TicketForm() {
           <option value="Medium">Medium</option>
           <option value="High">High</option>
           <option value="Urgent">Urgent</option>
-        </select> */}
+        </select>
 
         <label className="block text-sm font-medium">
           Email Address <span className="text-red-600">*</span>

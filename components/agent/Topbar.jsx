@@ -44,9 +44,9 @@ export default function Navbar({ userEmail }) {
     >
       <div>
         <h2 className="text-2xl font-semibold">Hi {displayName} 👋</h2>
-        <div className="text-sm text-slate-500 mt-1">
+        {/* <div className="text-sm text-slate-500 mt-1">
           {displayEmail || "You are viewing your dashboard."}
-        </div>
+        </div> */}
         <div className="mt-1 text-xs text-slate-500">
           <span className="uppercase tracking-wide text-slate-500">
             {String(accountType || "user")}

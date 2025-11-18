@@ -49,7 +49,7 @@ export default function Navbar({
   return (
     <>
       <motion.div
-        className="sticky top-0 z-40 bg-white/95 backdrop-blur-sm border-b border-slate-200 py-4 mb-6 md:mb-8"
+        className="sticky top-0 z-40 bg-white/95 backdrop-blur-sm border-b border-slate-200 py-4 mb-6 md:mb-8 px-6"
         initial={{ opacity: 0, y: -6 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
@@ -63,9 +63,9 @@ export default function Navbar({
               {displayEmail || "You are viewing your dashboard."}
             </div>
             <div className="mt-1 text-xs text-slate-500 flex items-center gap-2 flex-wrap">
-              <span className="font-medium text-slate-600">
+              {/* <span className="font-medium text-slate-600">
                 ID: {userId ? String(userId) : "—"}
-              </span>
+              </span> */}
 
               <span className="uppercase tracking-wide text-slate-500">
                 {String(accountType || "user")}
