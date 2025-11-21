@@ -194,7 +194,7 @@ export default function TicketForm() {
           rows="4"
         />
 
-        <label className="block text-sm font-medium">Priority</label>
+        {/* <label className="block text-sm font-medium">Priority</label>
         <select
           value={priority}
           onChange={(e) => setPriority(e.target.value)}
@@ -204,7 +204,7 @@ export default function TicketForm() {
           <option value="Medium">Medium</option>
           <option value="High">High</option>
           <option value="Urgent">Urgent</option>
-        </select>
+        </select> */}
 
         <label className="block text-sm font-medium">
           Email Address <span className="text-red-600">*</span>

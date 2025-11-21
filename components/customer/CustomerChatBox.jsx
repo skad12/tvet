@@ -282,7 +282,7 @@ export default function ChatBox({ selected, userEmail: propUserEmail }) {
                   {assignedAgentLabel}
                 </span>
               </span>
-              <span className="text-slate-300">•</span>
+              {/* <span className="text-slate-300">•</span> */}
               {/* <span
                 className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                   selected.priority === "Urgent" ||
