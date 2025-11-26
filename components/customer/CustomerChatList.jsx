@@ -492,11 +492,11 @@ export default function ChatList({
                       <div className="text-xs text-slate-500 mt-1 truncate">
                         {email || t.name || "From Widget"}
                       </div>
-                      {assignedLabel && (
+                      {/* {assignedLabel && (
                         <div className="text-[11px]  text-slate-400 mt-0.5">
                           Assigned to: {assignedAgentLabel}
                         </div>
-                      )}
+                      )} */}
                       {/* {t.preview && (
                         <div className="text-xs text-slate-400 mt-1 truncate">
                           {t.preview}

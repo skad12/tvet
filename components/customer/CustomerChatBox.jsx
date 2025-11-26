@@ -268,7 +268,7 @@ export default function ChatBox({ selected, userEmail: propUserEmail }) {
                 selected.categoryTitle ||
                 "No Subject"}
             </div>
-            <div className="flex flex-wrap items-center gap-3 text-xs">
+            <div className="flex flex-wrap items-center gap- text-xs">
               {/* <span className="text-slate-500">
                 ID:{" "}
                 <span className="font-medium text-slate-700">
@@ -304,7 +304,6 @@ export default function ChatBox({ selected, userEmail: propUserEmail }) {
               <div>{}</div>
               {(selected.status || selected.state) && (
                 <>
-                  <span className="text-slate-300">•</span>
                   <span
                     className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                       selected.status === "resolved" ||
