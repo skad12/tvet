@@ -72,7 +72,12 @@ export default function ChatBox({ selected, userEmail: propUserEmail }) {
         }
         setError(null);
       } catch (err) {
-        if (err.name === "AbortError") return;
+        const isCanceled =
+          err?.name === "AbortError" ||
+          err?.name === "CanceledError" ||
+          err?.code === "ERR_CANCELED" ||
+          err?.message === "canceled";
+        if (isCanceled) return;
         console.error("Failed to load chats:", err);
         setError(err.message || "Failed to load chats");
       } finally {

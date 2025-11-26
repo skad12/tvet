@@ -497,11 +497,11 @@ export default function ChatList({
                           Assigned to: {assignedAgentLabel}
                         </div>
                       )}
-                      {t.preview && (
+                      {/* {t.preview && (
                         <div className="text-xs text-slate-400 mt-1 truncate">
                           {t.preview}
                         </div>
-                      )}
+                      )} */}
                     </div>
 
                     <div className="text-right flex-shrink-0 flex flex-col items-end ml-4">

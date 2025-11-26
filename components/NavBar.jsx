@@ -11,8 +11,14 @@ export default function NavBar() {
     <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-slate-200 shadow-sm">
       <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-3">
-          <Image src={logo} alt="TVET Support" width={40} height={40} />
-          <span className="font-semibold text-lg">TVET Support</span>
+          <Image
+            src={logo}
+            alt="TVET Support"
+            width={40}
+            height={40}
+            className="h-7 w-7 md:h-10 md:w-10 lg:h-12 lg:w-12"
+          />
+          <span className="font-semibold text-sm md:text-lg">TVET Support</span>
         </Link>
 
         <div className="flex items-center gap-3">
@@ -20,7 +26,7 @@ export default function NavBar() {
             href="#"
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.98 }}
-            className="px-4 py-2 rounded bg-blue-600 text-white"
+            className="px-4 py-2 rounded bg-blue-600 text-white text-xs md:text-sm lg:text-base"
           >
             Support
           </MotionLink>
@@ -29,7 +35,7 @@ export default function NavBar() {
             href="/register"
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.98 }}
-            className="px-4 py-2 rounded bg-blue-600 text-white"
+            className="px-4 py-2 rounded bg-blue-600 text-white text-xs md:text-sm lg:text-base "
           >
             Register
           </MotionLink>
@@ -38,7 +44,7 @@ export default function NavBar() {
             href="/auth/login"
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.98 }}
-            className="px-4 py-2 rounded bg-white border border-slate-300"
+            className="px-4 py-2 rounded bg-white border border-slate-300 text-xs md:text-sm lg:text-base"
           >
             Login
           </MotionLink>
