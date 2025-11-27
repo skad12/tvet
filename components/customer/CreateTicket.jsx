@@ -313,19 +313,6 @@ export default function CreateTicket({
           </div>
 
           {/* NEW: Priority */}
-          <div>
-            <label className="block text-sm font-medium">Priority</label>
-            <select
-              value={priority}
-              onChange={(e) => setPriority(e.target.value)}
-              className="w-full border border-slate-300 rounded px-3 py-2"
-            >
-              <option value="Low">Low</option>
-              <option value="Medium">Medium</option>
-              <option value="High">High</option>
-              <option value="Urgent">Urgent</option>
-            </select>
-          </div>
 
           <div>
             <label className="block text-sm font-medium">Description</label>

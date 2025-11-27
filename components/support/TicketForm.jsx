@@ -91,7 +91,9 @@ export default function TicketForm() {
     const selected =
       categories.find(
         (c) =>
-          (c.id ?? c._id ?? String(c.title ?? "").toLowerCase()) === categoryId
+          String(
+            c.id ?? c._id ?? c.title ?? c.name ?? c.label ?? ""
+          ).toString() === String(categoryId ?? "")
       ) ?? FALLBACK_GENERAL;
 
     if (!email.trim()) {
@@ -155,8 +157,9 @@ export default function TicketForm() {
   const chosenCategory =
     categories.find(
       (c) =>
-        (c.id ?? c._id ?? String(c.title ?? "")).toString() ===
-        (categoryId ?? "")
+        String(
+          c.id ?? c._id ?? c.title ?? c.name ?? c.label ?? ""
+        ).toString() === String(categoryId ?? "")
     ) ??
     categories[0] ??
     FALLBACK_GENERAL;
@@ -171,19 +174,32 @@ export default function TicketForm() {
 
       <form onSubmit={submit} className="space-y-4">
         {/* Category is defaulted to "General" and shown as a pill */}
-        {/* <div>
-          <label className="block text-sm font-medium mb-2">Category</label>
-          <div className="inline-flex items-center gap-2">
-            <span className="inline-flex items-center justify-center px-3 py-1 rounded-full text-sm font-medium bg-slate-50 text-slate-700 border border-slate-200">
-              {chosenCategory?.title ?? FALLBACK_GENERAL.title}
-            </span>
-            {catLoading && (
-              <span className="text-xs text-slate-400">
-                Loading categories…
-              </span>
-            )}
-          </div>
-        </div> */}
+        <div>
+          <label className="block text-sm font-medium mb-2">
+            Category <span className="text-red-600">*</span>
+          </label>
+          <select
+            value={categoryId}
+            onChange={(e) => setCategoryId(e.target.value)}
+            className="w-full border rounded px-3 py-2 border-slate-500"
+            disabled={catLoading}
+          >
+            {categories.map((c, idx) => {
+              const value = String(
+                c.id ?? c._id ?? c.title ?? c.name ?? c.label ?? ""
+              );
+              const label = c.title ?? c.name ?? c.label ?? value;
+              return (
+                <option key={value || idx} value={value}>
+                  {label}
+                </option>
+              );
+            })}
+          </select>
+          {catLoading && (
+            <span className="text-xs text-slate-400">Loading categories…</span>
+          )}
+        </div>
 
         <label className="block text-sm font-medium">Description</label>
         <textarea

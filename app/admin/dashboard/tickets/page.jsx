@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import TicketsList from "@/components/admin/tickets/TicketsList";
 import ChatModal from "@/components/admin/tickets/ChatModal";
 import UserModal from "@/components/admin/tickets/UserModal";
@@ -84,44 +85,60 @@ export default function TicketsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6">
-      <main className="max-w-7xl mx-auto gap-6">
-        <div className="flex items-center justify-between mb-4">
-          <h4 className="text-lg font-semibold">All Tickets</h4>
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="min-h-screen bg-slate-50 p-6"
+    >
+      <main className="max-w-7xl mx-auto px-4 py-4">
+        <motion.h1
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="text-3xl font-bold text-slate-800 mb-1"
+        >
+          Tickets
+        </motion.h1>
+        <motion.p
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="text-sm text-slate-500 mb-6"
+        >
+          Browse and manage support tickets
+        </motion.p>
 
-          <div className="text-sm text-slate-500">
-            {loading ? "…" : ticketsCount ?? 0}
-            {error && <span className="ml-3 text-red-500">({error})</span>}
-          </div>
-        </div>
-
-        {/* Tickets list (left column) */}
-        <div>
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
           <TicketsList onOpenChat={openChat} selectedId={selectedTicket?.id} />
-        </div>
+        </motion.div>
       </main>
 
-      {/* Chat modal */}
-      <ChatModal
-        ticket={selectedTicket}
-        open={chatOpen}
-        onClose={closeChat}
-        onOpenUser={openUserDetails}
-        onMessageAdded={(newMsg, ticket) => {
-          // persist via API
-          api
-            .post(`/tickets/${ticket.id}/messages`, newMsg)
-            .catch(console.error);
-          // also update parent state if needed
-        }}
-      />
+      <AnimatePresence>
+        {chatOpen && (
+          <ChatModal
+            ticket={selectedTicket}
+            open={true}
+            onClose={closeChat}
+            onOpenUser={openUserDetails}
+            onMessageAdded={(newMsg, ticket) => {
+              api
+                .post(`/tickets/${ticket.id}/messages`, newMsg)
+                .catch(console.error);
+            }}
+          />
+        )}
+      </AnimatePresence>
 
-      {/* User details modal */}
-      <UserModal
-        user={selectedTicket?.user}
-        open={userOpen}
-        onClose={closeUser}
-      />
-    </div>
+      <AnimatePresence>
+        {userOpen && (
+          <UserModal
+            user={selectedTicket?.user}
+            open={true}
+            onClose={closeUser}
+          />
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 }

@@ -22,14 +22,14 @@ export default function NavBar() {
         </Link>
 
         <div className="flex items-center gap-3">
-          <MotionLink
+          {/* <MotionLink
             href="#"
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.98 }}
             className="px-4 py-2 rounded bg-blue-600 text-white text-xs md:text-sm lg:text-base"
           >
             Support
-          </MotionLink>
+          </MotionLink> */}
 
           <MotionLink
             href="/register"
