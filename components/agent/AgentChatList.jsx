@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { format, isValid } from "date-fns";
 import { useAuth } from "@/context/AuthContext";
+import { TbAlertTriangle } from "react-icons/tb";
 
 let api = null;
 try {
@@ -12,14 +13,6 @@ try {
   api = null;
 }
 
-/**
- * ChatList
- *
- * - Always fetches tickets from `/filter-ticket/by-user-id/{id}/` when no tickets prop
- * - When `tickets` prop is provided we still normalize *and filter* those tickets by the
- *   effective user id so the UI always shows tickets for that user only.
- * - Normalizes many possible shapes for ticket objects and status values.
- */
 export default function ChatList({
   tickets: ticketsProp = null,
   selected,
@@ -27,7 +20,7 @@ export default function ChatList({
   loading: loadingProp = false,
   userId: propUserId = null,
   userEmail: propUserEmail = null,
-  // if true, force fetching from the server even when ticketsProp is provided
+  categoryId = null,
   forceFetch = false,
 }) {
   const { user, token } = useAuth?.() ?? {};
@@ -60,6 +53,8 @@ export default function ChatList({
   const [newTicketNotice, setNewTicketNotice] = useState(null);
   const [recentlyAdded, setRecentlyAdded] = useState({});
   const seenTicketsRef = useRef(new Set());
+  const [showEscalatedOnly, setShowEscalatedOnly] = useState(false);
+  const didAutoSelectRef = useRef(false);
 
   const TABS = [
     { id: "all", label: "All" },
@@ -75,6 +70,8 @@ export default function ChatList({
     const name = t?.name ?? t?.reporter_name ?? null;
     const email = t?.email ?? t?.reporter_email ?? "";
 
+    // Check escalated first
+    const isEscalated = t?.escalated === true;
     const progressLabel =
       typeof t?.progress === "string" && t.progress.trim().length > 0
         ? t.progress.trim()
@@ -84,22 +81,25 @@ export default function ChatList({
     const fallbackStatus = statusBool ?? statusStr ?? t?.state ?? null;
 
     let statusDisplay;
-    if (progressLabel) {
+    if (isEscalated && statusBool !== true) {
+      // Show escalated unless resolved
+      statusDisplay = "Escalated";
+    } else if (progressLabel) {
       statusDisplay = progressLabel;
     } else if (fallbackStatus === true) {
       statusDisplay = "Resolved";
     } else if (fallbackStatus === false) {
-      statusDisplay = "Active";
+      statusDisplay = "Pending";
     } else if (
       typeof fallbackStatus === "string" &&
       fallbackStatus.trim().length > 0
     ) {
       statusDisplay = fallbackStatus.trim();
     } else {
-      statusDisplay = "Active";
+      statusDisplay = "Pending"; // Default to pending when null
     }
 
-    const statusKey = statusDisplay ? statusDisplay.toLowerCase() : "active";
+    const statusKey = statusDisplay ? statusDisplay.toLowerCase() : "pending";
 
     const created_at = t?.created_at ?? t?.createdAt ?? t?.pub_date ?? null;
     const created_at_display = t?.created_at_display ?? null;
@@ -130,7 +130,7 @@ export default function ChatList({
       created_at,
       created_at_display,
       preview,
-      raw: t,
+      raw: { ...t, escalated: isEscalated },
       ticketUserId,
     };
   }
@@ -199,8 +199,10 @@ export default function ChatList({
         : normalized;
 
       setTickets(filteredByUser);
-      if (filteredByUser.length > 0 && !selected)
+      if (filteredByUser.length > 0 && !didAutoSelectRef.current && !selected) {
         setSelected?.(filteredByUser[0]);
+        didAutoSelectRef.current = true;
+      }
       setLoading(false);
       setError(null);
       return;
@@ -220,7 +222,11 @@ export default function ChatList({
       setLoading(true);
       setError(null);
 
-      const endpointRelative = `/tickets/`;
+      const endpointRelative = categoryId
+        ? `/tickets/category-based/?category=${categoryId}`
+        : showEscalatedOnly
+        ? `/get-all-escalated-tickets/`
+        : `/tickets/`;
 
       try {
         let data;
@@ -266,7 +272,64 @@ export default function ChatList({
         else if (Array.isArray(data.tickets)) arr = data.tickets;
         else arr = [data];
 
-        const normalized = arr.map(normalizeTicket);
+        let normalized = arr.map(normalizeTicket);
+
+        // Fetch status for each ticket using /get-ticket-status/{id}/
+        try {
+          const ticketsWithStatus = await Promise.all(
+            normalized.map(async (ticket) => {
+              if (!ticket.id) return ticket;
+              try {
+                const statusRes = await api.get(
+                  `/get-ticket-status/${ticket.id}/`,
+                  {
+                    headers: token ? { Authorization: `Bearer ${token}` } : {},
+                    signal: ac.signal,
+                  }
+                );
+                const statusData = statusRes?.data;
+                if (statusData) {
+                  // Update status from API response
+                  const newStatus =
+                    statusData.status ?? statusData.progress ?? null;
+                  const newProgress = statusData.progress;
+                  if (newStatus || newProgress) {
+                    return {
+                      ...ticket,
+                      status: newStatus
+                        ? String(newStatus).toLowerCase()
+                        : ticket.status,
+                      statusDisplay: newProgress || ticket.statusDisplay,
+                      raw: {
+                        ...ticket.raw,
+                        status: newStatus,
+                        progress: newProgress,
+                      },
+                    };
+                  }
+                }
+              } catch (err) {
+                // If status fetch fails, use default status
+                if (
+                  err?.name !== "AbortError" &&
+                  err?.name !== "CanceledError"
+                ) {
+                  console.warn(
+                    `Failed to fetch status for ticket ${ticket.id}:`,
+                    err
+                  );
+                }
+              }
+              return ticket;
+            })
+          );
+          normalized = ticketsWithStatus;
+        } catch (err) {
+          // Continue with original normalized tickets if status fetch fails
+          if (err?.name !== "AbortError" && err?.name !== "CanceledError") {
+            console.warn("Failed to fetch ticket statuses:", err);
+          }
+        }
 
         // double-check server-side filtering — keep only tickets that match the effective user id
         const shouldFilter = Boolean(effectiveUserId || effectiveUserEmail);
@@ -278,9 +341,14 @@ export default function ChatList({
 
         setTickets(filteredByUser);
 
-        // auto-select first if none selected
-        if (filteredByUser.length > 0 && !selected) {
+        // auto-select first if none selected and not previously auto-selected
+        if (
+          filteredByUser.length > 0 &&
+          !didAutoSelectRef.current &&
+          !selected
+        ) {
           setSelected?.(filteredByUser[0]);
+          didAutoSelectRef.current = true;
         }
       } catch (err) {
         if (err.name === "AbortError") return;
@@ -303,9 +371,11 @@ export default function ChatList({
     effectiveUserEmail,
     token,
     ticketsProp,
-    setSelected,
-    selected,
+    categoryId,
+    showEscalatedOnly,
     forceFetch,
+    selected,
+    setSelected,
   ]);
 
   const owned = useMemo(
@@ -326,13 +396,17 @@ export default function ChatList({
   }, [owned]);
 
   const filtered = useMemo(() => {
-    if (!activeTab || activeTab === "all") return owned;
-    return owned.filter((t) => {
-      const s = t.status ?? "";
+    let list = owned;
+    if (showEscalatedOnly) {
+      list = list.filter((t) => (t.status ?? "").toLowerCase() === "escalated");
+    }
+    if (!activeTab || activeTab === "all") return list;
+    return list.filter((t) => {
+      const s = (t.status ?? "").toLowerCase();
       if (activeTab === "pending") return s === "pending" || s === "waiting";
       return s === activeTab;
     });
-  }, [owned, activeTab]);
+  }, [owned, activeTab, showEscalatedOnly]);
 
   const listItem = {
     hidden: { opacity: 0, y: 8 },
@@ -374,11 +448,13 @@ export default function ChatList({
 
   return (
     <motion.div layout className="bg-white rounded shadow-sm p-0">
-      <div className="h-[520px] md:h-[420px] overflow-auto">
+      <div className="h-[400px] sm:h-[500px] md:h-[420px] overflow-auto">
         <div className="sticky top-0 z-30 bg-white border-b border-slate-200">
-          <div className="flex items-center justify-between p-4">
-            <h3 className="text-lg font-medium text-slate-800">Your Tickets</h3>
-            <div className="text-sm text-slate-500">
+          <div className="flex items-center justify-between p-3 sm:p-4">
+            <h3 className="text-base sm:text-lg font-medium text-slate-800">
+              Your Tickets
+            </h3>
+            <div className="text-xs sm:text-sm text-slate-500">
               {loading
                 ? "…"
                 : `${owned.length} ticket${owned.length === 1 ? "" : "s"}`}
@@ -393,11 +469,11 @@ export default function ChatList({
             </div>
           )}
 
-          <div className="px-4 pb-3">
+          <div className="px-3 sm:px-4 pb-2 sm:pb-3">
             <div
               role="tablist"
               aria-label="Ticket filters"
-              className="flex gap-2 overflow-x-auto whitespace-nowrap px-1 py-1"
+              className="flex gap-1.5 sm:gap-2 overflow-x-auto whitespace-nowrap px-1 py-1"
             >
               {TABS.map((t) => {
                 const active = activeTab === t.id;
@@ -407,34 +483,47 @@ export default function ChatList({
                     role="tab"
                     aria-selected={active}
                     onClick={() => setActiveTab(t.id)}
-                    className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition ${
+                    className={`inline-flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium transition ${
                       active
                         ? "bg-slate-900 text-white shadow"
                         : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50"
                     }`}
                   >
                     <span>{t.label}</span>
-                    <span className="inline-flex items-center justify-center px-2 py-0.5 text-xs rounded-full bg-slate-100 text-slate-700">
+                    <span className="inline-flex items-center justify-center px-1.5 sm:px-2 py-0.5 text-[10px] sm:text-xs rounded-full bg-slate-100 text-slate-700">
                       {counts[t.id] ?? (t.id === "all" ? owned.length : 0)}
                     </span>
                   </button>
                 );
               })}
+              <label className="inline-flex items-center gap-1 sm:gap-2 ml-1 sm:ml-2 px-1.5 sm:px-2 py-0.5 sm:py-1 text-xs sm:text-sm text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={showEscalatedOnly}
+                  onChange={(e) => setShowEscalatedOnly(e.target.checked)}
+                  className="w-3 h-3 sm:w-4 sm:h-4"
+                />
+                <span>Escalated only</span>
+              </label>
             </div>
           </div>
         </div>
 
-        <div className="p-4">
+        <div className="p-2 sm:p-4">
           {loading ? (
-            <div className="p-6 text-sm text-slate-500">Loading tickets…</div>
+            <div className="p-4 sm:p-6 text-xs sm:text-sm text-slate-500 text-center">
+              Loading tickets…
+            </div>
           ) : error ? (
-            <div className="p-4 text-sm text-red-600">{error}</div>
+            <div className="p-3 sm:p-4 text-xs sm:text-sm text-red-600">
+              {error}
+            </div>
           ) : filtered.length === 0 ? (
-            <div className="p-6 text-sm text-slate-500">
+            <div className="p-4 sm:p-6 text-xs sm:text-sm text-slate-500 text-center">
               No tickets found for this user.
             </div>
           ) : (
-            <ul className="space-y-3">
+            <ul className="space-y-2 sm:space-y-3">
               {filtered.map((t, idx) => {
                 const now = Date.now();
                 const subject = t.displaySubject ?? "No subject";
@@ -453,6 +542,8 @@ export default function ChatList({
                 const pillClass =
                   statusKey === "resolved"
                     ? "bg-emerald-50 text-emerald-700 border border-emerald-100"
+                    : statusKey === "escalated"
+                    ? "bg-purple-50 text-purple-700 border border-purple-100"
                     : statusKey === "waiting"
                     ? "bg-amber-50 text-amber-700 border border-amber-100"
                     : statusKey === "pending"
@@ -467,18 +558,18 @@ export default function ChatList({
                     initial="hidden"
                     animate="visible"
                     variants={listItem}
-                    className={`bg-white rounded-lg p-4 border border-slate-200 flex items-center justify-between shadow-sm cursor-pointer ${
+                    className={`bg-white rounded-lg p-3 sm:p-4 border border-slate-200 flex items-center justify-between shadow-sm cursor-pointer ${
                       selected?.id === t.id
                         ? "ring-2 ring-blue-200"
                         : "hover:bg-slate-50"
                     }`}
                     onClick={() => setSelected?.(t)}
                   >
-                    <div className="min-w-0">
-                      <div className="font-medium text-slate-800 truncate">
+                    <div className="min-w-0 flex-1">
+                      <div className="font-medium text-xs sm:text-sm text-slate-800 truncate flex items-center gap-1.5">
                         {subject}
                       </div>
-                      <div className="text-xs text-slate-500 mt-1 truncate">
+                      <div className="text-[10px] sm:text-xs text-slate-500 mt-0.5 sm:mt-1 truncate">
                         {email || t.name || "From Widget"}
                       </div>
                       {isRecentlyAdded && (
@@ -486,21 +577,18 @@ export default function ChatList({
                           New
                         </div>
                       )}
-                      {/* {t.preview && (
-                        <div className="text-xs text-slate-400 mt-1 truncate">
-                          {t.preview}
-                        </div>
-                      )} */}
                     </div>
 
-                    <div className="text-right flex-shrink-0 flex flex-col items-end ml-4">
-                      <span
-                        className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-medium ${pillClass}`}
-                      >
-                        {t.preview}
-                      </span>
+                    <div className="text-right shrink-0 flex flex-col items-end ml-2 sm:ml-4 gap-1">
+                      {t.raw?.escalated === true &&
+                        statusKey !== "resolved" && (
+                          <span className="inline-flex items-center gap-1 text-[10px] sm:text-xs font-semibold px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-100">
+                            <TbAlertTriangle className="w-3 h-3" />
+                            Escalated
+                          </span>
+                        )}
 
-                      <div className="text-xs text-slate-400 mt-2">
+                      <div className="text-[10px] sm:text-xs text-slate-400 mt-1 sm:mt-2">
                         {formatMaybeDate(time, t.created_at_display)}
                       </div>
                     </div>

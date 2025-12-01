@@ -97,8 +97,12 @@ export default function AgentDashboardPage() {
     return false;
   }
 
-  async function fetchTickets(currentUserId, currentEmail) {
-    setLoadingTickets(true);
+  async function fetchTickets(
+    currentUserId,
+    currentEmail,
+    { showLoading = true } = {}
+  ) {
+    if (showLoading) setLoadingTickets(true);
     setTicketsError(null);
     try {
       let data = null;
@@ -117,9 +121,23 @@ export default function AgentDashboardPage() {
         data = await res.json();
       }
 
-      const allTickets = Array.isArray(data)
-        ? data
-        : data?.tickets ?? data ?? [];
+      let allTickets = Array.isArray(data) ? data : data?.tickets ?? data ?? [];
+
+      // preserve local escalated status if present
+      allTickets = allTickets.map((srv) => {
+        const id = srv?.id ?? srv?.pk;
+        const prev = (Array.isArray(tickets) ? tickets : []).find(
+          (t) => String(t?.id ?? t?.pk) === String(id)
+        );
+        const prevEsc =
+          prev &&
+          (String(prev.status || "").toLowerCase() === "escalated" ||
+            prev.progress === "Escalated");
+        if (prevEsc) {
+          return { ...srv, status: "escalated", progress: "Escalated" };
+        }
+        return srv;
+      });
 
       const filtered = allTickets.filter((ticket) =>
         ticketBelongsToUser(ticket, currentUserId, currentEmail)
@@ -133,7 +151,7 @@ export default function AgentDashboardPage() {
       setSelected(null);
       setTicketsError(err?.message ?? "Failed to load tickets");
     } finally {
-      setLoadingTickets(false);
+      if (showLoading) setLoadingTickets(false);
     }
   }
 
@@ -145,7 +163,10 @@ export default function AgentDashboardPage() {
 
   useEffect(() => {
     if (!userId && !userEmail) return;
-    const interval = setInterval(() => fetchTickets(userId, userEmail), 10000);
+    const interval = setInterval(
+      () => fetchTickets(userId, userEmail, { showLoading: false }),
+      10000
+    );
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, userEmail]);
@@ -167,23 +188,47 @@ export default function AgentDashboardPage() {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35 }}
-        className="min-h-screen bg-slate-50 py-4"
+        className="min-h-screen bg-slate-50 py-2 sm:py-4"
       >
-        <div className="max-w-7xl mx-auto px-4">
+        <div className="max-w-7xl mx-auto px-2 sm:px-4">
           <Navbar userEmail={userEmail || undefined} showCreateTicket={false} />
           {ticketsError && (
-            <div className="mb-4 rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            <div className="mb-3 sm:mb-4 rounded border border-red-200 bg-red-50 px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-red-700">
               {ticketsError}
             </div>
           )}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <ChatBox key={selected?.id} selected={selected} />
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
+            <ChatBox
+              key={selected?.id}
+              selected={selected}
+              onEscalated={(ticketId) => {
+                try {
+                  setTickets((prev) =>
+                    (Array.isArray(prev) ? prev : []).map((t) => {
+                      const id = t?.id ?? t?.pk;
+                      if (String(id) === String(ticketId)) {
+                        return {
+                          ...t,
+                          status: "escalated",
+                          progress: "Escalated",
+                        };
+                      }
+                      return t;
+                    })
+                  );
+                  setSelected((prev) =>
+                    prev && String(prev.id) === String(ticketId)
+                      ? { ...prev, status: "escalated", progress: "Escalated" }
+                      : prev
+                  );
+                } catch (e) {}
+              }}
+            />
             <div className="lg:col-span-2">
               <ChatList
                 tickets={tickets}
                 selected={selected}
                 setSelected={setSelected}
-                loading={loadingTickets}
                 userId={userId ?? undefined}
                 userEmail={userEmail || undefined}
               />

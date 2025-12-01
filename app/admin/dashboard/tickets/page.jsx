@@ -75,6 +75,10 @@ export default function TicketsPage() {
     setChatOpen(false);
   }
 
+  useEffect(() => {
+    if (selectedTicket && !chatOpen) setChatOpen(true);
+  }, [selectedTicket, chatOpen]);
+
   function openUserDetails(ticket) {
     setSelectedTicket(ticket);
     setUserOpen(true);
@@ -89,14 +93,14 @@ export default function TicketsPage() {
       layout
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      className="min-h-screen bg-slate-50 p-6"
+      className="min-h-screen bg-slate-50 p-3 sm:p-4 lg:p-6"
     >
-      <main className="max-w-7xl mx-auto px-4 py-4">
+      <main className="max-w-7xl mx-auto px-2 sm:px-4 py-2 sm:py-4">
         <motion.h1
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
-          className="text-3xl font-bold text-slate-800 mb-1"
+          className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-800 mb-1"
         >
           Tickets
         </motion.h1>
@@ -104,7 +108,7 @@ export default function TicketsPage() {
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.1 }}
-          className="text-sm text-slate-500 mb-6"
+          className="text-xs sm:text-sm text-slate-500 mb-4 sm:mb-6"
         >
           Browse and manage support tickets
         </motion.p>

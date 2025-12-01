@@ -21,14 +21,12 @@ export default function DashboardPage() {
 
     const fetchAnalytics = async () => {
       try {
-        // Try hitting backend API directly (using NEXT_PUBLIC_API_BASE)
         const res = await api.get("/get-analytics/");
         if (!mounted) return;
         setAnalytics(res.data);
         setError(null);
       } catch (err) {
         console.warn("Direct API failed, falling back to proxy:", err?.message);
-        // fallback to Next.js API route
         try {
           const fallback = await fetch("/api/analytics");
           if (!mounted) return;
@@ -169,7 +167,7 @@ export default function DashboardPage() {
           >
             <RecentActivity activities={analytics?.recent_list || []} />
             <div className="space-y-6">
-              <AiPerformance />
+              <AiPerformance data={analytics || {}} />
             </div>
           </motion.div>
 

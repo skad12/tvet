@@ -25,11 +25,38 @@
 //     </div>
 //   );
 // }
+"use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { AiOutlineRobot } from "react-icons/ai";
-
+import api from "@/lib/axios";
 export default function AiPerformance({ data = {} }) {
+  const [escalatedCount, setEscalatedCount] = useState(null);
+  const [loadingEscalated, setLoadingEscalated] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadEscalated() {
+      setLoadingEscalated(true);
+      try {
+        const res = await api.get("/get-all-escalated-tickets/");
+        const list = Array.isArray(res.data)
+          ? res.data
+          : res.data?.tickets ?? [];
+        if (mounted) setEscalatedCount(list.length);
+      } catch (e) {
+        if (mounted) setEscalatedCount(null);
+      } finally {
+        if (mounted) setLoadingEscalated(false);
+      }
+    }
+
+    loadEscalated();
+    return () => {
+      mounted = false;
+    };
+  }, []);
   // If the parent passes analytics data, use it; otherwise fallback to example values
   const resolutionRate =
     data.tickets_handled_by_ai && data.total_tickets
@@ -38,7 +65,8 @@ export default function AiPerformance({ data = {} }) {
 
   const changePct = data.ai_change_pct ?? 5; // e.g. +5
   const autoResolved = data.tickets_handled_by_ai ?? data.auto_resolved ?? 8;
-  const escalated = data.tickets_handled_by_human ?? data.escalated ?? 4;
+  const escalated =
+    escalatedCount ?? data.tickets_handled_by_human ?? data.escalated ?? 4;
   const avgResponse =
     data.avg_ai_response_time ?? data.avg_response_time ?? "1.2s";
 
@@ -75,8 +103,11 @@ export default function AiPerformance({ data = {} }) {
         </div>
 
         <div className="flex items-center justify-between">
-          <div>Escalated to agents</div>
-          <div className="text-slate-800 font-medium">{escalated} tickets</div>
+          <div>Escalated by Agents</div>
+          <div className="text-slate-800 font-medium">
+            {loadingEscalated && escalatedCount === null ? "…" : escalated}{" "}
+            tickets
+          </div>
         </div>
 
         <div className="flex items-center justify-between">

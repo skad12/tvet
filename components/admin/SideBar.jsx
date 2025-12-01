@@ -48,7 +48,7 @@ export default function Sidebar({ onClose }) {
 
     try {
       // call context signOut (this should clear localStorage and redirect)
-      signOut();
+      signOut("/auth/login");
     } catch (err) {
       // fallback: clear client storage and redirect
       console.error("Sign out failed:", err);
@@ -56,7 +56,7 @@ export default function Sidebar({ onClose }) {
         localStorage.removeItem("user");
         localStorage.removeItem("token");
       } catch (e) {}
-      window.location.href = "/";
+      window.location.href = "/auth/login";
     }
   }
 

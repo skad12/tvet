@@ -25,9 +25,7 @@ export default function TicketsTable({ onOpenChat, selectedId }) {
   const [pageSize, setPageSize] = useState(5);
   const [error, setError] = useState(null);
   const [showEscalatedOnly, setShowEscalatedOnly] = useState(false);
-  const [categoryFilters, setCategoryFilters] = useState([
-    { label: "All Tickets", value: "all", count: 0 },
-  ]);
+  const [categoryFilters, setCategoryFilters] = useState([""]);
   const [activeCategory, setActiveCategory] = useState("all");
 
   // normalize single server ticket -> table row
@@ -421,6 +419,24 @@ export default function TicketsTable({ onOpenChat, selectedId }) {
     <aside className="h-[calc(100vh-96px)] overflow-auto rounded-lg p-4">
       {/* Search + Controls */}
       <div className="mb-3">
+        <div className="flex gap-2 overflow-x-auto pb-2">
+          {categoryFilters.map((filter) => {
+            const isActive = activeCategory === filter.value;
+            return (
+              <button
+                key={filter.value}
+                onClick={() => setActiveCategory(filter.value)}
+                className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold border transition ${
+                  isActive
+                    ? "bg-slate-900 text-white border-slate-900"
+                    : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                }`}
+              >
+                <span>{filter.label}</span>
+              </button>
+            );
+          })}
+        </div>
         <div className="flex items-center justify-between gap-2 flex-wrap">
           <div className="flex items-center gap-2">
             <input

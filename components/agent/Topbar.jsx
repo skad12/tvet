@@ -24,44 +24,44 @@ export default function Navbar({ userEmail }) {
     e?.preventDefault?.();
     try {
       // signOut defined in AuthContext will clear storage and redirect
-      await signOut("/");
+      signOut("/auth/login");
     } catch (err) {
       console.error("Failed to sign out:", err);
       try {
         localStorage.removeItem("user");
         localStorage.removeItem("token");
       } catch (e) {}
-      window.location.href = "/";
+      window.location.href = "/auth/login";
     }
   }
 
   return (
     <motion.div
-      className="sticky top-0 z-40 bg-white/95 backdrop-blur-sm border-b border-slate-200 py-4 mb-8"
+      className="sticky top-0 z-40 bg-white/95 backdrop-blur-sm border-b border-slate-200 py-3 sm:py-4 mb-4 sm:mb-6 lg:mb-8 px-2 sm:px-0"
       initial={{ opacity: 0, y: -6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
     >
-      <div>
-        <h2 className="text-2xl font-semibold">Hi {displayName} 👋</h2>
-        {/* <div className="text-sm text-slate-500 mt-1">
-          {displayEmail || "You are viewing your dashboard."}
-        </div> */}
-        <div className="mt-1 text-xs text-slate-500">
-          <span className="uppercase tracking-wide text-slate-500">
-            {String(accountType || "user")}
-          </span>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
+        <div>
+          <h2 className="text-lg sm:text-xl lg:text-2xl font-semibold">Hi {displayName} 👋</h2>
+          <div className="mt-1 text-[10px] sm:text-xs text-slate-500">
+            <span className="uppercase tracking-wide text-slate-500">
+              {String(accountType || "user")}
+            </span>
+          </div>
         </div>
-      </div>
 
-      <div className="flex items-center gap-3">
-        <button
-          onClick={handleSignOut}
-          className="px-4 py-2 border rounded"
-          aria-label="Sign out"
-        >
-          Logout
-        </button>
+        <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
+          <button
+            onClick={handleSignOut}
+            className="px-3 sm:px-4 py-1.5 sm:py-2 border rounded text-xs sm:text-sm w-full sm:w-auto"
+            aria-label="Sign out"
+          >
+            <span className="hidden sm:inline">Logout</span>
+            <span className="sm:hidden">Exit</span>
+          </button>
+        </div>
       </div>
     </motion.div>
   );

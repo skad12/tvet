@@ -99,12 +99,26 @@ export function AuthProvider({ children }) {
     }
   }
 
-  function signOut(redirect = null) {
+  async function signOut(redirect = "/auth/login") {
+    try {
+      // Call sign-out endpoint
+      if (api && typeof api.post === "function") {
+        try {
+          await api.post("/sign-out/");
+        } catch (err) {
+          // Continue with logout even if endpoint fails
+          console.warn("Sign-out endpoint failed:", err);
+        }
+      }
+    } catch (err) {
+      console.warn("Sign-out error:", err);
+    }
+    
     clearUser(); // This will clear both user and token, and localStorage
     // Clear tickets as well when logging out
     useUserStore.getState().setTickets([]);
-    // optionally use the router to redirect if you want
-    if (redirect && typeof window !== "undefined") {
+    // Redirect to login page by default
+    if (typeof window !== "undefined") {
       window.location.href = redirect;
     }
   }

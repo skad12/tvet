@@ -35,14 +35,14 @@ export default function Navbar({
     setSigningOut(true);
     try {
       // signOut defined in AuthContext will clear storage and redirect
-      await signOut("/");
+      signOut("/auth/login");
     } catch (err) {
       console.error("Failed to sign out:", err);
       try {
         localStorage.removeItem("user");
         localStorage.removeItem("token");
       } catch (e) {}
-      window.location.href = "/";
+      window.location.href = "/auth/login";
     }
   }
 
