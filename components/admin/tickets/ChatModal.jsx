@@ -78,10 +78,9 @@ export default function ChatModal({
     (e) => {
       if (e?.key === "Escape") {
         try {
+          controllerRef.current?.abort();
           onClose?.();
-        } catch (err) {
-          console.warn("onClose threw:", err);
-        }
+        } catch (err) {}
       }
     },
     [onClose]
@@ -212,6 +211,14 @@ export default function ChatModal({
     }
   };
 
+  const safeClose = useCallback(() => {
+    try {
+      controllerRef.current?.abort();
+      setShowAssignMenu(false);
+      onClose?.();
+    } catch (err) {}
+  }, [onClose]);
+
   return (
     <AnimatePresence>
       {open && (
@@ -229,14 +236,7 @@ export default function ChatModal({
             initial={{ opacity: 0 }}
             animate={{ opacity: 0.5 }}
             exit={{ opacity: 0 }}
-            onClick={() => {
-              try {
-                controllerRef.current?.abort();
-                onClose();
-              } catch (err) {
-                console.warn("onClose threw:", err);
-              }
-            }}
+            onClick={safeClose}
             className="absolute inset-0 bg-black/40"
           />
 
@@ -381,14 +381,8 @@ export default function ChatModal({
                     AI Assisted
                   </span>
                   <button
-                    onClick={() => {
-                      try {
-                        controllerRef.current?.abort();
-                        onClose();
-                      } catch (err) {
-                        console.warn("onClose threw:", err);
-                      }
-                    }}
+                    type="button"
+                    onClick={safeClose}
                     className="p-2 rounded hover:bg-slate-100"
                     aria-label="Close chat"
                   >

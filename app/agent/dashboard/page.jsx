@@ -143,8 +143,17 @@ export default function AgentDashboardPage() {
         ticketBelongsToUser(ticket, currentUserId, currentEmail)
       );
 
+      const prevSelectedId = selected?.id ?? selected?.pk ?? null;
+      const stillExists = prevSelectedId
+        ? filtered.some(
+            (t) => String(t?.id ?? t?.pk) === String(prevSelectedId)
+          )
+        : false;
+
       setTickets(allTickets);
-      setSelected(filtered.length > 0 ? filtered[0] : null);
+      if (!stillExists) {
+        setSelected(filtered.length > 0 ? filtered[0] : null);
+      }
     } catch (err) {
       console.error("Failed to load tickets", err);
       setTickets([]);

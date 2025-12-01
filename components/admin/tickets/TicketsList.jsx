@@ -8,7 +8,8 @@ import {
   flexRender,
 } from "@tanstack/react-table";
 import { motion, AnimatePresence } from "framer-motion";
-import { FiClock } from "react-icons/fi";
+import { FiClock, FiCheckCircle } from "react-icons/fi";
+import { TbAlertTriangle } from "react-icons/tb";
 import api from "@/lib/axios";
 
 /**
@@ -360,21 +361,28 @@ export default function TicketsTable({ onOpenChat, selectedId }) {
         header: "Status",
         cell: ({ getValue, row }) => {
           const s = getValue() || "pending";
+          const key = String(s).toLowerCase();
           const classes =
-            s === "resolved"
+            key === "resolved"
               ? "bg-emerald-100 text-emerald-700 border-emerald-200"
-              : s === "escalated"
+              : key === "escalated"
               ? "bg-purple-100 text-purple-700 border-purple-200"
-              : s === "pending"
+              : key === "pending" || key === "waiting"
               ? "bg-amber-100 text-amber-700 border-amber-200"
-              : s === "active"
+              : key === "active" || key === "open"
               ? "bg-blue-100 text-blue-700 border-blue-200"
               : "bg-slate-100 text-slate-700 border-slate-200";
+
+          let Icon = null;
+          if (key === "resolved") Icon = FiCheckCircle;
+          else if (key === "escalated") Icon = TbAlertTriangle;
+          else Icon = FiClock;
           return (
             <div className="flex flex-col items-start gap-1">
               <span
                 className={`inline-flex items-center text-xs font-semibold px-3 py-1 rounded-full border ${classes}`}
               >
+                {Icon ? <Icon className="w-3 h-3 mr-1" /> : null}
                 {s}
               </span>
               {row.original?.escalated &&

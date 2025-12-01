@@ -144,9 +144,8 @@ export default function CategoriesPage() {
             className="mt-6"
           >
             <CategoryTicketsList
-              categoryId={activeCategory}
-              onSelectTicket={openChat}
-              selectedTicketId={selectedTicket?.id}
+              onOpenChat={openChat}
+              selectedId={selectedTicket?.id}
             />
           </motion.div>
         )}

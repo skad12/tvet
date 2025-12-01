@@ -73,11 +73,14 @@ export default function TicketsPage() {
 
   function closeChat() {
     setChatOpen(false);
+    setSelectedTicket(null);
   }
 
+  // Open chat only when a ticket is selected via list interaction
+  // Avoid auto-reopening when closing the modal
   useEffect(() => {
-    if (selectedTicket && !chatOpen) setChatOpen(true);
-  }, [selectedTicket, chatOpen]);
+    if (selectedTicket) setChatOpen(true);
+  }, [selectedTicket]);
 
   function openUserDetails(ticket) {
     setSelectedTicket(ticket);

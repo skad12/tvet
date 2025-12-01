@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { format, isValid } from "date-fns";
 import { useAuth } from "@/context/AuthContext";
 import { TbAlertTriangle } from "react-icons/tb";
+import { FiClock, FiCheckCircle } from "react-icons/fi";
 
 let api = null;
 try {
@@ -580,6 +581,20 @@ export default function ChatList({
                     </div>
 
                     <div className="text-right shrink-0 flex flex-col items-end ml-2 sm:ml-4 gap-1">
+                      <span
+                        className={`inline-flex items-center gap-1 text-[10px] sm:text-xs font-semibold px-2 py-0.5 rounded-full ${pillClass}`}
+                      >
+                        {(() => {
+                          const Icon =
+                            statusKey === "resolved"
+                              ? FiCheckCircle
+                              : statusKey === "escalated"
+                              ? TbAlertTriangle
+                              : FiClock;
+                          return <Icon className="w-3 h-3" />;
+                        })()}
+                        {statusLabel}
+                      </span>
                       {t.raw?.escalated === true &&
                         statusKey !== "resolved" && (
                           <span className="inline-flex items-center gap-1 text-[10px] sm:text-xs font-semibold px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-100">
