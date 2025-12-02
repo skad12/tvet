@@ -343,11 +343,8 @@ export default function TicketsTable({ onOpenChat, selectedId }) {
           const ts = getValue();
           const d = display ?? ts;
           try {
-            return (
-              <div className="text-xs text-slate-500">
-                {new Date(d).toLocaleString()}
-              </div>
-            );
+            const iso = new Date(d).toISOString();
+            return <div className="text-xs text-slate-500">{iso}</div>;
           } catch {
             return <div className="text-xs text-slate-500">{String(d)}</div>;
           }
@@ -427,11 +424,11 @@ export default function TicketsTable({ onOpenChat, selectedId }) {
       {/* Search + Controls */}
       <div className="mb-3">
         <div className="flex gap-2 overflow-x-auto pb-2">
-          {categoryFilters.map((filter) => {
+          {categoryFilters.map((filter, idx) => {
             const isActive = activeCategory === filter.value;
             return (
               <button
-                key={filter.value}
+                key={`${filter.value}-${idx}`}
                 onClick={() => setActiveCategory(filter.value)}
                 className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold border transition ${
                   isActive
