@@ -43,24 +43,24 @@ export default function Navbar({ userEmail }) {
       transition={{ duration: 0.4 }}
     >
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
-        <div>
+      <div>
           <h2 className="text-lg sm:text-xl lg:text-2xl font-semibold">Hi {displayName} 👋</h2>
           <div className="mt-1 text-[10px] sm:text-xs text-slate-500">
-            <span className="uppercase tracking-wide text-slate-500">
-              {String(accountType || "user")}
-            </span>
-          </div>
+          <span className="uppercase tracking-wide text-slate-500">
+            {String(accountType || "user")}
+          </span>
         </div>
+      </div>
 
         <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
-          <button
-            onClick={handleSignOut}
+        <button
+          onClick={handleSignOut}
             className="px-3 sm:px-4 py-1.5 sm:py-2 border rounded text-xs sm:text-sm w-full sm:w-auto"
-            aria-label="Sign out"
-          >
+          aria-label="Sign out"
+        >
             <span className="hidden sm:inline">Logout</span>
             <span className="sm:hidden">Exit</span>
-          </button>
+        </button>
         </div>
       </div>
     </motion.div>

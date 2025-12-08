@@ -4,8 +4,6 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { format, isValid } from "date-fns";
 import { useAuth } from "@/context/AuthContext";
-import { TbAlertTriangle } from "react-icons/tb";
-import { FiClock, FiCheckCircle } from "react-icons/fi";
 
 let api = null;
 try {
@@ -78,18 +76,30 @@ export default function ChatList({
         ? t.progress.trim()
         : null;
     const statusBool = typeof t?.status === "boolean" ? t.status : undefined;
-    const statusStr = typeof t?.status === "string" ? t.status : undefined;
+    const statusStr =
+      typeof t?.status === "string"
+        ? String(t.status).toLowerCase()
+        : undefined;
     const fallbackStatus = statusBool ?? statusStr ?? t?.state ?? null;
 
     let statusDisplay;
-    if (isEscalated && statusBool !== true) {
+    // Use status boolean: true = resolved, false = pending
+    if (
+      statusBool === true ||
+      statusStr === "resolved" ||
+      statusStr === "true"
+    ) {
+      statusDisplay = "Resolved";
+    } else if (isEscalated && statusBool !== true) {
       // Show escalated unless resolved
       statusDisplay = "Escalated";
     } else if (progressLabel) {
       statusDisplay = progressLabel;
-    } else if (fallbackStatus === true) {
-      statusDisplay = "Resolved";
-    } else if (fallbackStatus === false) {
+    } else if (
+      statusBool === false ||
+      statusStr === "pending" ||
+      statusStr === "false"
+    ) {
       statusDisplay = "Pending";
     } else if (
       typeof fallbackStatus === "string" &&
@@ -352,7 +362,13 @@ export default function ChatList({
           didAutoSelectRef.current = true;
         }
       } catch (err) {
-        if (err.name === "AbortError") return;
+        if (
+          err?.name === "AbortError" ||
+          err?.name === "CanceledError" ||
+          err?.code === "ERR_CANCELED" ||
+          err?.message === "canceled"
+        )
+          return;
         console.error("Failed to fetch tickets by user id:", err);
         setError(err.message || "Failed to load tickets");
         setTickets([]);
@@ -399,12 +415,20 @@ export default function ChatList({
   const filtered = useMemo(() => {
     let list = owned;
     if (showEscalatedOnly) {
-      list = list.filter((t) => (t.status ?? "").toLowerCase() === "escalated");
+      // Filter by escalated flag from raw data
+      list = list.filter((t) => t.raw?.escalated === true);
     }
     if (!activeTab || activeTab === "all") return list;
     return list.filter((t) => {
       const s = (t.status ?? "").toLowerCase();
-      if (activeTab === "pending") return s === "pending" || s === "waiting";
+      const statusBool =
+        typeof t.raw?.status === "boolean" ? t.raw.status : undefined;
+      if (activeTab === "pending") {
+        return s === "pending" || s === "waiting" || statusBool === false;
+      }
+      if (activeTab === "resolved") {
+        return s === "resolved" || statusBool === true;
+      }
       return s === activeTab;
     });
   }, [owned, activeTab, showEscalatedOnly]);
@@ -530,8 +554,10 @@ export default function ChatList({
                 const subject = t.displaySubject ?? "No subject";
                 const email = t.email ?? "";
                 const statusKey = (t.status ?? "active").toLowerCase();
+                const previewLabel = (t.preview || "").toString().trim();
                 const statusLabel =
-                  t.statusDisplay ??
+                  previewLabel ||
+                  t.statusDisplay ||
                   (statusKey
                     ? statusKey.charAt(0).toUpperCase() + statusKey.slice(1)
                     : "—");
@@ -578,27 +604,34 @@ export default function ChatList({
                           New
                         </div>
                       )}
+                      {/* {t.preview && (
+                        <div className="text-xs text-slate-400 mt-1 truncate">
+                          {t.preview}
+                        </div>
+                      )} */}
                     </div>
 
                     <div className="text-right shrink-0 flex flex-col items-end ml-2 sm:ml-4 gap-1">
                       <span
-                        className={`inline-flex items-center gap-1 text-[10px] sm:text-xs font-semibold px-2 py-0.5 rounded-full ${pillClass}`}
+                        className={`inline-flex items-center justify-center px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-medium ${pillClass}`}
                       >
-                        {(() => {
-                          const Icon =
-                            statusKey === "resolved"
-                              ? FiCheckCircle
-                              : statusKey === "escalated"
-                              ? TbAlertTriangle
-                              : FiClock;
-                          return <Icon className="w-3 h-3" />;
-                        })()}
                         {statusLabel}
                       </span>
                       {t.raw?.escalated === true &&
                         statusKey !== "resolved" && (
                           <span className="inline-flex items-center gap-1 text-[10px] sm:text-xs font-semibold px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-100">
-                            <TbAlertTriangle className="w-3 h-3" />
+                            <svg
+                              className="w-3 h-3"
+                              fill="currentColor"
+                              viewBox="0 0 20 20"
+                              aria-hidden
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
                             Escalated
                           </span>
                         )}

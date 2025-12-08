@@ -106,19 +106,50 @@ export default function AgentDashboardPage() {
     setTicketsError(null);
     try {
       let data = null;
-      const endpointRelative = "/tickets/";
-      if (api && typeof api.get === "function") {
-        const res = await api.get(endpointRelative);
-        data = res?.data;
-      } else {
-        const res = await fetch(endpointRelative, {
-          method: "GET",
-          headers: { "Content-Type": "application/json" },
-        });
-        if (!res.ok) {
-          throw new Error(`Failed to fetch tickets (${res.status})`);
+      // Preferred: filter by user id using GET (backend-safe). Fallback to /tickets/.
+      if (api && typeof api.get === "function" && currentUserId) {
+        try {
+          // Primary: GET with path param
+          const res = await api.get(
+            `/filter-ticket/by-user-id/${currentUserId}/`
+          );
+          data = res?.data;
+        } catch (err) {
+          // Secondary: GET without path param, passing id as query if supported
+          if (err?.response?.status === 405 || err?.response?.status === 404) {
+            try {
+              const res = await api.get(`/filter-ticket/by-user-id/`, {
+                params: { id: currentUserId },
+              });
+              data = res?.data;
+            } catch (err2) {
+              if (
+                err2?.response?.status !== 405 &&
+                err2?.response?.status !== 404
+              ) {
+                throw err2;
+              }
+            }
+          } else {
+            throw err;
+          }
         }
-        data = await res.json();
+      }
+
+      if (!data) {
+        if (api && typeof api.get === "function") {
+          const res = await api.get("/tickets/");
+          data = res?.data;
+        } else {
+          const res = await fetch("/tickets/", {
+            method: "GET",
+            headers: { "Content-Type": "application/json" },
+          });
+          if (!res.ok) {
+            throw new Error(`Failed to fetch tickets (${res.status})`);
+          }
+          data = await res.json();
+        }
       }
 
       let allTickets = Array.isArray(data) ? data : data?.tickets ?? data ?? [];
@@ -143,17 +174,19 @@ export default function AgentDashboardPage() {
         ticketBelongsToUser(ticket, currentUserId, currentEmail)
       );
 
-      const prevSelectedId = selected?.id ?? selected?.pk ?? null;
-      const stillExists = prevSelectedId
-        ? filtered.some(
-            (t) => String(t?.id ?? t?.pk) === String(prevSelectedId)
-          )
-        : false;
-
       setTickets(allTickets);
-      if (!stillExists) {
-        setSelected(filtered.length > 0 ? filtered[0] : null);
-      }
+      // Preserve current selection when possible
+      setSelected((prevSelected) => {
+        if (prevSelected) {
+          const exists = filtered.find(
+            (t) =>
+              String(t.id ?? t.pk) ===
+              String(prevSelected.id ?? prevSelected.pk)
+          );
+          if (exists) return exists;
+        }
+        return filtered.length > 0 ? filtered[0] : null;
+      });
     } catch (err) {
       console.error("Failed to load tickets", err);
       setTickets([]);

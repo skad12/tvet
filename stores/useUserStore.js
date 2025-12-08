@@ -1,6 +1,7 @@
 // stores/useUserStore.js
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import api from "@/lib/axios";
 
 /**
  * Unified store for user authentication and tickets state management
@@ -59,7 +60,7 @@ export const useUserStore = create(
         }
       },
       clearUser: () => {
-        set({ user: null, token: null });
+        set({ user: null, token: null, tickets: [], ticketsError: null, ticketsLoading: false, lastTicketRefresh: null });
         // Clear localStorage
         if (typeof window !== "undefined") {
           localStorage.removeItem("token");
@@ -108,6 +109,71 @@ export const useUserStore = create(
       },
       setTicketsLoading: (val) => set({ ticketsLoading: val }),
       setTicketsError: (err) => set({ ticketsError: err }),
+
+      // Fetch tickets (optionally scoped by user id) and cache them
+      fetchTickets: async (opts = {}) => {
+        const { userId = null, start = null, stop = null } = opts || {};
+        const current = get();
+        if (!api || typeof api.get !== "function") {
+          return current.tickets || [];
+        }
+        set({ ticketsLoading: true, ticketsError: null });
+        try {
+          let data;
+          if (userId) {
+            // Filter tickets by user id - use GET method
+            try {
+              const res = await api.get(`/filter-ticket/by-user-id/${userId}/`);
+              data = res?.data;
+            } catch (err) {
+              // Fallback: try with query param if path param fails
+              if (err?.response?.status === 404 || err?.response?.status === 405) {
+                const res = await api.get(`/filter-ticket/by-user-id/`, {
+                  params: { id: userId },
+                });
+                data = res?.data;
+              } else {
+                throw err;
+              }
+            }
+          } else if (start !== null && stop !== null) {
+            const res = await api.post(`/tickets/${start}/${stop}/`, {
+              start,
+              stop,
+            });
+            data = res?.data;
+          } else {
+            const res = await api.get("/tickets/");
+            data = res?.data;
+          }
+
+          const all = Array.isArray(data)
+            ? data
+            : data?.tickets ?? data?.results ?? [];
+          set({
+            tickets: all,
+            ticketsLoading: false,
+            ticketsError: null,
+            lastTicketRefresh: Date.now(),
+          });
+          return all;
+        } catch (err) {
+          set({ ticketsLoading: false, ticketsError: err?.message || "Failed to load tickets" });
+          return [];
+        }
+      },
+
+      // Fetch only if cache empty or stale
+      fetchTicketsIfNeeded: async (opts = {}) => {
+        const { ttlMs = 60000, force = false, userId = null, start = null, stop = null } = opts || {};
+        const last = get().lastTicketRefresh || 0;
+        const hasAny = Array.isArray(get().tickets) && get().tickets.length > 0;
+        const isStale = Date.now() - last > ttlMs;
+        if (force || !hasAny || isStale) {
+          return await get().fetchTickets({ userId, start, stop });
+        }
+        return get().tickets || [];
+      },
 
       // Helper functions
       isLoggedIn: () => !!get().user,

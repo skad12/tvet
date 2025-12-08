@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import ChatModal from "@/components/admin/tickets/ChatModal";
 import UserModal from "@/components/admin/tickets/UserModal";
 import api from "@/lib/axios";
-import AddCategoryModal from "@/components/admin/categories/AddCategoryModal";
+// import AddCategoryModal from "@/components/admin/categories/AddCategoryModal";
 import CategoryTicketsList from "@/components/admin/categories/CategoryTicketsList";
 
 export default function CategoriesPage() {
@@ -87,6 +87,42 @@ export default function CategoriesPage() {
             {catError && (
               <div className="text-red-600 text-sm mb-2">{catError}</div>
             )}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-0 pb-2">
+              <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto whitespace-nowrap pb-1 sm:pb-0">
+                <button
+                  onClick={() => setActiveCategory(null)}
+                  className={`inline-flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium transition shrink-0 ${
+                    activeCategory === null
+                      ? "bg-slate-900 text-white shadow"
+                      : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50"
+                  }`}
+                >
+                  All
+                </button>
+                {(catLoading ? [] : categories).map((c) => (
+                  <button
+                    key={c.id}
+                    onClick={() => setActiveCategory(c.id)}
+                    className={`inline-flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium transition shrink-0 ${
+                      activeCategory === c.id
+                        ? "bg-slate-900 text-white shadow"
+                        : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50"
+                    }`}
+                  >
+                    {c.title ?? c.name ?? c.label ?? c.id}
+                  </button>
+                ))}
+              </div>
+              <div className="shrink-0">
+                <button
+                  onClick={() => setOpenAdd(true)}
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-1 sm:gap-2 bg-blue-600 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded text-xs sm:text-sm shadow hover:opacity-95"
+                >
+                  <span className="sm:hidden">+ Add</span>
+                  <span className="hidden sm:inline">+ Add Category</span>
+                </button>
+              </div>
+            </div>
           </div>
         </motion.div>
 
@@ -104,15 +140,6 @@ export default function CategoriesPage() {
               }}
             />
           )}
-          <div className="shrink-0">
-            <button
-              onClick={() => setOpenAdd(true)}
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-1 sm:gap-2 bg-blue-600 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded text-xs sm:text-sm shadow hover:opacity-95"
-            >
-              <span className="sm:hidden">+ Add</span>
-              <span className="hidden sm:inline">+ Add Category</span>
-            </button>
-          </div>
         </AnimatePresence>
 
         <AnimatePresence>
@@ -125,7 +152,7 @@ export default function CategoriesPage() {
           )}
         </AnimatePresence>
 
-        <AddCategoryModal
+        {/* <AddCategoryModal
           open={openAdd}
           onClose={() => setOpenAdd(false)}
           onAdded={(newCat) => {
@@ -133,7 +160,7 @@ export default function CategoriesPage() {
             setActiveCategory(newCat?.id ?? null);
             setOpenAdd(false);
           }}
-        />
+        /> */}
 
         {/* Category Tickets List */}
         {activeCategory && (
@@ -144,8 +171,9 @@ export default function CategoriesPage() {
             className="mt-6"
           >
             <CategoryTicketsList
-              onOpenChat={openChat}
-              selectedId={selectedTicket?.id}
+              categoryId={activeCategory}
+              onSelectTicket={openChat}
+              selectedTicketId={selectedTicket?.id}
             />
           </motion.div>
         )}

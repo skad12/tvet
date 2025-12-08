@@ -421,8 +421,10 @@ export default function ChatList({
                 const subject = t.displaySubject ?? "No subject";
                 const email = t.email ?? "";
                 const statusKey = (t.status ?? "active").toLowerCase();
+                const previewLabel = (t.preview || "").toString().trim();
                 const statusLabel =
-                  t.statusDisplay ??
+                  previewLabel ||
+                  t.statusDisplay ||
                   (statusKey
                     ? statusKey.charAt(0).toUpperCase() + statusKey.slice(1)
                     : "—");
@@ -510,6 +512,11 @@ export default function ChatList({
                       >
                         {statusLabel}
                       </span>
+                      {t.raw?.escalated === true && statusKey !== "resolved" && (
+                        <span className="mt-1 inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-100">
+                          Escalated
+                        </span>
+                      )}
                       {/* {t.priority && (
                         <span
                           className={`mt-1.5 inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[10px] font-medium ${

@@ -4,7 +4,6 @@ import { motion } from "framer-motion";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { useAuth } from "@/context/AuthContext";
 import { useUserStore } from "@/stores/useUserStore";
-import api from "@/lib/axios";
 
 import Navbar from "@/components/customer/Topbar";
 import ChatBox from "@/components/customer/CustomerChatBox";
@@ -18,9 +17,8 @@ export default function CustomerDashboardPage() {
     tickets,
     ticketsLoading,
     ticketsError,
-    setTickets,
-    setTicketsLoading,
-    setTicketsError,
+    fetchTicketsIfNeeded,
+    fetchTickets,
   } = useUserStore();
 
   // Get user info from user object
@@ -50,6 +48,7 @@ export default function CustomerDashboardPage() {
 
   function ticketBelongsToUser(ticket, uid, email) {
     if (!ticket) return false;
+    // Prefer strict id match when uid is available
     if (uid) {
       const idCandidates = [
         ticket.user_id,
@@ -60,7 +59,6 @@ export default function CustomerDashboardPage() {
         ticket.createdBy,
         ticket.requester_id,
         ticket.requesterId,
-        ticket.requester,
         ticket.agent_id,
         ticket.agentId,
         ticket.customer_id,
@@ -72,18 +70,14 @@ export default function CustomerDashboardPage() {
         ticket.assigned_to,
         ticket.assignedTo,
       ];
-      if (
-        idCandidates.some(
-          (candidate) =>
-            candidate !== undefined &&
-            candidate !== null &&
-            String(candidate) === String(uid)
-        )
-      ) {
-        return true;
-      }
+      return idCandidates.some(
+        (candidate) =>
+          candidate !== undefined &&
+          candidate !== null &&
+          String(candidate) === String(uid)
+      );
     }
-
+    // Fallback to email match only when id missing
     if (email) {
       const emailCandidates = [
         ticket.email,
@@ -94,78 +88,37 @@ export default function CustomerDashboardPage() {
         ticket.customer_email,
         ticket.customerEmail,
       ];
-      if (
-        emailCandidates.some(
-          (candidate) =>
-            candidate &&
-            String(candidate).toLowerCase() === String(email).toLowerCase()
-        )
-      ) {
-        return true;
-      }
+      return emailCandidates.some(
+        (candidate) =>
+          candidate &&
+          String(candidate).toLowerCase() === String(email).toLowerCase()
+      );
     }
-
     return false;
   }
 
-  const fetchTickets = useCallback(
-    async (currentUserId, currentEmail) => {
-      setTicketsLoading(true);
-      setTicketsError(null);
-      try {
-        let data = null;
-        const endpointRelative = "/tickets/";
-        if (api && typeof api.get === "function") {
-          const res = await api.get(endpointRelative);
-          data = res?.data;
-        } else {
-          const res = await fetch(endpointRelative, {
-            method: "GET",
-            headers: { "Content-Type": "application/json" },
-          });
-          if (!res.ok) {
-            throw new Error(`Failed to fetch tickets (${res.status})`);
-          }
-          data = await res.json();
-        }
-
-        const allTickets = Array.isArray(data)
-          ? data
-          : data?.tickets ?? data ?? [];
-
-        // Store all tickets in the store
-        setTickets(allTickets);
-
-        // Filter for current user and select first
-        const filtered = allTickets.filter((ticket) =>
-          ticketBelongsToUser(ticket, currentUserId, currentEmail)
+  const ensureTickets = useCallback(async () => {
+    try {
+      const all = await fetchTicketsIfNeeded({
+        ttlMs: 60000,
+        userId,
+      });
+      if (!selected && Array.isArray(all)) {
+        const filtered = all.filter((ticket) =>
+          ticketBelongsToUser(ticket, userId, userEmail)
         );
-
-        if (filtered.length > 0 && !selected) {
-          setSelected(filtered[0]);
-        }
-      } catch (err) {
-        console.error("Failed to load tickets", err);
-        setTickets([]);
-        setTicketsError(err?.message ?? "Failed to load tickets");
-      } finally {
-        setTicketsLoading(false);
+        if (filtered.length > 0) setSelected(filtered[0]);
       }
-    },
-    [setTickets, setTicketsLoading, setTicketsError, selected]
-  );
+    } catch (e) {
+      // errors are already handled in store state
+    }
+  }, [fetchTicketsIfNeeded, selected, userId, userEmail]);
 
-  // Fetch tickets when user is available
+  // Load tickets when user becomes available, with caching
   useEffect(() => {
     if (!userId && !userEmail) return;
-    fetchTickets(userId, userEmail);
-  }, [userId, userEmail, fetchTickets]);
-
-  useEffect(() => {
-    if (!userId && !userEmail) return;
-    const interval = setInterval(() => fetchTickets(userId, userEmail), 10000);
-    return () => clearInterval(interval);
-  }, [userId, userEmail, fetchTickets]);
+    ensureTickets();
+  }, [userId, userEmail, ensureTickets]);
 
   // Filter tickets for current user
   const userTickets = useMemo(() => {
@@ -205,7 +158,7 @@ export default function CustomerDashboardPage() {
             onTicketCreated={() => {
               // Refresh tickets after creation
               if (userId || userEmail) {
-                fetchTickets(userId, userEmail);
+                fetchTicketsIfNeeded({ force: true, userId });
               }
             }}
           />

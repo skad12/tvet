@@ -23,9 +23,9 @@ const navItems = [
     href: "/admin/dashboard/analytics",
     icon: LayoutDashboard,
   },
-  { name: "Agents", href: "/admin/dashboard/agents", icon: Users },
   { name: "Tickets", href: "/admin/dashboard/tickets", icon: Ticket },
-  // { name: "Categories", href: "/admin/dashboard/categories", icon: Tags },
+  { name: "Agents", href: "/admin/dashboard/agents", icon: Users },
+  { name: "Categories", href: "/admin/dashboard/categories", icon: Tags },
   { name: "Settings", href: "/admin/dashboard/settings", icon: Settings },
   // Keep Logout here — will be rendered as a button
   { name: "Logout", href: "/", icon: LogOut, isLogout: true },

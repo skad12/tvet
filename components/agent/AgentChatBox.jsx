@@ -13,8 +13,6 @@ import {
   postTicketMessage,
 } from "@/lib/chatClient";
 
-import { TbAlertTriangle } from "react-icons/tb";
-
 export default function ChatBox({
   selected,
   userEmail: propUserEmail,
@@ -44,6 +42,9 @@ export default function ChatBox({
   const [escalateError, setEscalateError] = useState(null);
   const [escalationNotice, setEscalationNotice] = useState(null);
   const [showPopup, setShowPopup] = useState(false);
+  const [resolving, setResolving] = useState(false);
+  const [resolveNotice, setResolveNotice] = useState(null);
+  const [isResolved, setIsResolved] = useState(false);
 
   const containerRef = useRef(null);
 
@@ -59,21 +60,6 @@ export default function ChatBox({
   const pollTimerRef = useRef(null);
   const controllerRef = useRef(null);
   const CURRENT_ROLE = "agent";
-  const statusKey = String(selected?.status || "").toLowerCase();
-  const derivedStatusLabel =
-    selected?.statusDisplay ??
-    selected?.progress ??
-    (statusKey
-      ? statusKey.charAt(0).toUpperCase() + statusKey.slice(1)
-      : "Pending");
-  const statusBadgeClass =
-    statusKey === "resolved"
-      ? "bg-emerald-100 text-emerald-700 border border-emerald-200"
-      : statusKey === "escalated"
-      ? "bg-purple-100 text-purple-700 border border-purple-200"
-      : statusKey === "pending" || statusKey === "waiting"
-      ? "bg-amber-100 text-amber-700 border border-amber-200"
-      : "bg-slate-100 text-slate-700 border border-slate-200";
 
   const fetchChats = useCallback(
     async ({ showLoading = false } = {}) => {
@@ -163,14 +149,31 @@ export default function ChatBox({
     const s = String(selected?.status || "").toLowerCase();
     const p = String(selected?.progress || "").toLowerCase();
     const d = String(selected?.statusDisplay || "").toLowerCase();
-    setEscalated(s === "escalated" || p === "escalated" || d === "escalated");
+    setEscalated(
+      s === "escalated" ||
+        p === "escalated" ||
+        d === "escalated" ||
+        selected?.raw?.escalated === true
+    );
     setEscalationNotice(null);
     setShowPopup(false);
+
+    // Determine if ticket is resolved based on status boolean
+    const statusBool =
+      typeof selected?.status === "boolean" ? selected.status : undefined;
+    const statusStr =
+      typeof selected?.status === "string"
+        ? String(selected.status).toLowerCase()
+        : "";
+    setIsResolved(
+      statusBool === true || statusStr === "resolved" || statusStr === "true"
+    );
   }, [
     selected?.id,
     selected?.status,
     selected?.progress,
     selected?.statusDisplay,
+    selected?.raw?.escalated,
   ]);
 
   async function sendMessage(e) {
@@ -350,7 +353,25 @@ export default function ChatBox({
                 selected.categoryTitle ||
                 "No Subject"}
             </div>
-
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-[10px] sm:text-xs">
+              {escalated && !isResolved && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-semibold bg-purple-50 text-purple-700 border border-purple-200">
+                  <svg
+                    className="w-3 h-3"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                    aria-hidden
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  Escalated
+                </span>
+              )}
+            </div>
             <div className="text-[10px] sm:text-xs text-slate-400 mt-1 flex items-center gap-2 sm:gap-3 flex-wrap">
               <span>
                 Ticket ID:{" "}
@@ -396,7 +417,7 @@ export default function ChatBox({
                     setEscalating(false);
                   }
                 }}
-                disabled={escalating || escalated}
+                disabled={escalating || escalated || isResolved}
                 className={`text-xs px-2 py-1 rounded border transition-colors ${
                   escalated
                     ? "border-purple-300 bg-purple-50 text-purple-700 cursor-not-allowed"
@@ -410,12 +431,72 @@ export default function ChatBox({
                   ? "Escalated"
                   : "Escalate"}
               </button>
+              {!isResolved && (
+                <button
+                  onClick={async (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (!selected?.id || resolving || isResolved) return;
+
+                    setResolving(true);
+                    setResolveNotice(null);
+
+                    try {
+                      await api.post("/set-ticket-status/", {
+                        ticket_id: selected.id,
+                        status: "resolved",
+                      });
+
+                      setIsResolved(true);
+                      setEscalated(false);
+                      setResolveNotice("Ticket resolved successfully.");
+
+                      requestAnimationFrame(() => {
+                        setShowPopup(true);
+                        setTimeout(() => {
+                          setShowPopup(false);
+                        }, 5000);
+                      });
+
+                      try {
+                        if (typeof onEscalated === "function") {
+                          onEscalated(selected.id);
+                        }
+                      } catch (e) {}
+                    } catch (err) {
+                      setResolveNotice(null);
+                      console.error("Failed to resolve ticket:", err);
+                    } finally {
+                      setResolving(false);
+                    }
+                  }}
+                  disabled={resolving || isResolved}
+                  className={`text-xs px-2 py-1 rounded border transition-colors ${
+                    isResolved
+                      ? "border-emerald-300 bg-emerald-50 text-emerald-700 cursor-not-allowed"
+                      : "border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                  } ${resolving ? "opacity-50 cursor-not-allowed" : ""}`}
+                  aria-label="Resolve ticket"
+                >
+                  {resolving
+                    ? "Resolving…"
+                    : isResolved
+                    ? "Resolved"
+                    : "Resolve"}
+                </button>
+              )}
             </div>
+            {/* <div className="text-xs text-slate-400">
+              Priority:{" "}
+              <span className="inline-block ml-2 text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded">
+                Low
+              </span>
+            </div> */}
           </motion.div>
 
-          {/* Popup Toast for escalation success */}
+          {/* Popup Toast for escalation/resolve success */}
           <AnimatePresence>
-            {showPopup && escalationNotice && (
+            {showPopup && (escalationNotice || resolveNotice) && (
               <motion.div
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -447,7 +528,9 @@ export default function ChatBox({
                     <p className="text-sm font-medium text-slate-900">
                       Success
                     </p>
-                    <p className="text-sm text-slate-600">{escalationNotice}</p>
+                    <p className="text-sm text-slate-600">
+                      {escalationNotice || resolveNotice}
+                    </p>
                   </div>
                   <div className="flex items-start ml-3">
                     <button
@@ -480,14 +563,14 @@ export default function ChatBox({
             className="flex-1 overflow-y-auto mb-3 sm:mb-4 space-y-1 p-2 sm:p-4 bg-slate-50 rounded-lg border border-slate-200"
             style={{ maxHeight: "400px", minHeight: "300px" }}
           >
-            <motion.div
+            {/* <motion.div
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               className="bg-blue-600 text-white rounded-lg p-3 text-sm shadow-sm"
             >
               Support — Welcome to HelpDesk! Your ticket is being routed, an
               agent will join shortly.
-            </motion.div>
+            </motion.div> */}
 
             <AnimatePresence initial={false}>
               {loading ? (

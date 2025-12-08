@@ -48,8 +48,8 @@ export default function AgentCard({ agent }) {
       label: "Away",
     },
     offline: {
-      badge: "bg-slate-50 text-slate-600",
-      dot: "bg-slate-300",
+      badge: "bg-red-50 text-red-700",
+      dot: "bg-red-500",
       label: "Offline",
     },
   };
@@ -91,6 +91,8 @@ export default function AgentCard({ agent }) {
                 {label}
               </div>
             </div>
+
+            <div className="text-xs text-slate-400">{/* action area */}</div>
           </div>
 
           <div className="mt-4 text-sm text-slate-600 space-y-2">

@@ -36,9 +36,10 @@ function normalizeUserStatus(status) {
 }
 
 export default function AgentsPage() {
-  const [agents, setAgents] = useState([]);
+  const [agents, setAgents] = useState({ available: [], offline: [], all: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [activeCategory, setActiveCategory] = useState("available");
   useEffect(() => {
     let mounted = true;
     let refreshInterval = null;
@@ -64,23 +65,7 @@ export default function AgentsPage() {
               : res.data.results
             : res.data?.agents ?? [];
 
-        function isAgentAccount(u) {
-          const val =
-            u?.account_type ??
-            u?.accountType ??
-            u?.role ??
-            u?.type ??
-            u?.accountType ??
-            null;
-          const s = val != null ? String(val).toLowerCase().trim() : "";
-          return s === "agent" || s === "agents";
-        }
-
-        const onlyAgents = (Array.isArray(raw) ? raw : []).filter(
-          isAgentAccount
-        );
-
-        const normalized = onlyAgents.map((user, idx) => {
+        let normalized = raw.map((user, idx) => {
           const email = user.email ?? user.username ?? `agent${idx}@tvet.local`;
           const rawName = normalizeName(user.name, email);
           const derivedName = rawName ?? nameFromEmail(email);
@@ -105,14 +90,41 @@ export default function AgentsPage() {
           };
         });
 
+        // Fetch live status per agent using /get-user-status/{id}/
+        try {
+          const withLiveStatus = await Promise.all(
+            normalized.map(async (agent) => {
+              if (!agent.id) return agent;
+              try {
+                const resStatus = await api.get(`/get-user-status/${agent.id}/`);
+                const s = normalizeUserStatus(resStatus?.data?.status ?? resStatus?.data);
+                return { ...agent, status: s };
+              } catch (err) {
+                return agent;
+              }
+            })
+          );
+          normalized = withLiveStatus;
+        } catch (e) {
+          // Ignore live status errors; keep normalized list
+        }
+
         if (mounted) {
-          setAgents(normalized);
+          // Categorize agents into available and offline
+          const availableAgents = normalized.filter((a) => a.status === "available");
+          const offlineAgents = normalized.filter((a) => a.status !== "available");
+          // Store categorized agents
+          setAgents({
+            available: availableAgents,
+            offline: offlineAgents,
+            all: normalized,
+          });
         }
       } catch (err) {
         console.error("Failed to load agents", err);
         if (mounted) {
           setError("Failed to load agents — showing demo data");
-          setAgents([
+          const demoAgents = [
             {
               id: "a-1",
               name: "Adebayo Johnson",
@@ -145,7 +157,10 @@ export default function AgentsPage() {
               status: "offline",
               metrics: { active: 0, resolved: 10, avgTime: "3.1m" },
             },
-          ]);
+          ];
+          const available = demoAgents.filter((a) => a.status === "available");
+          const offline = demoAgents.filter((a) => a.status !== "available");
+          setAgents({ available, offline, all: demoAgents });
         }
       } finally {
         if (!silent && mounted) setLoading(false);
@@ -210,7 +225,37 @@ export default function AgentsPage() {
               </div>
             )}
 
-            <AgentsGrid agents={agents} />
+            {/* Category tabs */}
+            <div className="mb-6 flex gap-2 border-b border-slate-200">
+              <button
+                onClick={() => setActiveCategory("available")}
+                className={`px-4 py-2 font-medium text-sm transition-colors ${
+                  activeCategory === "available"
+                    ? "text-blue-600 border-b-2 border-blue-600"
+                    : "text-slate-600 hover:text-slate-800"
+                }`}
+              >
+                Available ({agents.available?.length || 0})
+              </button>
+              <button
+                onClick={() => setActiveCategory("offline")}
+                className={`px-4 py-2 font-medium text-sm transition-colors ${
+                  activeCategory === "offline"
+                    ? "text-blue-600 border-b-2 border-blue-600"
+                    : "text-slate-600 hover:text-slate-800"
+                }`}
+              >
+                Offline ({agents.offline?.length || 0})
+              </button>
+            </div>
+
+            <AgentsGrid
+              agents={
+                activeCategory === "available"
+                  ? agents.available
+                  : agents.offline
+              }
+            />
           </>
         )}
       </div>
