@@ -32,7 +32,7 @@ export default function CategoriesGrid({
 
         // Try fetch tickets and compute counts per category if /tickets is available
         try {
-          const t = await api.get("/tickets");
+          const t = await api.get("/tickets/");
           const all = Array.isArray(t.data) ? t.data : t.data?.tickets ?? [];
           const map = {};
           (all || []).forEach((tk) => {
