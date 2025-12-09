@@ -269,6 +269,38 @@ export default function ChatBox({ selected, userEmail: propUserEmail }) {
                 "No Subject"}
             </div>
             <div className="flex flex-wrap items-center gap- text-xs">
+              {/* <span className="text-slate-500">
+                ID:{" "}
+                <span className="font-medium text-slate-700">
+                  {selected.id}
+                </span>
+              </span> */}
+              {/* <span className="text-slate-300">•</span> */}
+
+              {/* <span className="text-slate-500">
+                Assigned to:{" "}
+                <span className="font-medium text-slate-700">
+                  {assignedAgentLabel}
+                </span>
+              </span> */}
+
+              {/* <span className="text-slate-300">•</span> */}
+              {/* <span
+                className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                  selected.priority === "Urgent" ||
+                  selected.priority === "urgent"
+                    ? "bg-red-100 text-red-700"
+                    : selected.priority === "High" ||
+                      selected.priority === "high"
+                    ? "bg-orange-100 text-orange-700"
+                    : selected.priority === "Medium" ||
+                      selected.priority === "medium"
+                    ? "bg-yellow-100 text-yellow-700"
+                    : "bg-green-100 text-green-700"
+                }`}
+              >
+                {selected.priority || "Low"}
+              </span> */}
               <div>{}</div>
               {(selected.status || selected.state) && (
                 <>

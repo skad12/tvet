@@ -60,14 +60,7 @@ export const useUserStore = create(
         }
       },
       clearUser: () => {
-        set({
-          user: null,
-          token: null,
-          tickets: [],
-          ticketsError: null,
-          ticketsLoading: false,
-          lastTicketRefresh: null,
-        });
+        set({ user: null, token: null, tickets: [], ticketsError: null, ticketsLoading: false, lastTicketRefresh: null });
         // Clear localStorage
         if (typeof window !== "undefined") {
           localStorage.removeItem("token");
@@ -128,14 +121,13 @@ export const useUserStore = create(
         try {
           let data;
           if (userId) {
+            // Filter tickets by user id - use GET method
             try {
               const res = await api.get(`/filter-ticket/by-user-id/${userId}/`);
               data = res?.data;
             } catch (err) {
-              if (
-                err?.response?.status === 404 ||
-                err?.response?.status === 405
-              ) {
+              // Fallback: try with query param if path param fails
+              if (err?.response?.status === 404 || err?.response?.status === 405) {
                 const res = await api.get(`/filter-ticket/by-user-id/`, {
                   params: { id: userId },
                 });
@@ -158,22 +150,6 @@ export const useUserStore = create(
           const all = Array.isArray(data)
             ? data
             : data?.tickets ?? data?.results ?? [];
-          // Persist cache locally for offline display
-          try {
-            if (typeof window !== "undefined") {
-              const cacheKey = userId
-                ? `tickets_cache_user_${String(userId)}`
-                : `tickets_cache_all`;
-              const cachePayload = {
-                savedAt: Date.now(),
-                tickets: all,
-              };
-              localStorage.setItem(cacheKey, JSON.stringify(cachePayload));
-            }
-          } catch (e) {
-            // ignore storage errors
-          }
-
           set({
             tickets: all,
             ticketsLoading: false,
@@ -182,55 +158,14 @@ export const useUserStore = create(
           });
           return all;
         } catch (err) {
-          // Attempt to load from local cache for offline support
-          let cached = [];
-          try {
-            if (typeof window !== "undefined") {
-              const cacheKey = userId
-                ? `tickets_cache_user_${String(userId)}`
-                : `tickets_cache_all`;
-              const raw = localStorage.getItem(cacheKey);
-              if (raw) {
-                const parsed = JSON.parse(raw);
-                const arr = Array.isArray(parsed)
-                  ? parsed
-                  : Array.isArray(parsed?.tickets)
-                  ? parsed.tickets
-                  : [];
-                cached = arr;
-              }
-            }
-          } catch (e) {
-            cached = [];
-          }
-
-          if (Array.isArray(cached) && cached.length > 0) {
-            set({
-              tickets: cached,
-              ticketsLoading: false,
-              ticketsError: null,
-              lastTicketRefresh: Date.now(),
-            });
-            return cached;
-          }
-
-          set({
-            ticketsLoading: false,
-            ticketsError: err?.message || "Failed to load tickets",
-          });
+          set({ ticketsLoading: false, ticketsError: err?.message || "Failed to load tickets" });
           return [];
         }
       },
 
       // Fetch only if cache empty or stale
       fetchTicketsIfNeeded: async (opts = {}) => {
-        const {
-          ttlMs = 60000,
-          force = false,
-          userId = null,
-          start = null,
-          stop = null,
-        } = opts || {};
+        const { ttlMs = 60000, force = false, userId = null, start = null, stop = null } = opts || {};
         const last = get().lastTicketRefresh || 0;
         const hasAny = Array.isArray(get().tickets) && get().tickets.length > 0;
         const isStale = Date.now() - last > ttlMs;
