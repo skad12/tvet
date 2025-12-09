@@ -84,7 +84,7 @@ export function MessageSkeleton() {
               i % 2 === 0 ? "bg-blue-100" : "bg-slate-100"
             }`}
           >
-            <Skeleton variant="text" lines={Math.floor(Math.random() * 2) + 1} />
+            <Skeleton variant="text" lines={(i % 2) + 1} />
             <Skeleton variant="text" className="w-20 mt-2 h-3" />
           </div>
         </div>
@@ -102,4 +102,3 @@ export function ChatListSkeleton() {
     </div>
   );
 }
-
