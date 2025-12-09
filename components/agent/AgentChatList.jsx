@@ -570,7 +570,7 @@ export default function ChatList({
                   statusKey === "resolved"
                     ? "bg-emerald-50 text-emerald-700 border border-emerald-100"
                     : statusKey === "escalated"
-                    ? "bg-purple-50 text-purple-700 border border-purple-100"
+                    ? "bg-red-50 text-red-700 border border-red-100"
                     : statusKey === "waiting"
                     ? "bg-amber-50 text-amber-700 border border-amber-100"
                     : statusKey === "pending"
@@ -619,7 +619,7 @@ export default function ChatList({
                       </span>
                       {t.raw?.escalated === true &&
                         statusKey !== "resolved" && (
-                          <span className="inline-flex items-center gap-1 text-[10px] sm:text-xs font-semibold px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-100">
+                          <span className="inline-flex items-center gap-1 text-[10px] sm:text-xs font-semibold px-2 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-100">
                             <svg
                               className="w-3 h-3"
                               fill="currentColor"

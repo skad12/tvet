@@ -393,7 +393,7 @@ export default function TicketPage() {
       setCatLoading(true);
       setCatError(null);
       try {
-        const res = await api.get("/get-all-category/").catch(() => null);
+        const res = await api.get("/ticket-categories/").catch(() => null);
         const data = res?.data ?? [];
         if (!mounted) return;
         const arr = Array.isArray(data)
@@ -471,21 +471,27 @@ export default function TicketPage() {
                 >
                   All
                 </button>
-                {(catLoading ? [] : categories).map((c) => (
-                  <button
-                    key={c.id ?? c.slug ?? Math.random()}
-                    onClick={() =>
-                      setActiveCategory(c.id ?? c.category_id ?? c.value)
-                    }
-                    className={`inline-flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium transition shrink-0 ${
-                      activeCategory === (c.id ?? c.category_id ?? c.value)
-                        ? "bg-slate-900 text-white shadow"
-                        : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50"
-                    }`}
-                  >
-                    {c.title ?? c.name ?? c.label ?? c.id}
-                  </button>
-                ))}
+                {(catLoading ? [] : categories).map((c, idx) => {
+                  const catName =
+                    c.name ??
+                    c.title ??
+                    c.label ??
+                    String(c.id ?? c.slug ?? "");
+                  return (
+                    <button
+                      key={`${catName}-${idx}`}
+                      onClick={() => setActiveCategory(catName)}
+                      className={`inline-flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium transition shrink-0 ${
+                        String(activeCategory || "").toLowerCase() ===
+                        String(catName).toLowerCase()
+                          ? "bg-slate-900 text-white shadow"
+                          : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50"
+                      }`}
+                    >
+                      {catName}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -528,7 +534,7 @@ export default function TicketPage() {
             categoryId={activeCategory}
             onSelectTicket={openChat}
             selectedTicketId={selectedTicket?.id}
-            pageSize={20}
+            pageSize={11}
           />
         </motion.div>
       </div>

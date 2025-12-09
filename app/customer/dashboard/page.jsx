@@ -48,7 +48,6 @@ export default function CustomerDashboardPage() {
 
   function ticketBelongsToUser(ticket, uid, email) {
     if (!ticket) return false;
-    // Prefer strict id match when uid is available
     if (uid) {
       const idCandidates = [
         ticket.user_id,
@@ -59,6 +58,7 @@ export default function CustomerDashboardPage() {
         ticket.createdBy,
         ticket.requester_id,
         ticket.requesterId,
+        ticket.requester,
         ticket.agent_id,
         ticket.agentId,
         ticket.customer_id,
@@ -70,14 +70,18 @@ export default function CustomerDashboardPage() {
         ticket.assigned_to,
         ticket.assignedTo,
       ];
-      return idCandidates.some(
-        (candidate) =>
-          candidate !== undefined &&
-          candidate !== null &&
-          String(candidate) === String(uid)
-      );
+      if (
+        idCandidates.some(
+          (candidate) =>
+            candidate !== undefined &&
+            candidate !== null &&
+            String(candidate) === String(uid)
+        )
+      ) {
+        return true;
+      }
     }
-    // Fallback to email match only when id missing
+
     if (email) {
       const emailCandidates = [
         ticket.email,
@@ -88,12 +92,17 @@ export default function CustomerDashboardPage() {
         ticket.customer_email,
         ticket.customerEmail,
       ];
-      return emailCandidates.some(
-        (candidate) =>
-          candidate &&
-          String(candidate).toLowerCase() === String(email).toLowerCase()
-      );
+      if (
+        emailCandidates.some(
+          (candidate) =>
+            candidate &&
+            String(candidate).toLowerCase() === String(email).toLowerCase()
+        )
+      ) {
+        return true;
+      }
     }
+
     return false;
   }
 
