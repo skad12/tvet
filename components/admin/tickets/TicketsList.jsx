@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 // // "use client";
 
 // // import React, { useEffect, useState } from "react";
@@ -570,6 +571,8 @@
 //   );
 // }
 
+=======
+>>>>>>> parent of cba5be4... categories page removed, ticket page updated
 "use client";
 
 import React, { useEffect, useState } from "react";
@@ -586,6 +589,28 @@ export default function TicketsList({
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+<<<<<<< HEAD
+=======
+  const [showEscalatedOnly, setShowEscalatedOnly] = useState(false);
+  const [categoryFilters, setCategoryFilters] = useState([
+    { label: "All Tickets", value: "all", count: 0 },
+  ]);
+  const [activeCategory, setActiveCategory] = useState("all");
+
+  // normalize single server ticket -> table row
+  function normalizeTicketForTable(t) {
+    const id = t?.id ?? String(Math.random()).slice(2, 10);
+
+    // If email empty, use name (your response shows many empty emails)
+    const email =
+      t?.email && String(t.email).trim() !== ""
+        ? String(t.email).trim()
+        : t?.name ?? "";
+
+    // Category/subject attempt: subject -> name -> fallback
+    const categoryTitle = t?.subject ?? t?.name ?? "From Widget";
+    const categoryName = t?.name ?? categoryTitle ?? "From Widget";
+>>>>>>> parent of cba5be4... categories page removed, ticket page updated
 
   // pagination control (start and stop are inclusive)
   const [start, setStart] = useState(0);
@@ -688,12 +713,169 @@ export default function TicketsList({
     };
   }, [categoryId, start, stop, pageSize]);
 
+<<<<<<< HEAD
   function loadMore() {
     const nextStart = stop + 1;
     const nextStop = nextStart + (pageSize - 1);
     setStart(nextStart);
     setStop(nextStop);
   }
+=======
+  const categoryFiltered = useMemo(() => {
+    if (activeCategory === "all") return tickets;
+    return tickets.filter((t) => {
+      const name = t.categoryName ?? t.categoryTitle ?? "From Widget";
+      return name === activeCategory;
+    });
+  }, [tickets, activeCategory]);
+
+  const filtered = useMemo(() => {
+    if (!search) return categoryFiltered;
+    const q = search.toLowerCase();
+    return categoryFiltered.filter(
+      (t) =>
+        (t.email || "").toLowerCase().includes(q) ||
+        (t.categoryTitle || "").toLowerCase().includes(q) ||
+        (t.preview || "").toLowerCase().includes(q) ||
+        (t.status || "").toLowerCase().includes(q)
+    );
+  }, [categoryFiltered, search]);
+
+  const columns = useMemo(
+    () => [
+      {
+        accessorKey: "email",
+        header: "User",
+        cell: ({ getValue, row }) => {
+          const email = getValue();
+          const short = (email || "").split?.("@")?.[0] ?? email;
+          return (
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center font-semibold text-white shadow-sm">
+                {String(short).slice(0, 2).toUpperCase()}
+              </div>
+              <div className="min-w-0">
+                <div className="font-semibold text-slate-800 truncate">
+                  {short}
+                </div>
+                <div className="text-xs text-slate-500 truncate mt-0.5">
+                  {row.original.categoryTitle ?? "No subject"}
+                </div>
+                {row.original.escalated &&
+                  String(row.original.status).toLowerCase() !== "resolved" && (
+                    <div className="mt-1">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-100 text-purple-700 border border-purple-200">
+                        <svg
+                          className="w-3 h-3"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                          aria-label="Escalated"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                        Escalated
+                      </span>
+                    </div>
+                  )}
+              </div>
+            </div>
+          );
+        },
+      },
+
+      {
+        accessorKey: "createdAt",
+        header: () => (
+          <span className="flex items-center gap-1">
+            <FiClock className="w-4 h-4" /> Date
+          </span>
+        ),
+        cell: ({ getValue, row }) => {
+          // prefer server display if available (row.original.raw.created_at_display)
+          const display = row.original?.raw?.created_at_display;
+          const ts = getValue();
+          const d = display ?? ts;
+          try {
+            return (
+              <div className="text-xs text-slate-500">
+                {new Date(d).toLocaleString()}
+              </div>
+            );
+          } catch {
+            return <div className="text-xs text-slate-500">{String(d)}</div>;
+          }
+        },
+        enableSorting: false,
+      },
+      {
+        accessorKey: "status",
+        header: "Status",
+        cell: ({ getValue, row }) => {
+          const s = getValue() || "pending";
+          const key = String(s).toLowerCase();
+          const classes =
+            key === "resolved"
+              ? "bg-emerald-100 text-emerald-700 border-emerald-200"
+              : key === "escalated"
+              ? "bg-purple-100 text-purple-700 border-purple-200"
+              : key === "pending" || key === "waiting"
+              ? "bg-amber-100 text-amber-700 border-amber-200"
+              : key === "active" || key === "open"
+              ? "bg-blue-100 text-blue-700 border-blue-200"
+              : "bg-slate-100 text-slate-700 border-slate-200";
+
+          let Icon = null;
+          if (key === "resolved") Icon = FiCheckCircle;
+          else if (key === "escalated") Icon = TbAlertTriangle;
+          else Icon = FiClock;
+          return (
+            <div className="flex flex-col items-start gap-1">
+              <span
+                className={`inline-flex items-center text-xs font-semibold px-3 py-1 rounded-full border ${classes}`}
+              >
+                {Icon ? <Icon className="w-3 h-3 mr-1" /> : null}
+                {s}
+              </span>
+              {row.original?.escalated &&
+                String(row.original?.status || "").toLowerCase() !==
+                  "resolved" && (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200">
+                    <svg
+                      className="w-3 h-3"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                      aria-hidden
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                    Escalated
+                  </span>
+                )}
+            </div>
+          );
+        },
+      },
+    ],
+    []
+  );
+
+  const table = useReactTable({
+    data: filtered,
+    columns,
+    pageCount: Math.ceil(filtered.length / pageSize),
+    state: {},
+    getCoreRowModel: getCoreRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+  });
+>>>>>>> parent of cba5be4... categories page removed, ticket page updated
 
   function formatDate(val, display) {
     if (display) return display;
@@ -708,6 +890,7 @@ export default function TicketsList({
   }
 
   return (
+<<<<<<< HEAD
     <div className="bg-white rounded-lg shadow-sm border border-slate-200">
       <div className="p-4 border-b border-slate-200">
         <h3 className="text-lg font-semibold text-slate-800">
@@ -726,6 +909,25 @@ export default function TicketsList({
             <div className="flex items-center justify-center gap-2">
               <div className="w-5 h-5 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
               <span>Loading tickets...</span>
+=======
+    <aside className="h-[calc(100vh-96px)] overflow-auto rounded-lg p-4">
+      {/* Search + Controls */}
+      <div className="mb-3">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex items-center gap-2">
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search tickets..."
+              className="px-3 py-2 border border-slate-300 rounded-md text-sm w-64 focus:outline-none"
+            />
+            <div className="text-sm text-slate-500">
+              {loading
+                ? "Loading…"
+                : `${filtered.length} result${
+                    filtered.length === 1 ? "" : "s"
+                  }`}
+>>>>>>> parent of cba5be4... categories page removed, ticket page updated
             </div>
           </div>
         ) : error ? (
