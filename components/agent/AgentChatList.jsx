@@ -717,6 +717,7 @@ export default function ChatList({
   ];
 
   // Normalize a single ticket object from various API shapes.
+  // ONLY uses ticket_status field as the source of truth for status
   function normalizeTicket(t) {
     const id = t?.id ?? t?.pk ?? null;
     const subject = t?.subject ?? t?.title ?? null;
@@ -726,29 +727,14 @@ export default function ChatList({
     // escalate flag
     const isEscalated = t?.escalated === true;
 
-    // prefer explicit ticket_status fields (string) when available - THIS IS THE SOURCE OF TRUTH
+    // ONLY use ticket_status field - THIS IS THE ONLY SOURCE OF TRUTH
     const ticketStatusField =
       (typeof t?.ticket_status === "string" && t.ticket_status.trim()) ||
-      (typeof t?.ticket_status_display === "string" &&
-        t.ticket_status_display.trim()) ||
       null;
 
-    const progressLabel =
-      typeof t?.progress === "string" && t.progress.trim().length > 0
-        ? t.progress.trim()
-        : null;
+    // Build status value - ONLY from ticket_status field
+    let statusDisplay = "Pending"; // Default
 
-    // status may be boolean (true=resolved, false=pending) or a string
-    const statusBool = typeof t?.status === "boolean" ? t.status : undefined;
-    const statusStr =
-      typeof t?.status === "string" && t.status.trim().length > 0
-        ? t.status.trim().toLowerCase()
-        : undefined;
-
-    // Build status value - PRIORITIZE ticket_status field as it's the source of truth
-    let statusDisplay = null;
-
-    // First check ticket_status field (highest priority)
     if (ticketStatusField) {
       const ticketStatusLower = ticketStatusField.toLowerCase();
       // Normalize to capitalized display names
@@ -763,48 +749,6 @@ export default function ChatList({
         statusDisplay = ticketStatusField.charAt(0).toUpperCase() + ticketStatusField.slice(1);
       }
     }
-    // Then check if status boolean or string indicates resolved
-    else if (
-      statusBool === true ||
-      statusStr === "resolved" ||
-      statusStr === "true"
-    ) {
-      statusDisplay = "Resolved";
-    }
-    // Then check if escalated and not resolved
-    else if (isEscalated && statusBool !== true) {
-      statusDisplay = "Escalated";
-    }
-    // Then check progress label
-    else if (progressLabel) {
-      const progressLower = progressLabel.toLowerCase();
-      // Normalize progress labels too
-      if (progressLower === "resolved") {
-        statusDisplay = "Resolved";
-      } else if (progressLower === "pending") {
-        statusDisplay = "Pending";
-      } else if (progressLower === "escalated") {
-        statusDisplay = "Escalated";
-      } else {
-        statusDisplay = progressLabel;
-      }
-    }
-    // Then check if pending
-    else if (
-      statusBool === false ||
-      statusStr === "pending" ||
-      statusStr === "false"
-    ) {
-      statusDisplay = "Pending";
-    }
-    // Fallback to status string
-    else if (typeof statusStr === "string" && statusStr.trim().length > 0) {
-      statusDisplay = statusStr.charAt(0).toUpperCase() + statusStr.slice(1);
-    }
-    // Final fallback
-    else {
-      statusDisplay = "Pending";
-    }
 
     const statusKey = statusDisplay
       ? String(statusDisplay).toLowerCase()
@@ -812,10 +756,6 @@ export default function ChatList({
 
     const created_at = t?.created_at ?? t?.createdAt ?? t?.pub_date ?? null;
     const created_at_display = t?.created_at_display ?? null;
-    const preview =
-      t?.preview ??
-      (t?.progress ? String(t.progress).slice(0, 80) : "") ??
-      null;
 
     const ticketUserId =
       t?.user_id ??
@@ -835,9 +775,9 @@ export default function ChatList({
       email,
       status: statusKey,
       statusDisplay,
+      ticket_status: ticketStatusField, // Store original ticket_status for reference
       created_at,
       created_at_display,
-      preview,
       raw: { ...t, escalated: isEscalated },
       ticketUserId,
     };
@@ -979,65 +919,7 @@ export default function ChatList({
 
         let normalized = arr.map(normalizeTicket);
 
-        // Fetch status for each ticket using /get-ticket-status/{id}/ (optional)
-        try {
-          const ticketsWithStatus = await Promise.all(
-            normalized.map(async (ticket) => {
-              if (!ticket.id || !api || typeof api.get !== "function")
-                return ticket;
-              try {
-                const statusRes = await api.get(
-                  `/get-ticket-status/${ticket.id}/`,
-                  {
-                    headers: token ? { Authorization: `Bearer ${token}` } : {},
-                    signal: ac.signal,
-                  }
-                );
-                const statusData = statusRes?.data;
-                if (statusData) {
-                  const newStatus =
-                    statusData.status ??
-                    statusData.progress ??
-                    statusData.ticket_status ??
-                    null;
-                  const newProgress = statusData.progress ?? null;
-                  if (newStatus || newProgress) {
-                    return {
-                      ...ticket,
-                      status: newStatus
-                        ? String(newStatus).toLowerCase()
-                        : ticket.status,
-                      statusDisplay: newProgress || ticket.statusDisplay,
-                      raw: {
-                        ...ticket.raw,
-                        status: newStatus,
-                        progress: newProgress,
-                        ticket_status:
-                          statusData.ticket_status ?? ticket.raw?.ticket_status,
-                      },
-                    };
-                  }
-                }
-              } catch (err) {
-                if (
-                  err?.name !== "AbortError" &&
-                  err?.name !== "CanceledError"
-                ) {
-                  console.warn(
-                    `Failed to fetch status for ticket ${ticket.id}:`,
-                    err
-                  );
-                }
-              }
-              return ticket;
-            })
-          );
-          normalized = ticketsWithStatus;
-        } catch (err) {
-          if (err?.name !== "AbortError" && err?.name !== "CanceledError") {
-            console.warn("Failed to fetch ticket statuses:", err);
-          }
-        }
+        // No longer fetching status from additional endpoint - we only use ticket_status field from ticket data
 
         const shouldFilter = Boolean(effectiveUserId || effectiveUserEmail);
         const filteredByUser = shouldFilter
@@ -1276,13 +1158,8 @@ export default function ChatList({
                 const subject = t.displaySubject ?? "No subject";
                 const email = t.email ?? "";
                 const statusKey = (t.status ?? "active").toLowerCase();
-                const previewLabel = (t.preview || "").toString().trim();
-                const statusLabel =
-                  previewLabel ||
-                  t.statusDisplay ||
-                  (statusKey
-                    ? statusKey.charAt(0).toUpperCase() + statusKey.slice(1)
-                    : "—");
+                // ONLY use statusDisplay which comes from ticket_status field
+                const statusLabel = t.statusDisplay || "Pending";
                 const time = t.created_at ?? t.created_at_display ?? "";
                 const isRecentlyAdded =
                   t.id &&

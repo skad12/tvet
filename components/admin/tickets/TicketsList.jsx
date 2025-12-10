@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { format, isValid } from "date-fns";
 import api from "@/lib/axios";
@@ -13,12 +13,16 @@ export default function TicketsList({
 }) {
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState(null);
 
   // pagination control (start and stop are inclusive)
   const [start, setStart] = useState(0);
   const [stop, setStop] = useState(pageSize - 1);
   const [hasMore, setHasMore] = useState(false);
+
+  // Ref for infinite scroll observer
+  const observerTarget = useRef(null);
 
   // reset pagination on category change
   useEffect(() => {
@@ -163,7 +167,10 @@ export default function TicketsList({
         setError(err?.message ?? "Failed to load tickets");
         setTickets([]);
       } finally {
-        if (mounted) setLoading(false);
+        if (mounted) {
+          setLoading(false);
+          setLoadingMore(false);
+        }
       }
     }
 
@@ -174,12 +181,37 @@ export default function TicketsList({
     };
   }, [categoryId, start, stop, pageSize]);
 
-  function loadMore() {
+  const loadMore = useCallback(() => {
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
     const nextStart = stop + 1;
     const nextStop = nextStart + (pageSize - 1);
     setStart(nextStart);
     setStop(nextStop);
-  }
+  }, [loadingMore, hasMore, stop, pageSize]);
+
+  // Infinite scroll observer
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !loading && !loadingMore) {
+          loadMore();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    const target = observerTarget.current;
+    if (target) {
+      observer.observe(target);
+    }
+
+    return () => {
+      if (target) {
+        observer.unobserve(target);
+      }
+    };
+  }, [hasMore, loading, loadingMore, loadMore]);
 
   function formatDate(val, display) {
     if (display) return display;
@@ -316,15 +348,15 @@ export default function TicketsList({
               </AnimatePresence>
             </ul>
 
-            <div className="p-4 border-t border-slate-100 text-center">
-              {hasMore ? (
-                <button
-                  onClick={loadMore}
-                  className="inline-flex items-center px-4 py-2 rounded bg-slate-900 text-white text-sm"
-                >
-                  Load more
-                </button>
-              ) : (
+            {/* Infinite scroll trigger */}
+            <div ref={observerTarget} className="p-4 border-t border-slate-100 text-center">
+              {loadingMore && hasMore && (
+                <div className="flex items-center justify-center gap-2 text-sm text-slate-500">
+                  <div className="w-4 h-4 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
+                  <span>Loading more tickets...</span>
+                </div>
+              )}
+              {!hasMore && tickets.length > 0 && (
                 <span className="text-xs text-slate-400">No more tickets</span>
               )}
             </div>

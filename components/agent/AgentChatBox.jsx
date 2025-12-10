@@ -158,7 +158,7 @@ export default function ChatBox({
     setEscalationNotice(null);
     setShowPopup(false);
 
-    // Determine if ticket is resolved - PRIORITIZE ticket_status field
+    // Determine if ticket is resolved - ONLY use ticket_status field (source of truth)
     const ticketStatus =
       typeof selected?.ticket_status === "string"
         ? String(selected.ticket_status).toLowerCase()
@@ -167,29 +167,15 @@ export default function ChatBox({
       typeof selected?.raw?.ticket_status === "string"
         ? String(selected.raw.ticket_status).toLowerCase()
         : "";
-    const statusBool =
-      typeof selected?.status === "boolean" ? selected.status : undefined;
-    const statusStr =
-      typeof selected?.status === "string"
-        ? String(selected.status).toLowerCase()
-        : "";
 
-    // Check ticket_status field first (source of truth), then fallback to other fields
+    // ONLY check ticket_status field - no other fields
     const resolved =
       ticketStatus === "resolved" ||
-      rawTicketStatus === "resolved" ||
-      statusBool === true ||
-      statusStr === "resolved" ||
-      statusStr === "true" ||
-      p === "resolved" ||
-      d === "resolved";
+      rawTicketStatus === "resolved";
 
     setIsResolved(resolved);
   }, [
     selected?.id,
-    selected?.status,
-    selected?.progress,
-    selected?.statusDisplay,
     selected?.ticket_status,
     selected?.raw?.ticket_status,
     selected?.raw?.escalated,

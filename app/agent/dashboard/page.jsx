@@ -232,7 +232,7 @@ export default function AgentDashboardPage() {
     if (!userId) return;
     fetchUserStatus(userId);
     // Refresh status every 30 seconds
-    const interval = setInterval(() => fetchUserStatus(userId), 30000);
+    const interval = setInterval(() => fetchUserStatus(userId), 10000);
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
