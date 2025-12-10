@@ -158,16 +158,23 @@ export default function ChatBox({
     setEscalationNotice(null);
     setShowPopup(false);
 
-    // Determine if ticket is resolved based on status boolean
+    // Determine if ticket is resolved based on status boolean or string
     const statusBool =
       typeof selected?.status === "boolean" ? selected.status : undefined;
     const statusStr =
       typeof selected?.status === "string"
         ? String(selected.status).toLowerCase()
         : "";
-    setIsResolved(
-      statusBool === true || statusStr === "resolved" || statusStr === "true"
-    );
+
+    // Ticket is resolved if status is true (boolean), "resolved", "Resolved", or "true"
+    const resolved =
+      statusBool === true ||
+      statusStr === "resolved" ||
+      statusStr === "true" ||
+      p === "resolved" ||
+      d === "resolved";
+
+    setIsResolved(resolved);
   }, [
     selected?.id,
     selected?.status,
@@ -444,7 +451,7 @@ export default function ChatBox({
                     try {
                       await api.post("/set-ticket-status/", {
                         ticket_id: selected.id,
-                        status: "resolved",
+                        status: "Resolved",
                       });
 
                       setIsResolved(true);

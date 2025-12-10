@@ -674,6 +674,8 @@ export default function ChatList({
   userEmail: propUserEmail = null,
   categoryId = null,
   forceFetch = false,
+  onRefresh = null,
+  refreshing = false,
 }) {
   const { user, token } = useAuth?.() ?? {};
 
@@ -1066,8 +1068,8 @@ export default function ChatList({
     const map = { all: owned.length, active: 0, pending: 0, resolved: 0 };
     owned.forEach((t) => {
       const s = (t.status ?? "").toLowerCase();
-      if (s === "Pending" || s === "waiting") map.pending++;
-      else if (s === "Resolved") map.resolved++;
+      if (s === "pending" || s === "waiting") map.pending++;
+      else if (s === "resolved") map.resolved++;
       else map.active++;
     });
     return map;
@@ -1140,10 +1142,38 @@ export default function ChatList({
             <h3 className="text-base sm:text-lg font-medium text-slate-800">
               Your Tickets
             </h3>
-            <div className="text-xs sm:text-sm text-slate-500">
-              {loading
-                ? "…"
-                : `${owned.length} ticket${owned.length === 1 ? "" : "s"}`}
+            <div className="flex items-center gap-2">
+              {onRefresh && (
+                <button
+                  onClick={onRefresh}
+                  disabled={refreshing || loading}
+                  className="inline-flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  aria-label="Refresh tickets"
+                >
+                  <svg
+                    className={`w-3 h-3 sm:w-4 sm:h-4 ${refreshing ? "animate-spin" : ""}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                    />
+                  </svg>
+                  <span className="hidden sm:inline">
+                    {refreshing ? "Refreshing..." : "Refresh"}
+                  </span>
+                </button>
+              )}
+              <div className="text-xs sm:text-sm text-slate-500">
+                {loading
+                  ? "…"
+                  : `${owned.length} ticket${owned.length === 1 ? "" : "s"}`}
+              </div>
             </div>
           </div>
 

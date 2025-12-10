@@ -14,6 +14,7 @@ export default function AgentDashboardPage() {
   const [loadingTickets, setLoadingTickets] = useState(true);
   const [ticketsError, setTicketsError] = useState(null);
   const [selected, setSelected] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   const { user } = useAuth();
 
@@ -114,6 +115,7 @@ export default function AgentDashboardPage() {
             `/filter-ticket/by-user-id/${currentUserId}/`
           );
           data = res?.data;
+          console.log(currentUserId);
         } catch (err) {
           // Secondary: GET without path param, passing id as query if supported
           if (err?.response?.status === 405 || err?.response?.status === 404) {
@@ -197,6 +199,16 @@ export default function AgentDashboardPage() {
     }
   }
 
+  const handleManualRefresh = async () => {
+    if (!userId && !userEmail) return;
+    setRefreshing(true);
+    try {
+      await fetchTickets(userId, userEmail, { showLoading: false });
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   useEffect(() => {
     if (!userId && !userEmail) return;
     fetchTickets(userId, userEmail);
@@ -273,6 +285,8 @@ export default function AgentDashboardPage() {
                 setSelected={setSelected}
                 userId={userId ?? undefined}
                 userEmail={userEmail || undefined}
+                onRefresh={handleManualRefresh}
+                refreshing={refreshing}
               />
               {/* Additional agent-specific components can be added here */}
             </div>
