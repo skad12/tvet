@@ -89,7 +89,9 @@ export default function TicketsList({
               : all?.tickets ?? all?.results ?? [];
             const filtered = categoryId
               ? arr.filter((t) => {
-                  const nameCandidate =
+                  // Check the ticket's name field which contains the category title
+                  const categoryName =
+                    t?.name ??
                     t?.category?.name ??
                     t?.category_name ??
                     t?.categoryTitle ??
@@ -97,8 +99,8 @@ export default function TicketsList({
                     t?.category ??
                     null;
                   return (
-                    nameCandidate !== null &&
-                    String(nameCandidate).toLowerCase() ===
+                    categoryName !== null &&
+                    String(categoryName).toLowerCase() ===
                       String(categoryId).toLowerCase()
                   );
                 })

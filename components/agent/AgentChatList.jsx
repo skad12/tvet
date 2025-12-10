@@ -726,7 +726,7 @@ export default function ChatList({
     // escalate flag
     const isEscalated = t?.escalated === true;
 
-    // prefer explicit ticket_status fields (string) when available
+    // prefer explicit ticket_status fields (string) when available - THIS IS THE SOURCE OF TRUTH
     const ticketStatusField =
       (typeof t?.ticket_status === "string" && t.ticket_status.trim()) ||
       (typeof t?.ticket_status_display === "string" &&
@@ -745,30 +745,64 @@ export default function ChatList({
         ? t.status.trim().toLowerCase()
         : undefined;
 
-    // Build a fallback status value (priority: ticketStatusField -> statusStr -> boolean)
+    // Build status value - PRIORITIZE ticket_status field as it's the source of truth
     let statusDisplay = null;
-    if (
+
+    // First check ticket_status field (highest priority)
+    if (ticketStatusField) {
+      const ticketStatusLower = ticketStatusField.toLowerCase();
+      // Normalize to capitalized display names
+      if (ticketStatusLower === "resolved") {
+        statusDisplay = "Resolved";
+      } else if (ticketStatusLower === "pending") {
+        statusDisplay = "Pending";
+      } else if (ticketStatusLower === "escalated") {
+        statusDisplay = "Escalated";
+      } else {
+        // Keep original casing for other statuses
+        statusDisplay = ticketStatusField.charAt(0).toUpperCase() + ticketStatusField.slice(1);
+      }
+    }
+    // Then check if status boolean or string indicates resolved
+    else if (
       statusBool === true ||
       statusStr === "resolved" ||
       statusStr === "true"
     ) {
       statusDisplay = "Resolved";
-    } else if (isEscalated && statusBool !== true) {
-      // Show escalated as an explicit *display* for clarity (but we also show a badge)
+    }
+    // Then check if escalated and not resolved
+    else if (isEscalated && statusBool !== true) {
       statusDisplay = "Escalated";
-    } else if (progressLabel) {
-      statusDisplay = progressLabel;
-    } else if (ticketStatusField) {
-      statusDisplay = ticketStatusField;
-    } else if (
+    }
+    // Then check progress label
+    else if (progressLabel) {
+      const progressLower = progressLabel.toLowerCase();
+      // Normalize progress labels too
+      if (progressLower === "resolved") {
+        statusDisplay = "Resolved";
+      } else if (progressLower === "pending") {
+        statusDisplay = "Pending";
+      } else if (progressLower === "escalated") {
+        statusDisplay = "Escalated";
+      } else {
+        statusDisplay = progressLabel;
+      }
+    }
+    // Then check if pending
+    else if (
       statusBool === false ||
       statusStr === "pending" ||
       statusStr === "false"
     ) {
       statusDisplay = "Pending";
-    } else if (typeof statusStr === "string" && statusStr.trim().length > 0) {
+    }
+    // Fallback to status string
+    else if (typeof statusStr === "string" && statusStr.trim().length > 0) {
       statusDisplay = statusStr.charAt(0).toUpperCase() + statusStr.slice(1);
-    } else {
+    }
+    // Final fallback
+    else {
       statusDisplay = "Pending";
     }
 
@@ -968,9 +1002,6 @@ export default function ChatList({
                     null;
                   const newProgress = statusData.progress ?? null;
                   if (newStatus || newProgress) {
-                    const resolved =
-                      newStatus === true ||
-                      String(newStatus).toLowerCase() === "resolved";
                     return {
                       ...ticket,
                       status: newStatus

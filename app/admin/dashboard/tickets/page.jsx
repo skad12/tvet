@@ -393,15 +393,15 @@ export default function TicketPage() {
       setCatLoading(true);
       setCatError(null);
       try {
-        const res = await api.get("/ticket-categories/").catch(() => null);
+        const res = await api.get("/get-all-category/");
         const data = res?.data ?? [];
         if (!mounted) return;
-        const arr = Array.isArray(data)
-          ? data
-          : data?.categories ?? data?.results ?? [];
-        setCategories(arr || []);
+        // Data is already an array of categories with id and title
+        const arr = Array.isArray(data) ? data : [];
+        setCategories(arr);
       } catch (err) {
         if (mounted) setCatError("Failed to load categories");
+        console.error("Failed to load categories:", err);
       } finally {
         if (mounted) setCatLoading(false);
       }
@@ -471,24 +471,20 @@ export default function TicketPage() {
                 >
                   All
                 </button>
-                {(catLoading ? [] : categories).map((c, idx) => {
-                  const catName =
-                    c.name ??
-                    c.title ??
-                    c.label ??
-                    String(c.id ?? c.slug ?? "");
+                {(catLoading ? [] : categories).map((c) => {
+                  // Use title as the category name (matching the ticket's name field)
+                  const categoryTitle = c.title ?? c.name ?? "";
                   return (
                     <button
-                      key={`${catName}-${idx}`}
-                      onClick={() => setActiveCategory(catName)}
+                      key={c.id}
+                      onClick={() => setActiveCategory(categoryTitle)}
                       className={`inline-flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium transition shrink-0 ${
-                        String(activeCategory || "").toLowerCase() ===
-                        String(catName).toLowerCase()
+                        activeCategory === categoryTitle
                           ? "bg-slate-900 text-white shadow"
                           : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50"
                       }`}
                     >
-                      {catName}
+                      {categoryTitle}
                     </button>
                   );
                 })}
