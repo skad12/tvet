@@ -116,7 +116,6 @@ export default function AgentDashboardPage() {
             `/filter-ticket/by-user-id/${currentUserId}/`
           );
           data = res?.data;
-          console.log(currentUserId);
         } catch (err) {
           // Secondary: GET without path param, passing id as query if supported
           if (err?.response?.status === 405 || err?.response?.status === 404) {
