@@ -177,7 +177,7 @@ export default function AgentDashboardPage() {
       );
 
       setTickets(allTickets);
-      // Preserve current selection when possible
+      // Preserve current selection when Possible
       setSelected((prevSelected) => {
         if (prevSelected) {
           const exists = filtered.find(
