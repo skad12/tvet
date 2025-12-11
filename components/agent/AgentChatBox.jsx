@@ -158,21 +158,26 @@ export default function ChatBox({
     setEscalationNotice(null);
     setShowPopup(false);
 
-    // Determine if ticket is resolved based on status boolean
-    const statusBool =
-      typeof selected?.status === "boolean" ? selected.status : undefined;
-    const statusStr =
-      typeof selected?.status === "string"
-        ? String(selected.status).toLowerCase()
+    // Determine if ticket is resolved - ONLY use ticket_status field (source of truth)
+    const ticketStatus =
+      typeof selected?.ticket_status === "string"
+        ? String(selected.ticket_status).toLowerCase()
         : "";
-    setIsResolved(
-      statusBool === true || statusStr === "resolved" || statusStr === "true"
-    );
+    const rawTicketStatus =
+      typeof selected?.raw?.ticket_status === "string"
+        ? String(selected.raw.ticket_status).toLowerCase()
+        : "";
+
+    // ONLY check ticket_status field - no other fields
+    const resolved =
+      ticketStatus === "resolved" ||
+      rawTicketStatus === "resolved";
+
+    setIsResolved(resolved);
   }, [
     selected?.id,
-    selected?.status,
-    selected?.progress,
-    selected?.statusDisplay,
+    selected?.ticket_status,
+    selected?.raw?.ticket_status,
     selected?.raw?.escalated,
   ]);
 
@@ -444,7 +449,7 @@ export default function ChatBox({
                     try {
                       await api.post("/set-ticket-status/", {
                         ticket_id: selected.id,
-                        status: "resolved",
+                        status: "Resolved",
                       });
 
                       setIsResolved(true);

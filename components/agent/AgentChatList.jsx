@@ -674,6 +674,8 @@ export default function ChatList({
   userEmail: propUserEmail = null,
   categoryId = null,
   forceFetch = false,
+  onRefresh = null,
+  refreshing = false,
 }) {
   const { user, token } = useAuth?.() ?? {};
 
@@ -715,6 +717,7 @@ export default function ChatList({
   ];
 
   // Normalize a single ticket object from various API shapes.
+  // ONLY uses ticket_status field as the source of truth for status
   function normalizeTicket(t) {
     const id = t?.id ?? t?.pk ?? null;
     const subject = t?.subject ?? t?.title ?? null;
@@ -724,50 +727,27 @@ export default function ChatList({
     // escalate flag
     const isEscalated = t?.escalated === true;
 
-    // prefer explicit ticket_status fields (string) when available
+    // ONLY use ticket_status field - THIS IS THE ONLY SOURCE OF TRUTH
     const ticketStatusField =
       (typeof t?.ticket_status === "string" && t.ticket_status.trim()) ||
-      (typeof t?.ticket_status_display === "string" &&
-        t.ticket_status_display.trim()) ||
       null;
 
-    const progressLabel =
-      typeof t?.progress === "string" && t.progress.trim().length > 0
-        ? t.progress.trim()
-        : null;
+    // Build status value - ONLY from ticket_status field
+    let statusDisplay = "Pending"; // Default
 
-    // status may be boolean (true=resolved, false=pending) or a string
-    const statusBool = typeof t?.status === "boolean" ? t.status : undefined;
-    const statusStr =
-      typeof t?.status === "string" && t.status.trim().length > 0
-        ? t.status.trim().toLowerCase()
-        : undefined;
-
-    // Build a fallback status value (priority: ticketStatusField -> statusStr -> boolean)
-    let statusDisplay = null;
-    if (
-      statusBool === true ||
-      statusStr === "resolved" ||
-      statusStr === "true"
-    ) {
-      statusDisplay = "Resolved";
-    } else if (isEscalated && statusBool !== true) {
-      // Show escalated as an explicit *display* for clarity (but we also show a badge)
-      statusDisplay = "Escalated";
-    } else if (progressLabel) {
-      statusDisplay = progressLabel;
-    } else if (ticketStatusField) {
-      statusDisplay = ticketStatusField;
-    } else if (
-      statusBool === false ||
-      statusStr === "pending" ||
-      statusStr === "false"
-    ) {
-      statusDisplay = "Pending";
-    } else if (typeof statusStr === "string" && statusStr.trim().length > 0) {
-      statusDisplay = statusStr.charAt(0).toUpperCase() + statusStr.slice(1);
-    } else {
-      statusDisplay = "Pending";
+    if (ticketStatusField) {
+      const ticketStatusLower = ticketStatusField.toLowerCase();
+      // Normalize to capitalized display names
+      if (ticketStatusLower === "resolved") {
+        statusDisplay = "Resolved";
+      } else if (ticketStatusLower === "pending") {
+        statusDisplay = "Pending";
+      } else if (ticketStatusLower === "escalated") {
+        statusDisplay = "Escalated";
+      } else {
+        // Keep original casing for other statuses
+        statusDisplay = ticketStatusField.charAt(0).toUpperCase() + ticketStatusField.slice(1);
+      }
     }
 
     const statusKey = statusDisplay
@@ -776,10 +756,6 @@ export default function ChatList({
 
     const created_at = t?.created_at ?? t?.createdAt ?? t?.pub_date ?? null;
     const created_at_display = t?.created_at_display ?? null;
-    const preview =
-      t?.preview ??
-      (t?.progress ? String(t.progress).slice(0, 80) : "") ??
-      null;
 
     const ticketUserId =
       t?.user_id ??
@@ -799,9 +775,9 @@ export default function ChatList({
       email,
       status: statusKey,
       statusDisplay,
+      ticket_status: ticketStatusField, // Store original ticket_status for reference
       created_at,
       created_at_display,
-      preview,
       raw: { ...t, escalated: isEscalated },
       ticketUserId,
     };
@@ -943,68 +919,7 @@ export default function ChatList({
 
         let normalized = arr.map(normalizeTicket);
 
-        // Fetch status for each ticket using /get-ticket-status/{id}/ (optional)
-        try {
-          const ticketsWithStatus = await Promise.all(
-            normalized.map(async (ticket) => {
-              if (!ticket.id || !api || typeof api.get !== "function")
-                return ticket;
-              try {
-                const statusRes = await api.get(
-                  `/get-ticket-status/${ticket.id}/`,
-                  {
-                    headers: token ? { Authorization: `Bearer ${token}` } : {},
-                    signal: ac.signal,
-                  }
-                );
-                const statusData = statusRes?.data;
-                if (statusData) {
-                  const newStatus =
-                    statusData.status ??
-                    statusData.progress ??
-                    statusData.ticket_status ??
-                    null;
-                  const newProgress = statusData.progress ?? null;
-                  if (newStatus || newProgress) {
-                    const resolved =
-                      newStatus === true ||
-                      String(newStatus).toLowerCase() === "resolved";
-                    return {
-                      ...ticket,
-                      status: newStatus
-                        ? String(newStatus).toLowerCase()
-                        : ticket.status,
-                      statusDisplay: newProgress || ticket.statusDisplay,
-                      raw: {
-                        ...ticket.raw,
-                        status: newStatus,
-                        progress: newProgress,
-                        ticket_status:
-                          statusData.ticket_status ?? ticket.raw?.ticket_status,
-                      },
-                    };
-                  }
-                }
-              } catch (err) {
-                if (
-                  err?.name !== "AbortError" &&
-                  err?.name !== "CanceledError"
-                ) {
-                  console.warn(
-                    `Failed to fetch status for ticket ${ticket.id}:`,
-                    err
-                  );
-                }
-              }
-              return ticket;
-            })
-          );
-          normalized = ticketsWithStatus;
-        } catch (err) {
-          if (err?.name !== "AbortError" && err?.name !== "CanceledError") {
-            console.warn("Failed to fetch ticket statuses:", err);
-          }
-        }
+        // No longer fetching status from additional endpoint - we only use ticket_status field from ticket data
 
         const shouldFilter = Boolean(effectiveUserId || effectiveUserEmail);
         const filteredByUser = shouldFilter
@@ -1066,8 +981,8 @@ export default function ChatList({
     const map = { all: owned.length, active: 0, pending: 0, resolved: 0 };
     owned.forEach((t) => {
       const s = (t.status ?? "").toLowerCase();
-      if (s === "Pending" || s === "waiting") map.pending++;
-      else if (s === "Resolved") map.resolved++;
+      if (s === "pending" || s === "waiting") map.pending++;
+      else if (s === "resolved") map.resolved++;
       else map.active++;
     });
     return map;
@@ -1140,10 +1055,38 @@ export default function ChatList({
             <h3 className="text-base sm:text-lg font-medium text-slate-800">
               Your Tickets
             </h3>
-            <div className="text-xs sm:text-sm text-slate-500">
-              {loading
-                ? "…"
-                : `${owned.length} ticket${owned.length === 1 ? "" : "s"}`}
+            <div className="flex items-center gap-2">
+              {onRefresh && (
+                <button
+                  onClick={onRefresh}
+                  disabled={refreshing || loading}
+                  className="inline-flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  aria-label="Refresh tickets"
+                >
+                  <svg
+                    className={`w-3 h-3 sm:w-4 sm:h-4 ${refreshing ? "animate-spin" : ""}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                    />
+                  </svg>
+                  <span className="hidden sm:inline">
+                    {refreshing ? "Refreshing..." : "Refresh"}
+                  </span>
+                </button>
+              )}
+              <div className="text-xs sm:text-sm text-slate-500">
+                {loading
+                  ? "…"
+                  : `${owned.length} ticket${owned.length === 1 ? "" : "s"}`}
+              </div>
             </div>
           </div>
 
@@ -1215,13 +1158,8 @@ export default function ChatList({
                 const subject = t.displaySubject ?? "No subject";
                 const email = t.email ?? "";
                 const statusKey = (t.status ?? "active").toLowerCase();
-                const previewLabel = (t.preview || "").toString().trim();
-                const statusLabel =
-                  previewLabel ||
-                  t.statusDisplay ||
-                  (statusKey
-                    ? statusKey.charAt(0).toUpperCase() + statusKey.slice(1)
-                    : "—");
+                // ONLY use statusDisplay which comes from ticket_status field
+                const statusLabel = t.statusDisplay || "Pending";
                 const time = t.created_at ?? t.created_at_display ?? "";
                 const isRecentlyAdded =
                   t.id &&

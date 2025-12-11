@@ -14,6 +14,8 @@ export default function AgentDashboardPage() {
   const [loadingTickets, setLoadingTickets] = useState(true);
   const [ticketsError, setTicketsError] = useState(null);
   const [selected, setSelected] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [userStatus, setUserStatus] = useState(null);
 
   const { user } = useAuth();
 
@@ -175,7 +177,7 @@ export default function AgentDashboardPage() {
       );
 
       setTickets(allTickets);
-      // Preserve current selection when possible
+      // Preserve current selection when Possible
       setSelected((prevSelected) => {
         if (prevSelected) {
           const exists = filtered.find(
@@ -197,11 +199,42 @@ export default function AgentDashboardPage() {
     }
   }
 
+  const handleManualRefresh = async () => {
+    if (!userId && !userEmail) return;
+    setRefreshing(true);
+    try {
+      await fetchTickets(userId, userEmail, { showLoading: false });
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  async function fetchUserStatus(currentUserId) {
+    if (!currentUserId) return;
+    try {
+      const res = await api.get(`/get-user-status/${currentUserId}/`);
+      const status = res?.data?.status ?? null;
+      setUserStatus(status);
+    } catch (err) {
+      console.warn("Failed to fetch user status:", err);
+      setUserStatus(null);
+    }
+  }
+
   useEffect(() => {
     if (!userId && !userEmail) return;
     fetchTickets(userId, userEmail);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, userEmail]);
+
+  useEffect(() => {
+    if (!userId) return;
+    fetchUserStatus(userId);
+    // Refresh status every 30 seconds
+    const interval = setInterval(() => fetchUserStatus(userId), 10000);
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
 
   useEffect(() => {
     if (!userId && !userEmail) return;
@@ -233,7 +266,11 @@ export default function AgentDashboardPage() {
         className="min-h-screen bg-slate-50 py-2 sm:py-4"
       >
         <div className="max-w-7xl mx-auto px-2 sm:px-4">
-          <Navbar userEmail={userEmail || undefined} showCreateTicket={false} />
+          <Navbar
+            userEmail={userEmail || undefined}
+            showCreateTicket={false}
+            userStatus={userStatus}
+          />
           {ticketsError && (
             <div className="mb-3 sm:mb-4 rounded border border-red-200 bg-red-50 px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-red-700">
               {ticketsError}
@@ -273,6 +310,8 @@ export default function AgentDashboardPage() {
                 setSelected={setSelected}
                 userId={userId ?? undefined}
                 userEmail={userEmail || undefined}
+                onRefresh={handleManualRefresh}
+                refreshing={refreshing}
               />
               {/* Additional agent-specific components can be added here */}
             </div>
