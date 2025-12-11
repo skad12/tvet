@@ -36,11 +36,18 @@ export default function TicketsList({
     const ac = new AbortController();
 
     async function load() {
-      setLoading(true);
+      // Use loading for initial load, loadingMore for subsequent loads
+      if (start === 0) {
+        setLoading(true);
+      } else {
+        setLoadingMore(true);
+      }
       setError(null);
 
       try {
         let resData = null;
+        let usingFallback = false;
+        let totalCount = null;
 
         // Primary endpoint: category-based paginated route
         const categoryBasedUrl = `/tickets/category-based/${start}/${stop}/`;
@@ -51,68 +58,83 @@ export default function TicketsList({
         if (categoryId !== null && categoryId !== undefined)
           payload.category = categoryId;
 
-        // Try category-based endpoint when categoryId provided, otherwise try generic paged endpoint.
-        // We'll try POST first (as requested). Fallback to GET, then to fetching all and filtering.
+        console.log('[TicketsList] Loading tickets:', { start, stop, categoryId, payload });
+
+        // Try GET requests to paginated endpoints first
         try {
           if (categoryId !== null && categoryId !== undefined) {
-            const res = await api.post(categoryBasedUrl, payload, {
-              signal: ac.signal,
-            });
+            console.log('[TicketsList] Trying category-based endpoint:', categoryBasedUrl);
+            const res = await api.get(
+              categoryBasedUrl + (categoryId ? `?category=${categoryId}` : ""),
+              { signal: ac.signal }
+            );
             resData = res?.data ?? null;
+            console.log('[TicketsList] Category-based endpoint response:', {
+              dataType: typeof resData,
+              isArray: Array.isArray(resData),
+              length: Array.isArray(resData) ? resData.length : resData?.length,
+              hasTotal: 'total' in (resData || {}),
+              hasCount: 'count' in (resData || {}),
+              total: resData?.total,
+              count: resData?.count,
+            });
           } else {
-            // no category -> try generic paginated endpoint
-            const res = await api.post(genericPagedUrl, payload, {
+            console.log('[TicketsList] Trying generic paged endpoint:', genericPagedUrl);
+            const res = await api.get(genericPagedUrl, {
               signal: ac.signal,
             });
             resData = res?.data ?? null;
+            console.log('[TicketsList] Generic paged endpoint response:', {
+              dataType: typeof resData,
+              isArray: Array.isArray(resData),
+              length: Array.isArray(resData) ? resData.length : resData?.length,
+              hasTotal: 'total' in (resData || {}),
+              hasCount: 'count' in (resData || {}),
+              total: resData?.total,
+              count: resData?.count,
+            });
           }
-        } catch (postErr) {
-          // POST failed; try GET on same endpoints
-          try {
-            if (categoryId !== null && categoryId !== undefined) {
-              const res2 = await api.get(
-                categoryBasedUrl +
-                  (categoryId ? `?category=${categoryId}` : ""),
-                { signal: ac.signal }
-              );
-              resData = res2?.data ?? null;
-            } else {
-              const res2 = await api.get(genericPagedUrl, {
-                signal: ac.signal,
-              });
-              resData = res2?.data ?? null;
-            }
-          } catch (getErr) {
-            // final fallback: fetch all and (optionally) filter by category client-side
-            const res3 = await api
-              .get("/tickets/", { signal: ac.signal })
-              .catch(() => null);
-            const all = res3?.data ?? [];
-            const arr = Array.isArray(all)
-              ? all
-              : all?.tickets ?? all?.results ?? [];
-            const filtered = categoryId
-              ? arr.filter((t) => {
-                  // Check the ticket's name field which contains the category title
-                  const categoryName =
-                    t?.name ??
-                    t?.category?.name ??
-                    t?.category_name ??
-                    t?.categoryTitle ??
-                    t?.category_title ??
-                    t?.category ??
-                    null;
-                  return (
-                    categoryName !== null &&
-                    String(categoryName).toLowerCase() ===
-                      String(categoryId).toLowerCase()
-                  );
-                })
-              : arr;
-            // simulate pagination on client side
-            const paged = filtered.slice(start, stop + 1);
-            resData = paged;
-          }
+        } catch (getErr) {
+          console.log('[TicketsList] Paginated endpoints failed:', getErr?.message);
+          // final fallback: fetch all and (optionally) filter by category client-side
+          console.log('[TicketsList] Using fallback - fetching all tickets');
+          usingFallback = true;
+          const res3 = await api
+            .get("/tickets/", { signal: ac.signal })
+            .catch(() => null);
+          const all = res3?.data ?? [];
+          const arr = Array.isArray(all)
+            ? all
+            : all?.tickets ?? all?.results ?? [];
+          const filtered = categoryId
+            ? arr.filter((t) => {
+                // Check the ticket's name field which contains the category title
+                const categoryName =
+                  t?.name ??
+                  t?.category?.name ??
+                  t?.category_name ??
+                  t?.categoryTitle ??
+                  t?.category_title ??
+                  t?.category ??
+                  null;
+                return (
+                  categoryName !== null &&
+                  String(categoryName).toLowerCase() ===
+                    String(categoryId).toLowerCase()
+                );
+              })
+            : arr;
+          // Store total count before slicing
+          totalCount = filtered.length;
+          // simulate pagination on client side
+          const paged = filtered.slice(start, stop + 1);
+          resData = paged;
+          console.log('[TicketsList] Fallback result:', {
+            totalTickets: totalCount,
+            pagedTickets: paged.length,
+            start,
+            stop
+          });
         }
 
         if (!mounted) return;
@@ -127,15 +149,37 @@ export default function TicketsList({
         else arr = [resData];
 
         // Determine hasMore:
-        const totalMaybe = resData?.total ?? resData?.count ?? null;
-        if (typeof totalMaybe === "number") {
-          const nextStart = stop + 1;
-          setHasMore(totalMaybe > nextStart);
-        } else if (resData?.next) {
-          setHasMore(true);
+        // If we got fewer items than pageSize, we've reached the end
+        // If we got exactly pageSize items, there might be more
+        if (usingFallback && typeof totalCount === "number") {
+          // Using client-side pagination - check if there are more items after current stop
+          const hasMoreItems = totalCount > stop + 1;
+          setHasMore(hasMoreItems);
+          console.log('[TicketsList] hasMore (fallback):', {
+            totalCount,
+            stop,
+            nextStart: stop + 1,
+            hasMore: hasMoreItems
+          });
         } else {
-          // if returned full page size, assume there may be more
-          setHasMore(arr.length === pageSize);
+          const totalMaybe = resData?.total ?? resData?.count ?? null;
+          if (typeof totalMaybe === "number") {
+            const nextStart = stop + 1;
+            setHasMore(totalMaybe > nextStart);
+          } else if (resData?.next) {
+            setHasMore(true);
+          } else {
+            // No total/count available - keep fetching until we get very few or no items
+            // This handles APIs that don't provide a total count
+            const hasMoreItems = arr.length > 0;
+            setHasMore(hasMoreItems);
+            console.log('[TicketsList] hasMore (API - no count):', {
+              arrLength: arr.length,
+              pageSize,
+              hasMore: hasMoreItems,
+              note: 'Will keep fetching until 0 items returned'
+            });
+          }
         }
 
         // Normalize tickets to expected shape
@@ -182,13 +226,12 @@ export default function TicketsList({
   }, [categoryId, start, stop, pageSize]);
 
   const loadMore = useCallback(() => {
-    if (loadingMore || !hasMore) return;
-    setLoadingMore(true);
+    if (loadingMore || loading || !hasMore) return;
     const nextStart = stop + 1;
     const nextStop = nextStart + (pageSize - 1);
     setStart(nextStart);
     setStop(nextStop);
-  }, [loadingMore, hasMore, stop, pageSize]);
+  }, [loadingMore, loading, hasMore, stop, pageSize]);
 
   // Infinite scroll observer
   useEffect(() => {
@@ -198,7 +241,10 @@ export default function TicketsList({
           loadMore();
         }
       },
-      { threshold: 0.1 }
+      {
+        threshold: 0.1,
+        rootMargin: '100px' // Trigger 100px before the target is visible
+      }
     );
 
     const target = observerTarget.current;
@@ -350,13 +396,13 @@ export default function TicketsList({
 
             {/* Infinite scroll trigger */}
             <div ref={observerTarget} className="p-4 border-t border-slate-100 text-center">
-              {loadingMore && hasMore && (
+              {loadingMore && (
                 <div className="flex items-center justify-center gap-2 text-sm text-slate-500">
                   <div className="w-4 h-4 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
                   <span>Loading more tickets...</span>
                 </div>
               )}
-              {!hasMore && tickets.length > 0 && (
+              {!loadingMore && !hasMore && tickets.length > 0 && (
                 <span className="text-xs text-slate-400">No more tickets</span>
               )}
             </div>
