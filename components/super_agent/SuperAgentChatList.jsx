@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { format, isValid } from "date-fns";
 import { useAuth } from "@/context/AuthContext";
+import { GoAlertFill } from "react-icons/go";
 
 let api = null;
 try {
@@ -48,8 +49,7 @@ export default function SuperAgentChatList({
 
     // ONLY use ticket_status field - THIS IS THE ONLY SOURCE OF TRUTH
     const ticketStatusField =
-      (typeof t?.ticket_status === "string" && t.ticket_status.trim()) ||
-      null;
+      (typeof t?.ticket_status === "string" && t.ticket_status.trim()) || null;
 
     // Build status value - ONLY from ticket_status field
     let statusDisplay = "Pending"; // Default
@@ -63,7 +63,9 @@ export default function SuperAgentChatList({
       } else if (ticketStatusLower === "escalated") {
         statusDisplay = "Escalated";
       } else {
-        statusDisplay = ticketStatusField.charAt(0).toUpperCase() + ticketStatusField.slice(1);
+        statusDisplay =
+          ticketStatusField.charAt(0).toUpperCase() +
+          ticketStatusField.slice(1);
       }
     }
 
@@ -73,6 +75,10 @@ export default function SuperAgentChatList({
 
     const created_at = t?.created_at ?? t?.createdAt ?? t?.pub_date ?? null;
     const created_at_display = t?.created_at_display ?? null;
+
+    // NEW: normalize assigned-to name so UI can show who the ticket is assigned to
+    const assigned_to_name =
+      t?.assigned_to_name ?? t?.assigned_to?.name ?? t?.assignee_name ?? null;
 
     return {
       id,
@@ -85,7 +91,8 @@ export default function SuperAgentChatList({
       ticket_status: ticketStatusField,
       created_at,
       created_at_display,
-      raw: { ...t, escalated: isEscalated },
+      assigned_to_name,
+      raw: { ...t, escalated: isEscalated, assigned_to_name },
     };
   }
 
@@ -173,11 +180,7 @@ export default function SuperAgentChatList({
         // Super agents can see all escalated tickets including resolved ones
         setTickets(normalized);
 
-        if (
-          normalized.length > 0 &&
-          !didAutoSelectRef.current &&
-          !selected
-        ) {
+        if (normalized.length > 0 && !didAutoSelectRef.current && !selected) {
           setSelected?.(normalized[0]);
           didAutoSelectRef.current = true;
         }
@@ -214,7 +217,8 @@ export default function SuperAgentChatList({
     const map = { all: owned.length, pending: 0, resolved: 0 };
     owned.forEach((t) => {
       const s = (t.status ?? "").toLowerCase();
-      if (s === "pending" || s === "waiting" || s === "escalated") map.pending++;
+      if (s === "pending" || s === "waiting" || s === "escalated")
+        map.pending++;
       else if (s === "resolved") map.resolved++;
     });
     return map;
@@ -260,9 +264,7 @@ export default function SuperAgentChatList({
         return next;
       });
       setNewTicketNotice(
-        `${newIds.length} new escalated ticket${
-          newIds.length > 1 ? "s" : ""
-        }`
+        `${newIds.length} new escalated ticket${newIds.length > 1 ? "s" : ""}`
       );
     }
   }, [owned]);
@@ -290,7 +292,9 @@ export default function SuperAgentChatList({
                   aria-label="Refresh tickets"
                 >
                   <svg
-                    className={`w-3 h-3 sm:w-4 sm:h-4 ${refreshing ? "animate-spin" : ""}`}
+                    className={`w-3 h-3 sm:w-4 sm:h-4 ${
+                      refreshing ? "animate-spin" : ""
+                    }`}
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -412,6 +416,18 @@ export default function SuperAgentChatList({
                       <div className="text-[10px] sm:text-xs text-slate-500 mt-0.5 sm:mt-1 truncate">
                         {email || t.name || "From Widget"}
                       </div>
+
+                      {/* NEW: show who the ticket is assigned to */}
+                      <div className="text-[10px] sm:text-xs text-slate-500 mt-1 truncate">
+                        Assigned to:{" "}
+                        {t.assigned_to_name === null ||
+                        t.assigned_to_name === undefined ||
+                        String(t.assigned_to_name).trim() === "" ||
+                        String(t.assigned_to_name).toLowerCase() === "null"
+                          ? "Unassigned"
+                          : t.assigned_to_name}
+                      </div>
+
                       {isRecentlyAdded && (
                         <div className="text-[10px] uppercase tracking-wide font-semibold text-emerald-600">
                           New
@@ -428,18 +444,7 @@ export default function SuperAgentChatList({
 
                       {t.raw?.escalated === true && (
                         <span className="inline-flex items-center gap-1 text-[10px] sm:text-xs font-semibold px-2 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-100">
-                          <svg
-                            className="w-3 h-3"
-                            fill="currentColor"
-                            viewBox="0 0 20 20"
-                            aria-hidden
-                          >
-                            <path
-                              fillRule="evenodd"
-                              d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                              clipRule="evenodd"
-                            />
-                          </svg>
+                          <GoAlertFill />
                           Escalated
                         </span>
                       )}
@@ -458,4 +463,3 @@ export default function SuperAgentChatList({
     </motion.div>
   );
 }
-
