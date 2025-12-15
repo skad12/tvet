@@ -1,40 +1,25 @@
-// components/admin/AgentCard.jsx
 "use client";
 
 import { motion } from "framer-motion";
 import { LuMail } from "react-icons/lu";
 import { FiPhoneCall } from "react-icons/fi";
 
-/**
- * AgentCard
- * Props:
- *  - agent: { id, name, email, phone, status, metrics: { active, resolved, avgTime } }
- */
-export default function AgentCard({ agent }) {
+export default function AgentCard({ agent, currentUserEmail = null }) {
   const {
-    id,
-    name,
-    email,
-    phone,
-    status: initialStatus = "offline",
-    metrics = {},
+    username = "Agent",
+    email = "",
+    phone = "—",
+    status = "offline",
   } = agent;
 
   const normalizeStatus = (value) => {
-    const lowered = String(value || "").toLowerCase();
-    if (lowered === "available" || lowered === "online") return "available";
-    if (lowered === "away" || lowered === "busy") return "away";
+    const v = String(value || "").toLowerCase();
+    if (v === "available") return "available";
+    if (v === "engaged") return "engaged";
     return "offline";
   };
 
-  const liveStatus = normalizeStatus(initialStatus);
-
-  const initials = (name || "U")
-    .split(" ")
-    .map((s) => s[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
+  const liveStatus = normalizeStatus(status);
 
   const statusStyles = {
     available: {
@@ -42,10 +27,10 @@ export default function AgentCard({ agent }) {
       dot: "bg-emerald-500",
       label: "Available",
     },
-    away: {
-      badge: "bg-amber-50 text-amber-700",
-      dot: "bg-amber-400",
-      label: "Away",
+    engaged: {
+      badge: "bg-blue-50 text-blue-700",
+      dot: "bg-blue-500",
+      label: "Engaged",
     },
     offline: {
       badge: "bg-red-50 text-red-700",
@@ -55,7 +40,19 @@ export default function AgentCard({ agent }) {
   };
 
   const { badge, dot, label } =
-    statusStyles[liveStatus] ?? statusStyles.offline;
+    statusStyles[liveStatus] || statusStyles.offline;
+
+  const initials = (username || "U")
+    .split(/\s|[._-]/)
+    .map((s) => (s ? s[0] : ""))
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+
+  const isYou =
+    currentUserEmail &&
+    email &&
+    currentUserEmail.toLowerCase() === email.toLowerCase();
 
   return (
     <motion.article
@@ -63,8 +60,10 @@ export default function AgentCard({ agent }) {
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ y: -4 }}
-      transition={{ duration: 0.25 }}
-      className="bg-white rounded-lg shadow-sm p-6"
+      transition={{ duration: 0.2 }}
+      className={`bg-white rounded-lg shadow-sm p-6 ${
+        isYou ? "ring-2 ring-blue-200" : ""
+      }`}
       role="article"
     >
       <div className="flex items-start gap-4">
@@ -73,7 +72,6 @@ export default function AgentCard({ agent }) {
             {initials}
           </div>
 
-          {/* small status dot */}
           <span
             className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white ${dot}`}
             aria-hidden
@@ -84,7 +82,12 @@ export default function AgentCard({ agent }) {
         <div className="flex-1">
           <div className="flex items-start justify-between gap-2">
             <div>
-              <div className="text-slate-800 font-semibold">{name}</div>
+              <div className="text-slate-800 font-semibold">
+                {username}{" "}
+                {isYou && (
+                  <span className="ml-2 text-xs text-blue-600">(You)</span>
+                )}
+              </div>
               <div
                 className={`text-xs mt-1 px-2 py-0.5 rounded-full inline-block ${badge}`}
               >
@@ -104,31 +107,6 @@ export default function AgentCard({ agent }) {
             <div className="flex items-center gap-2">
               <FiPhoneCall />
               <div className="truncate">{phone}</div>
-            </div>
-          </div>
-
-          <hr className="my-4 border-t border-slate-100" />
-
-          <div className="grid grid-cols-3 text-center gap-4">
-            <div>
-              <div className="text-lg font-semibold text-slate-800">
-                {metrics.active ?? 0}
-              </div>
-              <div className="text-xs text-slate-500 mt-1">Active</div>
-            </div>
-
-            <div>
-              <div className="text-lg font-semibold text-slate-800">
-                {metrics.resolved ?? 0}
-              </div>
-              <div className="text-xs text-slate-500 mt-1">Resolved</div>
-            </div>
-
-            <div>
-              <div className="text-lg font-semibold text-slate-800">
-                {metrics.avgTime ?? "—"}
-              </div>
-              <div className="text-xs text-slate-500 mt-1">Avg Time</div>
             </div>
           </div>
         </div>
