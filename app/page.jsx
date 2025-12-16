@@ -41,25 +41,14 @@ export default function Home() {
                 general student onboarding — open a ticket and track progress
                 from start to finish.
               </p>
-              {/* 
-              <motion.div
-                variants={fadeInUp}
-                transition={{ delay: 0.1 }}
-                className="mt-6 flex flex-wrap gap-3"
-              >
+              <div className="mt-4">
                 <Link
                   href="/support"
-                  className="inline-block px-6 py-3 bg-white text-blue-700 rounded shadow font-medium hover:scale-105 transition-transform"
+                  className="inline-block px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition border border-slate-300"
                 >
                   Create Ticket
                 </Link>
-                <Link
-                  href="/register"
-                  className="inline-block px-6 py-3 border border-white/30 text-white rounded font-medium hover:bg-white/10 transition"
-                >
-                  Register
-                </Link>
-              </motion.div> */}
+              </div>
             </motion.div>
 
             <motion.div
