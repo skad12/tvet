@@ -18,6 +18,9 @@ export default function TicketPage() {
   const [catError, setCatError] = useState(null);
   const [activeCategory, setActiveCategory] = useState(null); // null => All
 
+  // Status filter state
+  const [statusFilter, setStatusFilter] = useState("all"); // 'all', 'pending', 'resolved', 'active', etc.
+
   // ticket selection / modal states
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [chatOpen, setChatOpen] = useState(false);
@@ -95,7 +98,8 @@ export default function TicketPage() {
             {catError && (
               <div className="text-red-600 text-sm mb-2">{catError}</div>
             )}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-0 pb-2">
+            <div className="flex flex-col gap-3 pb-2">
+              {/* Category filters */}
               <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto whitespace-nowrap pb-1 sm:pb-0">
                 <button
                   onClick={() => setActiveCategory(null)}
@@ -105,7 +109,7 @@ export default function TicketPage() {
                       : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50"
                   }`}
                 >
-                  All
+                  All Categories
                 </button>
                 {(catLoading ? [] : categories).map((c) => {
                   // Use title as the category name (matching the ticket's name field)
@@ -124,6 +128,31 @@ export default function TicketPage() {
                     </button>
                   );
                 })}
+              </div>
+
+              {/* Status filters */}
+              <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto whitespace-nowrap">
+                <span className="text-xs sm:text-sm text-slate-600 font-medium shrink-0">
+                  Status:
+                </span>
+                {[
+                  { id: "all", label: "All" },
+                  { id: "pending", label: "Pending" },
+                  { id: "resolved", label: "Resolved" },
+                  { id: "active", label: "Active" },
+                ].map((status) => (
+                  <button
+                    key={status.id}
+                    onClick={() => setStatusFilter(status.id)}
+                    className={`inline-flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium transition shrink-0 ${
+                      statusFilter === status.id
+                        ? "bg-blue-600 text-white shadow"
+                        : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50"
+                    }`}
+                  >
+                    {status.label}
+                  </button>
+                ))}
               </div>
             </div>
           </div>
@@ -164,6 +193,7 @@ export default function TicketPage() {
         >
           <TicketsList
             categoryId={activeCategory}
+            statusFilter={statusFilter}
             onSelectTicket={openChat}
             selectedTicketId={selectedTicket?.id}
             pageSize={10}

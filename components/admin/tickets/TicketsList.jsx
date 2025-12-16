@@ -7,6 +7,7 @@ import api from "@/lib/axios";
 
 export default function TicketsList({
   categoryId,
+  statusFilter = "all",
   onSelectTicket,
   selectedTicketId,
   pageSize = 11,
@@ -24,12 +25,12 @@ export default function TicketsList({
   // Ref for infinite scroll observer
   const observerTarget = useRef(null);
 
-  // reset pagination on category change
+  // reset pagination on category or status change
   useEffect(() => {
     setStart(0);
     setStop(pageSize - 1);
     setTickets([]);
-  }, [categoryId, pageSize]);
+  }, [categoryId, statusFilter, pageSize]);
 
   useEffect(() => {
     let mounted = true;
@@ -202,6 +203,18 @@ export default function TicketsList({
           }
         }
 
+        // Helper function to normalize status values
+        function normalizeStatus(status) {
+          if (!status) return "active";
+          const s = String(status).toLowerCase().trim();
+          if (s === "resolved" || s === "closed" || s === "completed")
+            return "resolved";
+          if (s === "pending" || s === "waiting" || s === "in_progress")
+            return "pending";
+          if (s === "active" || s === "open" || s === "new") return "active";
+          return s;
+        }
+
         // Normalize tickets to expected shape
         const normalized = arr.map((t) => ({
           id: t?.id ?? t?.ticket_id ?? null,
@@ -209,7 +222,9 @@ export default function TicketsList({
           chats: Array.isArray(t?.chats) ? t.chats : t?.messages ?? [],
           email: t?.email ?? t?.user_email ?? "",
           subject: t?.subject ?? t?.title ?? "",
-          status: t?.status ?? t?.state ?? "active",
+          status: normalizeStatus(
+            t?.status ?? t?.state ?? t?.ticket_status ?? "active"
+          ),
           escalated: t?.escalated === true || t?.priority === "high",
           created_at: t?.created_at ?? t?.created_on ?? t?.createdAt ?? null,
           created_at_display: t?.created_at_display ?? null,
@@ -244,6 +259,27 @@ export default function TicketsList({
       ac.abort();
     };
   }, [categoryId, start, stop, pageSize]);
+
+  // Apply status filter to displayed tickets (client-side filtering after load)
+  const displayedTickets = React.useMemo(() => {
+    if (!statusFilter || statusFilter === "all") return tickets;
+
+    function normalizeStatus(status) {
+      if (!status) return "active";
+      const s = String(status).toLowerCase().trim();
+      if (s === "resolved" || s === "closed" || s === "completed")
+        return "resolved";
+      if (s === "pending" || s === "waiting" || s === "in_progress")
+        return "pending";
+      if (s === "active" || s === "open" || s === "new") return "active";
+      return s;
+    }
+
+    return tickets.filter((t) => {
+      const ticketStatus = normalizeStatus(t.status);
+      return ticketStatus === statusFilter.toLowerCase();
+    });
+  }, [tickets, statusFilter]);
 
   const loadMore = useCallback(() => {
     if (loadingMore || loading || !hasMore) return;
@@ -297,11 +333,17 @@ export default function TicketsList({
       <div className="p-4 border-b border-slate-200">
         <h3 className="text-lg font-semibold text-slate-800">
           {categoryId ? `Tickets in Category ${categoryId}` : "All Tickets"}
+          {statusFilter !== "all" &&
+            ` - ${
+              statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1)
+            }`}
         </h3>
         <p className="text-sm text-slate-500 mt-1">
           {loading
             ? "Loading..."
-            : `${tickets.length} ticket${tickets.length === 1 ? "" : "s"}`}
+            : `${displayedTickets.length} ticket${
+                displayedTickets.length === 1 ? "" : "s"
+              }`}
         </p>
       </div>
 
@@ -315,16 +357,20 @@ export default function TicketsList({
           </div>
         ) : error ? (
           <div className="p-4 text-sm text-red-600">{error}</div>
-        ) : tickets.length === 0 ? (
+        ) : displayedTickets.length === 0 ? (
           <div className="p-8 text-center text-sm text-slate-500">
             <div className="text-4xl mb-2">📋</div>
-            <p>No tickets found{categoryId ? " in this category" : ""}</p>
+            <p>
+              No tickets found
+              {categoryId ? ` in category "${categoryId}"` : ""}
+              {statusFilter !== "all" ? ` with status "${statusFilter}"` : ""}
+            </p>
           </div>
         ) : (
           <>
             <ul className="divide-y divide-slate-100">
               <AnimatePresence>
-                {tickets.map((ticket, idx) => {
+                {displayedTickets.map((ticket, idx) => {
                   const isSelected = selectedTicketId === ticket.id;
                   return (
                     <motion.li
@@ -426,7 +472,7 @@ export default function TicketsList({
                   <span>Loading more tickets...</span>
                 </div>
               )}
-              {!loadingMore && !hasMore && tickets.length > 0 && (
+              {!loadingMore && !hasMore && displayedTickets.length > 0 && (
                 <span className="text-xs text-slate-400">No more tickets</span>
               )}
             </div>

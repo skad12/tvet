@@ -60,7 +60,14 @@ export const useUserStore = create(
         }
       },
       clearUser: () => {
-        set({ user: null, token: null, tickets: [], ticketsError: null, ticketsLoading: false, lastTicketRefresh: null });
+        set({
+          user: null,
+          token: null,
+          tickets: [],
+          ticketsError: null,
+          ticketsLoading: false,
+          lastTicketRefresh: null,
+        });
         // Clear localStorage
         if (typeof window !== "undefined") {
           localStorage.removeItem("token");
@@ -127,7 +134,10 @@ export const useUserStore = create(
               data = res?.data;
             } catch (err) {
               // Fallback: try with query param if path param fails
-              if (err?.response?.status === 404 || err?.response?.status === 405) {
+              if (
+                err?.response?.status === 404 ||
+                err?.response?.status === 405
+              ) {
                 const res = await api.get(`/filter-ticket/by-user-id/`, {
                   params: { id: userId },
                 });
@@ -158,14 +168,23 @@ export const useUserStore = create(
           });
           return all;
         } catch (err) {
-          set({ ticketsLoading: false, ticketsError: err?.message || "Failed to load tickets" });
+          set({
+            ticketsLoading: false,
+            ticketsError: err?.message || "Failed to load tickets",
+          });
           return [];
         }
       },
 
       // Fetch only if cache empty or stale
       fetchTicketsIfNeeded: async (opts = {}) => {
-        const { ttlMs = 60000, force = false, userId = null, start = null, stop = null } = opts || {};
+        const {
+          ttlMs = 60000,
+          force = false,
+          userId = null,
+          start = null,
+          stop = null,
+        } = opts || {};
         const last = get().lastTicketRefresh || 0;
         const hasAny = Array.isArray(get().tickets) && get().tickets.length > 0;
         const isStale = Date.now() - last > ttlMs;

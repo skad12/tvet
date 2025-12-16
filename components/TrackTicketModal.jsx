@@ -3,28 +3,34 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
-// import api from "@/lib/axios"; // Uncomment this when Raymond sends the API endpoint for email and otp
+import api from "@/lib/axios"; // ensure this exists and has baseURL set
+import { useUserStore } from "@/stores/useUserStore";
 
 export default function TrackTicketModal({ show = false, onClose = () => {} }) {
   const router = useRouter();
+  const { setUser, setToken } = useUserStore();
   const [step, setStep] = useState("email"); // 'email' or 'otp'
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [info, setInfo] = useState(null);
+  const [resendDisabled, setResendDisabled] = useState(false);
 
   const handleClose = () => {
     setStep("email");
     setEmail("");
     setOtp("");
     setError(null);
+    setInfo(null);
     setLoading(false);
+    setResendDisabled(false);
     onClose();
   };
 
   // Send email for authentication (handle the endpoint here)
   const handleSendEmail = async (e) => {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
     if (!email.trim()) {
       setError("Please enter your email");
       return;
@@ -32,21 +38,35 @@ export default function TrackTicketModal({ show = false, onClose = () => {} }) {
 
     setLoading(true);
     setError(null);
+    setInfo(null);
 
     try {
-      //  add email endpoint
-      // await api.post("/send-otp-email/", { email });
+      // POST /send-otp/ body: { email }
+      const res = await api.post("/send-otp/", { email });
 
-      //  simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // flexible handling depending on API response shape:
+      // if API returns something like { success: true, message: "sent" }
+      // use res.data.message; fallback to generic message
+      const message =
+        res?.data?.message ||
+        res?.data?.detail ||
+        "Verification code sent. Check your email.";
+
+      setInfo(message);
 
       // Move to OTP step
       setStep("otp");
+
+      // optionally disable resend for 20 seconds to avoid rapid re-sends
+      setResendDisabled(true);
+      setTimeout(() => setResendDisabled(false), 20000);
     } catch (err) {
       console.error("Failed to send email:", err);
-      setError(
-        err?.response?.data?.message ?? err?.message ?? "Failed to send email"
-      );
+      const apiMsg =
+        err?.response?.data?.message ||
+        err?.response?.data?.detail ||
+        (err?.response?.data ? JSON.stringify(err.response.data) : null);
+      setError(apiMsg || err?.message || "Failed to send email");
     } finally {
       setLoading(false);
     }
@@ -62,24 +82,54 @@ export default function TrackTicketModal({ show = false, onClose = () => {} }) {
 
     setLoading(true);
     setError(null);
+    setInfo(null);
 
     try {
-      //  add otp verification endpoint
-      // const response = await api.post("/verify-otp/", { email, otp });
+      // POST /verify-otp/ body: { email, otp }
+      const res = await api.post("/verify-otp/", { email, otp });
+      const data = res?.data ?? {};
 
-      //  simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // Extract token and user data from response
+      const resolvedToken =
+        data.token || data.access || data.access_token || null;
+      const returnedUser = data.user ?? {
+        id: data.id,
+        email: email,
+        account_type: "customer",
+        username: email.split("@")[0],
+      };
 
-      // On successful authentication, route to customer dashboard
+      // Store user and token in auth store
+      if (resolvedToken) {
+        setToken(resolvedToken);
+        try {
+          localStorage.setItem("token", resolvedToken);
+        } catch (e) {
+          console.warn("Failed to save token to localStorage", e);
+        }
+      }
+
+      if (returnedUser) {
+        setUser(returnedUser);
+        try {
+          localStorage.setItem("user", JSON.stringify(returnedUser));
+          localStorage.setItem("account_type", "customer");
+          localStorage.setItem("tvet_user_email", email);
+        } catch (e) {
+          console.warn("Failed to save user to localStorage", e);
+        }
+      }
+
+      // Route to customer dashboard after successful authentication
       router.push("/customer/dashboard");
       handleClose();
     } catch (err) {
       console.error("Failed to verify OTP:", err);
-      setError(
-        err?.response?.data?.message ??
-          err?.message ??
-          "Invalid OTP. Please try again."
-      );
+      const apiMsg =
+        err?.response?.data?.message ||
+        err?.response?.data?.detail ||
+        (err?.response?.data ? JSON.stringify(err.response.data) : null);
+      setError(apiMsg || err?.message || "Invalid OTP. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -167,6 +217,12 @@ export default function TrackTicketModal({ show = false, onClose = () => {} }) {
                     </div>
                   )}
 
+                  {info && (
+                    <div className="text-sm text-slate-700 bg-slate-50 border border-slate-200 rounded-lg px-4 py-2">
+                      {info}
+                    </div>
+                  )}
+
                   <button
                     type="submit"
                     disabled={loading}
@@ -191,6 +247,7 @@ export default function TrackTicketModal({ show = false, onClose = () => {} }) {
                     setStep("email");
                     setError(null);
                     setOtp("");
+                    setInfo(null);
                   }}
                   className="mb-4 text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1"
                 >
@@ -255,10 +312,12 @@ export default function TrackTicketModal({ show = false, onClose = () => {} }) {
                   <button
                     type="button"
                     onClick={handleSendEmail}
-                    disabled={loading}
+                    disabled={loading || resendDisabled}
                     className="w-full text-sm text-slate-600 hover:text-slate-800 transition-colors disabled:opacity-50"
                   >
-                    Didn&apos;t receive the code? Resend
+                    {resendDisabled
+                      ? "Resend (wait)"
+                      : "Didn't receive the code? Resend"}
                   </button>
                 </form>
               </motion.div>
