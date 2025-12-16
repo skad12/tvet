@@ -5,7 +5,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import { useAuth } from "@/context/AuthContext";
 import api from "@/lib/axios";
 
-import Navbar from "@/components/customer/Topbar";
+import Navbar from "@/components/agent/Topbar";
 import ChatBox from "@/components/agent/AgentChatBox";
 import ChatList from "@/components/agent/AgentChatList";
 
