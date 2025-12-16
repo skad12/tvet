@@ -12,7 +12,7 @@ export default function Footer() {
             Centralized help desk for TVET applicants and learners.
           </p>
         </div>
-
+        {/* 
         <nav className="flex gap-4">
           <Link href="/support" className="text-sm hover:underline">
             Support
@@ -23,7 +23,7 @@ export default function Footer() {
           <a href="#contact" className="text-sm hover:underline">
             Contact
           </a>
-        </nav>
+        </nav> */}
 
         <div className="text-sm text-slate-400">
           © {new Date().getFullYear()} TVET Support — All rights reserved.

@@ -226,7 +226,7 @@ export default function LoginForm({ demoCredentials = true }) {
       transition={{ duration: 0.45 }}
       className="w-full max-w-md mx-auto"
     >
-      <div className="bg-white p-6 rounded-lg shadow-md">
+      <div className="bg-white px-6 py-12 rounded-lg shadow-md  ">
         <div className="grid justify-center">
           <Image
             src={logo}
@@ -284,7 +284,7 @@ export default function LoginForm({ demoCredentials = true }) {
           type="submit"
           disabled={loadingLocal}
           whileTap={{ scale: 0.98 }}
-          className="w-full bg-blue-600 text-white py-2 rounded-md hover:opacity-95 disabled:opacity-60"
+          className="w-full bg-blue-600 text-white py-2 mt-4 rounded-md hover:opacity-95 disabled:opacity-60"
         >
           {loadingLocal ? "Signing in..." : "Log in"}
         </motion.button>
@@ -300,7 +300,7 @@ export default function LoginForm({ demoCredentials = true }) {
           </motion.div>
         )}
 
-        <div className="mt-4 text-sm text-slate-600 text-center">
+        {/* <div className="mt-4 text-sm text-slate-600 text-center">
           <span className="mr-1">Don&apos;t have an account?</span>
           <Link
             href="/register"
@@ -308,7 +308,7 @@ export default function LoginForm({ demoCredentials = true }) {
           >
             Create an account
           </Link>
-        </div>
+        </div> */}
       </div>
     </motion.form>
   );

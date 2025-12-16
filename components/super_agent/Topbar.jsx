@@ -3,6 +3,7 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
+import api from "@/lib/axios";
 import { useAuth } from "@/context/AuthContext"; // adjust path if needed
 // adjust path if you place CreateTicket elsewhere
 
@@ -35,6 +36,10 @@ export default function Navbar({
     e?.preventDefault?.();
     setSigningOut(true);
     try {
+      const appUserId = userId ? String(userId) : null;
+      if (appUserId && api?.post) {
+        await api.post("/sign-out/", { app_user_id: appUserId });
+      }
       // signOut defined in AuthContext will clear storage and redirect
       signOut("/auth/login");
     } catch (err) {

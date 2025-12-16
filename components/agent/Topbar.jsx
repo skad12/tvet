@@ -1,17 +1,21 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { useState } from "react";
+import api from "@/lib/axios";
 import { useAuth } from "@/context/AuthContext"; // adjust path if needed
 
 export default function Navbar({ userEmail }) {
   const { signOut, user } = useAuth();
+  const [signingOut, setSigningOut] = useState(false);
 
   const userId =
-    // user?.app_user_id ??
-    // user?.appUserId ??
-    // user?.user_id ??
-    // user?.userId ??
-    user?.id ?? null;
+    user?.app_user_id ??
+    user?.appUserId ??
+    user?.user_id ??
+    user?.userId ??
+    user?.id ??
+    null;
   const accountType = user?.account_type ?? user?.role ?? user?.type ?? "user";
   const displayName =
     user?.name ??
@@ -22,16 +26,29 @@ export default function Navbar({ userEmail }) {
 
   async function handleSignOut(e) {
     e?.preventDefault?.();
+    if (signingOut) return;
+    setSigningOut(true);
+
+    const appUserId = userId ? String(userId) : null;
+
     try {
-      // signOut defined in AuthContext will clear storage and redirect
-      signOut("/auth/login");
+      if (appUserId && api?.post) {
+        await api.post("/sign-out/", { app_user_id: appUserId });
+      }
     } catch (err) {
-      console.error("Failed to sign out:", err);
+      console.warn("Failed to sync sign-out to API:", err?.message || err);
+    } finally {
       try {
-        localStorage.removeItem("user");
-        localStorage.removeItem("token");
-      } catch (e) {}
-      window.location.href = "/auth/login";
+        // signOut defined in AuthContext will clear storage and redirect
+        signOut("/auth/login");
+      } catch (err) {
+        console.error("Failed to sign out:", err);
+        try {
+          localStorage.removeItem("user");
+          localStorage.removeItem("token");
+        } catch (e) {}
+        window.location.href = "/auth/login";
+      }
     }
   }
 
@@ -43,24 +60,29 @@ export default function Navbar({ userEmail }) {
       transition={{ duration: 0.4 }}
     >
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
-      <div>
-          <h2 className="text-lg sm:text-xl lg:text-2xl font-semibold">Hi {displayName} 👋</h2>
+        <div>
+          <h2 className="text-lg sm:text-xl lg:text-2xl font-semibold">
+            Hi {displayName} 👋
+          </h2>
           <div className="mt-1 text-[10px] sm:text-xs text-slate-500">
-          <span className="uppercase tracking-wide text-slate-500">
-            {String(accountType || "user")}
-          </span>
+            <span className="uppercase tracking-wide text-slate-500">
+              {String(accountType || "user")}
+            </span>
+          </div>
         </div>
-      </div>
 
         <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
-        <button
-          onClick={handleSignOut}
-            className="px-3 sm:px-4 py-1.5 sm:py-2 border rounded text-xs sm:text-sm w-full sm:w-auto"
-          aria-label="Sign out"
-        >
-            <span className="hidden sm:inline">Logout</span>
-            <span className="sm:hidden">Exit</span>
-        </button>
+          <button
+            onClick={handleSignOut}
+            className="px-3 sm:px-4 py-1.5 sm:py-2 border rounded text-xs sm:text-sm w-full sm:w-auto disabled:opacity-60"
+            aria-label="Sign out"
+            disabled={signingOut}
+          >
+            <span className="hidden sm:inline">
+              {signingOut ? "Logging out…" : "Logout"}
+            </span>
+            <span className="sm:hidden">{signingOut ? "..." : "Exit"}</span>
+          </button>
         </div>
       </div>
     </motion.div>
