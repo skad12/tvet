@@ -37,13 +37,6 @@ export default function TicketsList({
     const ac = new AbortController();
 
     async function load() {
-      // Use loading for initial load, loadingMore for subsequent loads
-      if (start === 0) {
-        setLoading(true);
-      } else {
-        setLoadingMore(true);
-      }
-      // Use loading for initial load, loadingMore for subsequent loads
       if (start === 0) {
         setLoading(true);
       } else {
@@ -56,69 +49,27 @@ export default function TicketsList({
         let usingFallback = false;
         let totalCount = null;
 
-        // Primary endpoint: category-based paginated route
         const categoryBasedUrl = `/tickets/category-based/${start}/${stop}/`;
         const genericPagedUrl = `/tickets/${start}/${stop}/`;
 
-        // Payload to send (API expects start & stop; include category if present)
-        const payload = { start: Number(start), stop: Number(stop) };
-        if (categoryId !== null && categoryId !== undefined)
-          payload.category = categoryId;
-
-        console.log("[TicketsList] Loading tickets:", {
-          start,
-          stop,
-          categoryId,
-          payload,
-        });
+        if (categoryId !== null && categoryId !== undefined) {
+          // no-op; category included in query later
+        }
 
         // Try GET requests to paginated endpoints first
         try {
           if (categoryId !== null && categoryId !== undefined) {
-            console.log(
-              "[TicketsList] Trying category-based endpoint:",
-              categoryBasedUrl
-            );
             const res = await api.get(
               categoryBasedUrl + (categoryId ? `?category=${categoryId}` : ""),
               { signal: ac.signal }
             );
             resData = res?.data ?? null;
-            console.log("[TicketsList] Category-based endpoint response:", {
-              dataType: typeof resData,
-              isArray: Array.isArray(resData),
-              length: Array.isArray(resData) ? resData.length : resData?.length,
-              hasTotal: "total" in (resData || {}),
-              hasCount: "count" in (resData || {}),
-              total: resData?.total,
-              count: resData?.count,
-            });
           } else {
-            console.log(
-              "[TicketsList] Trying generic paged endpoint:",
-              genericPagedUrl
-            );
-            const res = await api.get(genericPagedUrl, {
-              signal: ac.signal,
-            });
+            const res = await api.get(genericPagedUrl, { signal: ac.signal });
             resData = res?.data ?? null;
-            console.log("[TicketsList] Generic paged endpoint response:", {
-              dataType: typeof resData,
-              isArray: Array.isArray(resData),
-              length: Array.isArray(resData) ? resData.length : resData?.length,
-              hasTotal: "total" in (resData || {}),
-              hasCount: "count" in (resData || {}),
-              total: resData?.total,
-              count: resData?.count,
-            });
           }
         } catch (getErr) {
-          console.log(
-            "[TicketsList] Paginated endpoints failed:",
-            getErr?.message
-          );
-          // final fallback: fetch all and (optionally) filter by category client-side
-          console.log("[TicketsList] Using fallback - fetching all tickets");
+          // fallback: fetch all and filter client-side
           usingFallback = true;
           const res3 = await api
             .get("/tickets/", { signal: ac.signal })
@@ -129,7 +80,6 @@ export default function TicketsList({
             : all?.tickets ?? all?.results ?? [];
           const filtered = categoryId
             ? arr.filter((t) => {
-                // Check the ticket's name field which contains the category title
                 const categoryName =
                   t?.name ??
                   t?.category?.name ??
@@ -145,17 +95,9 @@ export default function TicketsList({
                 );
               })
             : arr;
-          // Store total count before slicing
           totalCount = filtered.length;
-          // simulate pagination on client side
           const paged = filtered.slice(start, stop + 1);
           resData = paged;
-          console.log("[TicketsList] Fallback result:", {
-            totalTickets: totalCount,
-            pagedTickets: paged.length,
-            start,
-            stop,
-          });
         }
 
         if (!mounted) return;
@@ -169,19 +111,10 @@ export default function TicketsList({
         else if (Array.isArray(resData.tickets)) arr = resData.tickets;
         else arr = [resData];
 
-        // Determine hasMore:
-        // If we got fewer items than pageSize, we've reached the end
-        // If we got exactly pageSize items, there might be more
+        // Determine hasMore
         if (usingFallback && typeof totalCount === "number") {
-          // Using client-side pagination - check if there are more items after current stop
           const hasMoreItems = totalCount > stop + 1;
           setHasMore(hasMoreItems);
-          console.log("[TicketsList] hasMore (fallback):", {
-            totalCount,
-            stop,
-            nextStart: stop + 1,
-            hasMore: hasMoreItems,
-          });
         } else {
           const totalMaybe = resData?.total ?? resData?.count ?? null;
           if (typeof totalMaybe === "number") {
@@ -190,46 +123,58 @@ export default function TicketsList({
           } else if (resData?.next) {
             setHasMore(true);
           } else {
-            // No total/count available - keep fetching until we get very few or no items
-            // This handles APIs that don't provide a total count
             const hasMoreItems = arr.length > 0;
             setHasMore(hasMoreItems);
-            console.log("[TicketsList] hasMore (API - no count):", {
-              arrLength: arr.length,
-              pageSize,
-              hasMore: hasMoreItems,
-              note: "Will keep fetching until 0 items returned",
-            });
           }
         }
 
-        // Helper function to normalize status values
-        function normalizeStatus(status) {
-          if (!status) return "active";
-          const s = String(status).toLowerCase().trim();
-          if (s === "resolved" || s === "closed" || s === "completed")
+        // Helper: normalize a status string to canonical values for comparisons
+        function normalizeStatusValue(statusVal) {
+          if (!statusVal && statusVal !== false) return "active";
+          // If statusVal is boolean (e.g., status: false), convert to string
+          const raw = String(statusVal).toLowerCase().trim();
+          if (raw === "resolved" || raw === "closed" || raw === "completed")
             return "resolved";
-          if (s === "pending" || s === "waiting" || s === "in_progress")
+          if (raw === "pending" || raw === "waiting" || raw === "in_progress")
             return "pending";
-          if (s === "active" || s === "open" || s === "new") return "active";
-          return s;
+          if (raw === "active" || raw === "open" || raw === "new")
+            return "active";
+          return raw;
         }
 
-        // Normalize tickets to expected shape
-        const normalized = arr.map((t) => ({
-          id: t?.id ?? t?.ticket_id ?? null,
-          name: t?.name ?? t?.subject ?? t?.title ?? "From Widget",
-          chats: Array.isArray(t?.chats) ? t.chats : t?.messages ?? [],
-          email: t?.email ?? t?.user_email ?? "",
-          subject: t?.subject ?? t?.title ?? "",
-          status: normalizeStatus(
-            t?.status ?? t?.state ?? t?.ticket_status ?? "active"
-          ),
-          escalated: t?.escalated === true || t?.priority === "high",
-          created_at: t?.created_at ?? t?.created_on ?? t?.createdAt ?? null,
-          created_at_display: t?.created_at_display ?? null,
-          raw: t,
-        }));
+        // Normalize tickets to expected shape and capture both raw label and normalized value
+        const normalized = arr.map((t) => {
+          // Prefer ticket_status (string) from API; fallback to status/state
+          const statusRaw =
+            t?.ticket_status ??
+            t?.status ??
+            t?.state ??
+            t?.ticket_status ??
+            null;
+          // statusLabel is for human display (keeps casing from API when possible)
+          const statusLabel =
+            statusRaw === null || statusRaw === undefined
+              ? "Active"
+              : typeof statusRaw === "string"
+              ? statusRaw
+              : String(statusRaw);
+
+          return {
+            id: t?.id ?? t?.ticket_id ?? null,
+            name: t?.name ?? t?.subject ?? t?.title ?? "From Widget",
+            chats: Array.isArray(t?.chats) ? t.chats : t?.messages ?? [],
+            email: t?.email ?? t?.user_email ?? "",
+            subject: t?.subject ?? t?.title ?? "",
+            // normalized status for logic (e.g., filtering)
+            status: normalizeStatusValue(statusLabel),
+            // human-friendly status label to show in the UI (e.g. "Pending")
+            status_label: statusLabel,
+            escalated: t?.escalated === true || t?.priority === "high",
+            created_at: t?.created_at ?? t?.created_on ?? t?.createdAt ?? null,
+            created_at_display: t?.created_at_display ?? null,
+            raw: t,
+          };
+        });
 
         // if start == 0 -> replace list, else append
         setTickets((prev) =>
@@ -264,7 +209,7 @@ export default function TicketsList({
   const displayedTickets = React.useMemo(() => {
     if (!statusFilter || statusFilter === "all") return tickets;
 
-    function normalizeStatus(status) {
+    function normalizeStatusForFilter(status) {
       if (!status) return "active";
       const s = String(status).toLowerCase().trim();
       if (s === "resolved" || s === "closed" || s === "completed")
@@ -275,9 +220,10 @@ export default function TicketsList({
       return s;
     }
 
+    const wanted = statusFilter.toLowerCase();
     return tickets.filter((t) => {
-      const ticketStatus = normalizeStatus(t.status);
-      return ticketStatus === statusFilter.toLowerCase();
+      const ticketStatusNormalized = normalizeStatusForFilter(t.status);
+      return ticketStatusNormalized === wanted;
     });
   }, [tickets, statusFilter]);
 
@@ -300,7 +246,7 @@ export default function TicketsList({
       },
       {
         threshold: 0.1,
-        rootMargin: "100px", // Trigger 100px before the target is visible
+        rootMargin: "100px",
       }
     );
 
@@ -391,23 +337,24 @@ export default function TicketsList({
                             <h4 className="font-semibold text-slate-800 truncate">
                               {ticket.name || ticket.subject || "From Widget"}
                             </h4>
-                            {ticket.escalated &&
-                              String(ticket.status || "").toLowerCase() !==
-                                "resolved" && (
-                                <svg
-                                  className="w-4 h-4 text-red-600 shrink-0"
-                                  fill="currentColor"
-                                  viewBox="0 0 20 20"
-                                  aria-label="Escalated"
-                                >
-                                  <path
-                                    fillRule="evenodd"
-                                    d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                                    clipRule="evenodd"
-                                  />
-                                </svg>
-                              )}
+
+                            {/* Escalated icon shown when escalated === true */}
+                            {ticket.escalated && (
+                              <svg
+                                className="w-4 h-4 text-red-600 shrink-0"
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                                aria-label="Escalated"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                            )}
                           </div>
+
                           {ticket.email && (
                             <p className="text-xs text-slate-500 truncate">
                               {ticket.email}
@@ -420,7 +367,8 @@ export default function TicketsList({
                             )}
                           </p>
                         </div>
-                        <div className="shrink-0">
+
+                        <div className="shrink-0 flex items-center">
                           <span
                             className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
                               ticket.status === "resolved"
@@ -432,27 +380,28 @@ export default function TicketsList({
                                 : "bg-blue-100 text-blue-700 border border-blue-200"
                             }`}
                           >
-                            {ticket.status || "active"}
+                            {/* show human-friendly label if available (e.g. "Pending"), otherwise normalized */}
+                            {ticket.status_label ?? (ticket.status || "Active")}
                           </span>
-                          {ticket.escalated &&
-                            String(ticket.status || "").toLowerCase() !==
-                              "resolved" && (
-                              <span className="ml-2 inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-red-50 text-red-700 border border-red-200">
-                                <svg
-                                  className="w-3 h-3"
-                                  fill="currentColor"
-                                  viewBox="0 0 20 20"
-                                  aria-hidden
-                                >
-                                  <path
-                                    fillRule="evenodd"
-                                    d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                                    clipRule="evenodd"
-                                  />
-                                </svg>
-                                Escalated
-                              </span>
-                            )}
+
+                          {/* Escalated badge (always shown when escalated === true) */}
+                          {ticket.escalated && (
+                            <span className="ml-2 inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-red-50 text-red-700 border border-red-200">
+                              <svg
+                                className="w-3 h-3"
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                                aria-hidden
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                              Escalated
+                            </span>
+                          )}
                         </div>
                       </div>
                     </motion.li>

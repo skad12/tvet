@@ -12,12 +12,13 @@ export default function TicketForm() {
   const [catError, setCatError] = useState(null);
 
   const [categoryId, setCategoryId] = useState(""); // chosen category id (auto)
-  const [description, setDescription] = useState(""); // optional
+  const [description, setDescription] = useState(""); // this will be sent as `message` in payload
   const [email, setEmail] = useState("");
   const [priority, setPriority] = useState("Low"); // NEW: Low | Medium | High | Urgent
 
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState(null);
+  // Renamed UI alert state to avoid clashing with API `message` field
+  const [alert, setAlert] = useState(null);
   const [showPopup, setShowPopup] = useState(false);
 
   const router = useRouter();
@@ -85,7 +86,7 @@ export default function TicketForm() {
   const submit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setMessage(null);
+    setAlert(null);
 
     // find selected category from list, otherwise use fallback
     const selected =
@@ -97,17 +98,18 @@ export default function TicketForm() {
       ) ?? FALLBACK_GENERAL;
 
     if (!email.trim()) {
-      setMessage({ type: "error", text: "Please enter an email address." });
+      setAlert({ type: "error", text: "Please enter an email address." });
       setLoading(false);
       return;
     }
 
     try {
+      // NOTE: API expects `message` field in the body. We send the description state as `message`.
       const payload = {
         email: email.trim(),
         category_id: selected.id ?? selected._id ?? FALLBACK_GENERAL.id,
         priority: priority || "Low",
-        description: description.trim(),
+        message: description.trim(),
       };
 
       const res = await api.post("/tickets/create/", payload);
@@ -118,7 +120,7 @@ export default function TicketForm() {
           "Ticket created successfully. A Confirmation mail has been sent to your Address";
 
         // show popup instead of inline success message
-        setMessage({ type: "success", text: successText });
+        setAlert({ type: "success", text: successText });
         setShowPopup(true);
 
         // clear form fields
@@ -136,7 +138,7 @@ export default function TicketForm() {
 
         //
       } else {
-        setMessage({
+        setAlert({
           type: "error",
           text: res?.data?.message ?? "Failed to create ticket.",
         });
@@ -147,7 +149,7 @@ export default function TicketForm() {
         err?.response?.data?.message ||
         err?.message ||
         "Failed to submit ticket.";
-      setMessage({ type: "error", text: serverMsg });
+      setAlert({ type: "error", text: serverMsg });
     } finally {
       setLoading(false);
     }
@@ -201,11 +203,11 @@ export default function TicketForm() {
           )}
         </div>
 
-        <label className="block text-sm font-medium">Description</label>
+        <label className="block text-sm font-medium">Message</label>
         <textarea
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          placeholder="Brief description (optional)"
+          placeholder="Describe your issue "
           className="w-full border rounded px-3 py-2 border-slate-500"
           rows="4"
         />
@@ -245,22 +247,22 @@ export default function TicketForm() {
         </motion.button>
 
         {/* Inline error message (don't show inline success because we use popup for success) */}
-        {message && message.type !== "success" && (
+        {alert && alert.type !== "success" && (
           <div
             className={`p-3 rounded ${
-              message.type === "success"
+              alert.type === "success"
                 ? "bg-green-50 text-green-700"
                 : "bg-red-50 text-red-700"
             }`}
           >
-            {message.text}
+            {alert.text}
           </div>
         )}
       </form>
 
       {/* Popup Toast for success */}
       <AnimatePresence>
-        {showPopup && message?.type === "success" && (
+        {showPopup && alert?.type === "success" && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -292,7 +294,7 @@ export default function TicketForm() {
 
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-slate-900">Success</p>
-                <p className="text-sm text-slate-600">{message?.text}</p>
+                <p className="text-sm text-slate-600">{alert?.text}</p>
               </div>
 
               <div className="flex items-start ml-3">
