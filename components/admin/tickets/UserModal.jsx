@@ -143,7 +143,7 @@ export default function UserModal({ user = null, open, onClose }) {
           animate={{ opacity: 0.5 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
-          className="absolute inset-0 bg-black/40 p-10"
+          className="absolute inset-0 bg-black/40 "
         />
 
         <motion.div
