@@ -93,7 +93,7 @@ export default function Topbar() {
 
   const active = loading ? "—" : data?.active_agents ?? 0;
   const aiHandling = loading ? "—" : data?.tickets_handled_by_ai ?? 0;
-  const resolvedToday = loading ? "—" : data?.tickets_handled_by_human ?? 0;
+  const resolvedToday = loading ? "—" : data?.resolved_today ?? 0;
 
   return (
     <motion.header
@@ -119,7 +119,7 @@ export default function Topbar() {
 
           <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-50 text-slate-700 text-sm">
             <FiCheckCircle className="w-4 h-4" aria-hidden />
-            <span>Resolved Today</span>
+            <span>Total Resolved</span>
             <span className="font-bold ml-2">{resolvedToday}</span>
           </div>
         </div>

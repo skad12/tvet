@@ -65,7 +65,7 @@ export default function DashboardPage() {
       Icon: FiClock,
     },
     {
-      title: "Resolved Today",
+      title: " Total Resolved",
       value: analytics ? analytics.resolved_today : loading ? "…" : 0,
       badge: "+23% from last week",
       badgeColor: "green",

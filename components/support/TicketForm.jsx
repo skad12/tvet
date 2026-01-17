@@ -103,6 +103,12 @@ export default function TicketForm() {
       return;
     }
 
+    if (!description.trim()) {
+      setAlert({ type: "error", text: "Please enter a message." });
+      setLoading(false);
+      return;
+    }
+
     try {
       // NOTE: API expects `message` field in the body. We send the description state as `message`.
       const payload = {
@@ -185,6 +191,7 @@ export default function TicketForm() {
             onChange={(e) => setCategoryId(e.target.value)}
             className="w-full border rounded px-3 py-2 border-slate-500"
             disabled={catLoading}
+            required
           >
             {categories.map((c, idx) => {
               const value = String(
@@ -203,13 +210,16 @@ export default function TicketForm() {
           )}
         </div>
 
-        <label className="block text-sm font-medium">Message</label>
+        <label className="block text-sm font-medium">
+          Message <span className="text-red-600">*</span>
+        </label>
         <textarea
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           placeholder="Describe your issue "
           className="w-full border rounded px-3 py-2 border-slate-500"
           rows="4"
+          required
         />
 
         {/* <label className="block text-sm font-medium">Priority</label>

@@ -483,7 +483,7 @@
 //                   (statusKey
 //                     ? statusKey.charAt(0).toUpperCase() + statusKey.slice(1)
 //                     : "—");
-//                 const time = t.created_at ?? t.created_at_display ?? "";
+//                 const time = t.created_at ?? "";
 //                 const assignedToId =
 //                   t.raw?.assigned_to_id ??
 //                   t.raw?.assigned_to ??
@@ -1031,7 +1031,7 @@ export default function ChatList({
                   (statusKey
                     ? statusKey.charAt(0).toUpperCase() + statusKey.slice(1)
                     : "—");
-                const time = t.created_at ?? t.created_at_display ?? "";
+                const time = t.created_at ?? "";
                 const assignedToId =
                   t.raw?.assigned_to_id ??
                   t.raw?.assigned_to ??
@@ -1115,7 +1115,7 @@ export default function ChatList({
                           </span>
                         )}
                       <div className="text-xs text-slate-400 mt-2">
-                        {formatMaybeDate(time, t.created_at_display)}
+                        {formatMaybeDate(time)}
                       </div>
                     </div>
                   </motion.li>

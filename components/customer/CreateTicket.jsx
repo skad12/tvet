@@ -518,12 +518,20 @@ export default function CreateTicket({
     if (!emailToUse) {
       setMessage({
         type: "error",
-        text: "We could not determine your email. Please re-login and try again.",
+        text: "Please enter an email address.",
       });
       return;
     }
     if (!categoryId) {
       setMessage({ type: "error", text: "Please pick a category." });
+      return;
+    }
+    if (!subject?.trim()) {
+      setMessage({ type: "error", text: "Please enter a subject." });
+      return;
+    }
+    if (!description?.trim()) {
+      setMessage({ type: "error", text: "Please enter a message." });
       return;
     }
 
@@ -654,12 +662,15 @@ export default function CreateTicket({
           {catError && <div className="text-sm text-red-600">{catError}</div>}
 
           <div>
-            <label className="block text-sm font-medium">Category</label>
+            <label className="block text-sm font-medium">
+              Category <span className="text-red-600">*</span>
+            </label>
             <select
               value={categoryId}
               onChange={(e) => setCategoryId(e.target.value)}
               className="w-full border border-slate-300 rounded px-3 py-2"
               disabled={catLoading}
+              required
             >
               {catLoading ? (
                 <option>Loading categories...</option>
@@ -678,13 +689,16 @@ export default function CreateTicket({
 
           {/* Subject */}
           <div>
-            <label className="block text-sm font-medium">Subject</label>
+            <label className="block text-sm font-medium">
+              Subject <span className="text-red-600">*</span>
+            </label>
             <input
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
               type="text"
               placeholder=""
               className="w-full border border-slate-300 rounded px-3 py-2"
+              required
             />
           </div>
 
@@ -704,24 +718,30 @@ export default function CreateTicket({
           </div> */}
 
           <div>
-            <label className="block text-sm font-medium">Message</label>
+            <label className="block text-sm font-medium">
+              Message <span className="text-red-600">*</span>
+            </label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Describe the issue "
               className="w-full border border-slate-300 rounded px-3 py-2"
               rows="4"
+              required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium">Email Address</label>
+            <label className="block text-sm font-medium">
+              Email Address <span className="text-red-600">*</span>
+            </label>
             <input
               value={reporterEmail}
               onChange={(e) => setReporterEmail(e.target.value)}
               type="email"
               placeholder="Email Address"
               className="w-full border border-slate-300 rounded px-3 py-2"
+              required
             />
           </div>
 

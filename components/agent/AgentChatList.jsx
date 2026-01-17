@@ -104,8 +104,11 @@ export default function ChatList({
       ? String(statusDisplay).toLowerCase()
       : "pending";
 
-    const created_at = t?.created_at ?? t?.createdAt ?? t?.pub_date ?? null;
-    const created_at_display = t?.created_at_display ?? null;
+    // prefer explicit created_at fields for machine-readable value
+    const created_at = t?.created_at ?? t?.createdAt ?? null;
+
+    // prefer pub_date for the human/display date (fall back to created_at_display if pub_date is absent)
+    const created_at_display = t?.pub_date ?? t?.created_at_display ?? null;
 
     const ticketUserId =
       t?.user_id ??
@@ -517,7 +520,7 @@ export default function ChatList({
                 const statusKey = (t.status ?? "active").toLowerCase();
                 // ONLY use statusDisplay which comes from ticket_status field
                 const statusLabel = t.statusDisplay || "Pending";
-                const time = t.created_at ?? t.created_at_display ?? "";
+                const time = t.created_at ?? "";
                 const isRecentlyAdded =
                   t.id &&
                   recentlyAdded[t.id] &&
@@ -578,7 +581,7 @@ export default function ChatList({
                       )}
 
                       <div className="text-[10px] sm:text-xs text-slate-400 mt-1 sm:mt-2">
-                        {formatMaybeDate(time, t.created_at_display)}
+                        {formatMaybeDate(time)}
                       </div>
                     </div>
                   </motion.li>

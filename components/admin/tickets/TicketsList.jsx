@@ -25,12 +25,12 @@
 //   // Ref for infinite scroll observer
 //   const observerTarget = useRef(null);
 
-//   // reset pagination on category or status change
+//   // reset pagination on category change (status filtering is client-side, no reload needed)
 //   useEffect(() => {
 //     setStart(0);
 //     setStop(pageSize - 1);
 //     setTickets([]);
-//   }, [categoryId, statusFilter, pageSize]);
+//   }, [categoryId, pageSize]);
 
 //   useEffect(() => {
 //     let mounted = true;
@@ -144,13 +144,10 @@
 
 //         // Normalize tickets to expected shape and capture both raw label and normalized value
 //         const normalized = arr.map((t) => {
-//           // Prefer ticket_status (string) from API; fallback to status/state
-//           const statusRaw =
-//             t?.ticket_status ??
-//             t?.status ??
-//             t?.state ??
-//             t?.ticket_status ??
-//             null;
+//           // ONLY use ticket_status (string) field - this is the source of truth
+//           // Do NOT use the boolean 'status' field as it causes confusion
+//           const statusRaw = t?.ticket_status ?? t?.state ?? null;
+
 //           // statusLabel is for human display (keeps casing from API when possible)
 //           const statusLabel =
 //             statusRaw === null || statusRaw === undefined
@@ -172,6 +169,7 @@
 //             escalated: t?.escalated === true || t?.priority === "high",
 //             created_at: t?.created_at ?? t?.created_on ?? t?.createdAt ?? null,
 //             created_at_display: t?.created_at_display ?? null,
+//             pub_date: t?.pub_date ?? null,
 //             raw: t,
 //           };
 //         });
@@ -216,7 +214,7 @@
 //         return "resolved";
 //       if (s === "pending" || s === "waiting" || s === "in_progress")
 //         return "pending";
-//       if (s === "active" || s === "open" || s === "new") return "active";
+
 //       return s;
 //     }
 
@@ -361,10 +359,7 @@
 //                             </p>
 //                           )}
 //                           <p className="text-xs text-slate-400 mt-1">
-//                             {formatDate(
-//                               ticket.created_at,
-//                               ticket.created_at_display
-//                             )}
+//                             {formatDate(ticket.created_at, ticket.pub_date)}
 //                           </p>
 //                         </div>
 
@@ -603,6 +598,7 @@ export default function TicketsList({
             escalated: t?.escalated === true || t?.priority === "high",
             created_at: t?.created_at ?? t?.created_on ?? t?.createdAt ?? null,
             created_at_display: t?.created_at_display ?? null,
+            pub_date: t?.pub_date ?? null,
             raw: t,
           };
         });
@@ -647,7 +643,7 @@ export default function TicketsList({
         return "resolved";
       if (s === "pending" || s === "waiting" || s === "in_progress")
         return "pending";
-      if (s === "active" || s === "open" || s === "new") return "active";
+
       return s;
     }
 
@@ -693,7 +689,9 @@ export default function TicketsList({
     };
   }, [hasMore, loading, loadingMore, loadMore]);
 
-  function formatDate(val, display) {
+  // Format date safely; prefer server's created_at_display if given
+  // Uses same format as AgentChatList: PPpp
+  function formatMaybeDate(val, display) {
     if (display) return display;
     if (!val) return "—";
     const dt = new Date(val);
@@ -749,9 +747,13 @@ export default function TicketsList({
               <AnimatePresence>
                 {displayedTickets.map((ticket, idx) => {
                   const isSelected = selectedTicketId === ticket.id;
+                  // Use title attribute to show full raw timestamp on hover
+                  const titleAttr = ticket.created_at ?? "";
+                  // Ensure unique key by combining id with index
+                  const uniqueKey = ticket.id ? `${ticket.id}-${idx}` : `ticket-${idx}`;
                   return (
                     <motion.li
-                      key={ticket.id ?? idx}
+                      key={uniqueKey}
                       initial={{ opacity: 0, y: 8 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -8 }}
@@ -791,11 +793,11 @@ export default function TicketsList({
                               {ticket.email}
                             </p>
                           )}
-                          <p className="text-xs text-slate-400 mt-1">
-                            {formatDate(
-                              ticket.created_at,
-                              ticket.created_at_display
-                            )}
+                          <p
+                            className="text-xs text-slate-400 mt-1"
+                            title={titleAttr}
+                          >
+                            {formatMaybeDate(ticket.created_at)}
                           </p>
                         </div>
 

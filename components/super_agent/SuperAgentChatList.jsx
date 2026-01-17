@@ -73,7 +73,7 @@ export default function SuperAgentChatList({
       ? String(statusDisplay).toLowerCase()
       : "pending";
 
-    const created_at = t?.created_at ?? t?.createdAt ?? t?.pub_date ?? null;
+    const created_at = t?.created_at ?? null;
     const created_at_display = t?.created_at_display ?? null;
 
     // NEW: normalize assigned-to name so UI can show who the ticket is assigned to
@@ -380,7 +380,7 @@ export default function SuperAgentChatList({
                 const email = t.email ?? "";
                 const statusKey = (t.status ?? "pending").toLowerCase();
                 const statusLabel = t.statusDisplay || "Pending";
-                const time = t.created_at ?? t.created_at_display ?? "";
+                const time = t.created_at ?? "";
                 const isRecentlyAdded =
                   t.id &&
                   recentlyAdded[t.id] &&
@@ -450,7 +450,7 @@ export default function SuperAgentChatList({
                       )}
 
                       <div className="text-[10px] sm:text-xs text-slate-400 mt-1 sm:mt-2">
-                        {formatMaybeDate(time, t.created_at_display)}
+                        {formatMaybeDate(time)}
                       </div>
                     </div>
                   </motion.li>
