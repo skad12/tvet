@@ -5,6 +5,8 @@ import { motion } from "framer-motion";
 import { format, isValid } from "date-fns";
 import { useAuth } from "@/context/AuthContext";
 import { GoAlertFill } from "react-icons/go";
+import { calculateResolutionTime } from "@/lib/resolutionTime";
+import Skeleton, { ChatListSkeleton } from "@/components/ui/Skeleton";
 
 let api = null;
 try {
@@ -361,9 +363,7 @@ export default function SuperAgentChatList({
 
         <div className="p-2 sm:p-4">
           {loading ? (
-            <div className="p-4 sm:p-6 text-xs sm:text-sm text-slate-500 text-center">
-              Loading escalated tickets…
-            </div>
+            <ChatListSkeleton />
           ) : error ? (
             <div className="p-3 sm:p-4 text-xs sm:text-sm text-red-600">
               {error}
@@ -381,6 +381,12 @@ export default function SuperAgentChatList({
                 const statusKey = (t.status ?? "pending").toLowerCase();
                 const statusLabel = t.statusDisplay || "Pending";
                 const time = t.created_at ?? "";
+                const resolvedAt = t.raw?.resolved_at ?? null;
+                const resolutionTime = calculateResolutionTime(
+                  t.created_at,
+                  resolvedAt,
+                  t.status || t.ticket_status
+                );
                 const isRecentlyAdded =
                   t.id &&
                   recentlyAdded[t.id] &&
@@ -452,6 +458,11 @@ export default function SuperAgentChatList({
                       <div className="text-[10px] sm:text-xs text-slate-400 mt-1 sm:mt-2">
                         {formatMaybeDate(time)}
                       </div>
+                      {resolutionTime && (
+                        <div className="text-[10px] sm:text-xs text-emerald-600 mt-1 font-medium">
+                          Resolved in {resolutionTime}
+                        </div>
+                      )}
                     </div>
                   </motion.li>
                 );

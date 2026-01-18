@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { useAuth } from "@/context/AuthContext";
 import api from "@/lib/axios";
@@ -240,10 +240,12 @@ export default function AgentDashboardPage() {
             </div>
           )}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
-            <ChatBox
-              key={selected?.id}
-              selected={selected}
-              onEscalated={(ticketId) => {
+            {/* Chat box - hidden on mobile when no ticket selected, shown on larger screens */}
+            <div className={`${selected ? "block" : "hidden"} lg:block`}>
+              <ChatBox
+                key={selected?.id}
+                selected={selected}
+                onEscalated={(ticketId) => {
                 try {
                   setTickets((prev) =>
                     (Array.isArray(prev) ? prev : []).map((t) => {
@@ -265,7 +267,9 @@ export default function AgentDashboardPage() {
                   );
                 } catch (e) {}
               }}
-            />
+              />
+            </div>
+            {/* Chat list - full width on mobile, 2/3 on desktop */}
             <div className="lg:col-span-2">
               <ChatList
                 tickets={tickets}
@@ -276,6 +280,86 @@ export default function AgentDashboardPage() {
               />
               {/* Additional agent-specific components can be added here */}
             </div>
+            {/* Mobile chat box popup - shown when ticket selected on mobile */}
+            <AnimatePresence>
+              {selected && (
+                <>
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    onClick={() => setSelected(null)}
+                    className="lg:hidden fixed inset-0 bg-black/50 z-40"
+                  />
+                  <motion.div
+                    initial={{ opacity: 0, y: 100 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 100 }}
+                    className="lg:hidden fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-2xl shadow-xl flex flex-col"
+                    style={{ maxHeight: "85vh" }}
+                    data-chat-box
+                  >
+                    <div className="p-4 border-b border-slate-200 flex items-center justify-between flex-shrink-0">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-medium text-slate-800 text-sm truncate">
+                          {selected.subject || selected.name || "Chat"}
+                        </h3>
+                        <p className="text-xs text-slate-500 mt-0.5">
+                          {selected.email || userEmail}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => setSelected(null)}
+                        className="ml-2 p-2 rounded-lg text-slate-500 hover:bg-slate-100 flex-shrink-0"
+                        aria-label="Close chat"
+                      >
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M6 18L18 6M6 6l12 12"
+                          />
+                        </svg>
+                      </button>
+                    </div>
+                    <div className="flex-1 overflow-hidden min-h-0">
+                      <ChatBox
+                        key={selected?.id}
+                        selected={selected}
+                        onEscalated={(ticketId) => {
+                          try {
+                            setTickets((prev) =>
+                              (Array.isArray(prev) ? prev : []).map((t) => {
+                                const id = t?.id ?? t?.pk;
+                                if (String(id) === String(ticketId)) {
+                                  return {
+                                    ...t,
+                                    status: "escalated",
+                                    progress: "Escalated",
+                                  };
+                                }
+                                return t;
+                              })
+                            );
+                            setSelected((prev) =>
+                              prev && String(prev.id) === String(ticketId)
+                                ? { ...prev, status: "escalated", progress: "Escalated" }
+                                : prev
+                            );
+                          } catch (e) {}
+                        }}
+                      />
+                    </div>
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
           </div>
         </div>
       </motion.div>

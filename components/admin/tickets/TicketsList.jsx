@@ -433,6 +433,8 @@ import React, { useEffect, useState, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { format, isValid } from "date-fns";
 import api from "@/lib/axios";
+import { calculateResolutionTime } from "@/lib/resolutionTime";
+import Skeleton, { ChatListSkeleton } from "@/components/ui/Skeleton";
 
 export default function TicketsList({
   categoryId,
@@ -724,11 +726,8 @@ export default function TicketsList({
 
       <div className="max-h-[600px] overflow-y-auto">
         {loading ? (
-          <div className="p-8 text-center text-sm text-slate-500">
-            <div className="flex items-center justify-center gap-2">
-              <div className="w-5 h-5 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
-              <span>Loading tickets...</span>
-            </div>
+          <div className="p-4">
+            <ChatListSkeleton />
           </div>
         ) : error ? (
           <div className="p-4 text-sm text-red-600">{error}</div>
@@ -751,6 +750,12 @@ export default function TicketsList({
                   const titleAttr = ticket.created_at ?? "";
                   // Ensure unique key by combining id with index
                   const uniqueKey = ticket.id ? `${ticket.id}-${idx}` : `ticket-${idx}`;
+                  const resolvedAt = ticket.raw?.resolved_at ?? ticket.resolved_at ?? null;
+                  const resolutionTime = calculateResolutionTime(
+                    ticket.created_at,
+                    resolvedAt,
+                    ticket.status
+                  );
                   return (
                     <motion.li
                       key={uniqueKey}
@@ -799,6 +804,11 @@ export default function TicketsList({
                           >
                             {formatMaybeDate(ticket.created_at)}
                           </p>
+                          {resolutionTime && (
+                            <p className="text-xs text-emerald-600 mt-1 font-medium">
+                              Resolved in {resolutionTime}
+                            </p>
+                          )}
                         </div>
 
                         <div className="shrink-0 flex items-center">

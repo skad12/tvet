@@ -590,6 +590,8 @@ import { format, isValid } from "date-fns";
 import { useAuth } from "@/context/AuthContext";
 import { useUsersDirectory } from "@/hooks/useUsersDirectory";
 import { GoAlertFill } from "react-icons/go";
+import { calculateResolutionTime } from "@/lib/resolutionTime";
+import Skeleton, { ChatListSkeleton } from "@/components/ui/Skeleton";
 
 let api = null;
 try {
@@ -1007,10 +1009,7 @@ export default function ChatList({
 
         <div className="p-4">
           {loading ? (
-            <div className="p-6 flex items-center justify-center gap-2 text-sm text-slate-500">
-              <div className="w-4 h-4 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
-              <span>Loading tickets…</span>
-            </div>
+            <ChatListSkeleton />
           ) : error ? (
             <div className="p-4 text-sm text-red-600">{error}</div>
           ) : filtered.length === 0 ? (
@@ -1032,6 +1031,12 @@ export default function ChatList({
                     ? statusKey.charAt(0).toUpperCase() + statusKey.slice(1)
                     : "—");
                 const time = t.created_at ?? "";
+                const resolvedAt = t.raw?.resolved_at ?? t.resolved_at ?? null;
+                const resolutionTime = calculateResolutionTime(
+                  t.created_at,
+                  resolvedAt,
+                  t.status || t.ticket_status
+                );
                 const assignedToId =
                   t.raw?.assigned_to_id ??
                   t.raw?.assigned_to ??
@@ -1117,6 +1122,11 @@ export default function ChatList({
                       <div className="text-xs text-slate-400 mt-2">
                         {formatMaybeDate(time)}
                       </div>
+                      {resolutionTime && (
+                        <div className="text-xs text-emerald-600 mt-1 font-medium">
+                          Resolved in {resolutionTime}
+                        </div>
+                      )}
                     </div>
                   </motion.li>
                 );
