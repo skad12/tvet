@@ -1,3 +1,4 @@
+
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -185,7 +186,11 @@ export default function AgentDashboardPage() {
           );
           if (exists) return exists;
         }
-        return filtered.length > 0 ? filtered[0] : null;
+
+        // === DESKTOP-ONLY AUTO-SELECT ===
+        const canAutoSelect =
+          typeof window === "undefined" ? true : window.innerWidth >= 1024;
+        return canAutoSelect && filtered.length > 0 ? filtered[0] : null;
       });
     } catch (err) {
       console.error("Failed to load tickets", err);
@@ -240,33 +245,33 @@ export default function AgentDashboardPage() {
             </div>
           )}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
-            {/* Chat box - hidden on mobile when no ticket selected, shown on larger screens */}
-            <div className={`${selected ? "block" : "hidden"} lg:block`}>
+            {/* Chat box - HIDDEN on mobile, shown on larger screens */}
+            <div className="hidden lg:block">
               <ChatBox
                 key={selected?.id}
                 selected={selected}
                 onEscalated={(ticketId) => {
-                try {
-                  setTickets((prev) =>
-                    (Array.isArray(prev) ? prev : []).map((t) => {
-                      const id = t?.id ?? t?.pk;
-                      if (String(id) === String(ticketId)) {
-                        return {
-                          ...t,
-                          status: "escalated",
-                          progress: "Escalated",
-                        };
-                      }
-                      return t;
-                    })
-                  );
-                  setSelected((prev) =>
-                    prev && String(prev.id) === String(ticketId)
-                      ? { ...prev, status: "escalated", progress: "Escalated" }
-                      : prev
-                  );
-                } catch (e) {}
-              }}
+                  try {
+                    setTickets((prev) =>
+                      (Array.isArray(prev) ? prev : []).map((t) => {
+                        const id = t?.id ?? t?.pk;
+                        if (String(id) === String(ticketId)) {
+                          return {
+                            ...t,
+                            status: "escalated",
+                            progress: "Escalated",
+                          };
+                        }
+                        return t;
+                      })
+                    );
+                    setSelected((prev) =>
+                      prev && String(prev.id) === String(ticketId)
+                        ? { ...prev, status: "escalated", progress: "Escalated" }
+                        : prev
+                    );
+                  } catch (e) {}
+                }}
               />
             </div>
             {/* Chat list - full width on mobile, 2/3 on desktop */}
@@ -288,8 +293,9 @@ export default function AgentDashboardPage() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    onClick={() => setSelected(null)}
+                    /* removed onClick so tapping the backdrop does NOT close the chat on mobile */
                     className="lg:hidden fixed inset-0 bg-black/50 z-40"
+                    aria-hidden="true"
                   />
                   <motion.div
                     initial={{ opacity: 0, y: 100 }}

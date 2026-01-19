@@ -1,3 +1,4 @@
+
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -82,10 +83,9 @@ export default function SuperAgentDashboardPage() {
         };
       });
 
-      // Don't filter resolved tickets - let the chatlist component handle filtering via tabs
       setTickets(escalatedTickets);
 
-      // Auto-select first ticket if available
+      // Preserve current selection when possible; otherwise auto-select FIRST only on desktop
       setSelected((prevSelected) => {
         if (prevSelected) {
           const exists = escalatedTickets.find(
@@ -95,7 +95,10 @@ export default function SuperAgentDashboardPage() {
           );
           if (exists) return exists;
         }
-        return escalatedTickets.length > 0 ? escalatedTickets[0] : null;
+        const first = escalatedTickets.length > 0 ? escalatedTickets[0] : null;
+        const canAutoSelect =
+          typeof window === "undefined" ? true : window.innerWidth >= 1024;
+        return canAutoSelect ? first : null;
       });
     } catch (err) {
       console.error("Failed to load escalated tickets", err);
@@ -185,13 +188,12 @@ export default function SuperAgentDashboardPage() {
           )}
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
-            {/* Chat box - hidden on mobile when no ticket selected, shown on larger screens */}
-            <div className={`${selected ? "block" : "hidden"} lg:block`}>
+            {/* Chat box - HIDDEN on mobile, shown on larger screens */}
+            <div className="hidden lg:block">
               <SuperAgentChatBox
                 key={selected?.id}
                 selected={selected}
                 onResolved={(ticketId) => {
-                  // When a ticket is resolved, remove it from the list
                   try {
                     setTickets((prev) =>
                       (Array.isArray(prev) ? prev : []).filter((t) => {
@@ -211,6 +213,7 @@ export default function SuperAgentDashboardPage() {
                 }}
               />
             </div>
+
             {/* Chat list - full width on mobile, 2/3 on desktop */}
             <div className="lg:col-span-2">
               <SuperAgentChatList
@@ -222,6 +225,7 @@ export default function SuperAgentDashboardPage() {
                 refreshing={refreshing}
               />
             </div>
+
             {/* Mobile chat box popup - shown when ticket selected on mobile */}
             <AnimatePresence>
               {selected && (
@@ -230,8 +234,9 @@ export default function SuperAgentDashboardPage() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    onClick={() => setSelected(null)}
+                    /* do not close when clicking backdrop on mobile; user must press ✕ */
                     className="lg:hidden fixed inset-0 bg-black/50 z-40"
+                    aria-hidden="true"
                   />
                   <motion.div
                     initial={{ opacity: 0, y: 100 }}

@@ -1,5 +1,4 @@
 
-
 "use client";
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -119,7 +118,14 @@ export default function CustomerDashboardPage() {
         const filtered = all.filter((ticket) =>
           ticketBelongsToUser(ticket, userId, userEmail)
         );
-        if (filtered.length > 0) setSelected(filtered[0]);
+
+        // Only auto-select first ticket on larger screens (avoid auto-opening chat on mobile)
+        const canAutoSelect =
+          typeof window !== "undefined" ? window.innerWidth >= 1024 : true;
+
+        if (filtered.length > 0 && canAutoSelect) {
+          setSelected(filtered[0]);
+        }
       }
     } catch (e) {
       // errors are already handled in store state
@@ -151,7 +157,10 @@ export default function CustomerDashboardPage() {
     if (selected && !ticketBelongsToUser(selected, userId, userEmail)) {
       setSelected(userTickets[0]);
     } else if (!selected) {
-      setSelected(userTickets[0]);
+      // keep existing behavior on desktop; on mobile we intentionally don't auto-open — ensureTickets already handled that
+      const isDesktop =
+        typeof window !== "undefined" ? window.innerWidth >= 1024 : true;
+      if (isDesktop) setSelected(userTickets[0]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userTickets, userId, userEmail]);
@@ -180,8 +189,8 @@ export default function CustomerDashboardPage() {
             </div>
           )}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
-            {/* Chat box - hidden on mobile when no ticket selected, shown on larger screens */}
-            <div className={`${selected ? "block" : "hidden"} lg:block`}>
+            {/* Chat box - HIDDEN on mobile, shown on larger screens */}
+            <div className="hidden lg:block">
               <ChatBox key={selected?.id} selected={selected} />
             </div>
             {/* Chat list - full width on mobile, 2/3 on desktop */}
@@ -200,56 +209,57 @@ export default function CustomerDashboardPage() {
               {selected && (
                 <>
                   <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  onClick={() => setSelected(null)}
-                  className="lg:hidden fixed inset-0 bg-black/50 z-40"
-                />
-                <motion.div
-                  initial={{ opacity: 0, y: 100 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 100 }}
-                  className="lg:hidden fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-2xl shadow-xl flex flex-col"
-                  style={{ maxHeight: "85vh" }}
-                  data-chat-box
-                >
-                  <div className="p-4 border-b border-slate-200 flex items-center justify-between flex-shrink-0">
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-medium text-slate-800 text-sm truncate">
-                        {selected.subject || selected.name || "Chat"}
-                      </h3>
-                      <p className="text-xs text-slate-500 mt-0.5">
-                        {selected.email || userEmail}
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => setSelected(null)}
-                      className="ml-2 p-2 rounded-lg text-slate-500 hover:bg-slate-100 flex-shrink-0"
-                      aria-label="Close chat"
-                    >
-                      <svg
-                        className="w-5 h-5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    // removed onClick so tapping the backdrop does NOT close the chat on mobile
+                    className="lg:hidden fixed inset-0 bg-black/50 z-40"
+                    aria-hidden="true"
+                  />
+                  <motion.div
+                    initial={{ opacity: 0, y: 100 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 100 }}
+                    className="lg:hidden fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-2xl shadow-xl flex flex-col"
+                    style={{ maxHeight: "85vh" }}
+                    data-chat-box
+                  >
+                    <div className="p-4 border-b border-slate-200 flex items-center justify-between flex-shrink-0">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-medium text-slate-800 text-sm truncate">
+                          {selected.subject || selected.name || "Chat"}
+                        </h3>
+                        <p className="text-xs text-slate-500 mt-0.5">
+                          {selected.email || userEmail}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => setSelected(null)}
+                        className="ml-2 p-2 rounded-lg text-slate-500 hover:bg-slate-100 flex-shrink-0"
+                        aria-label="Close chat"
                       >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M6 18L18 6M6 6l12 12"
-                        />
-                      </svg>
-                    </button>
-                  </div>
-                  <div className="flex-1 overflow-hidden min-h-0">
-                    <ChatBox
-                      selected={selected}
-                      userEmail={userEmail || undefined}
-                    />
-                  </div>
-                </motion.div>
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M6 18L18 6M6 6l12 12"
+                          />
+                        </svg>
+                      </button>
+                    </div>
+                    <div className="flex-1 overflow-hidden min-h-0">
+                      <ChatBox
+                        selected={selected}
+                        userEmail={userEmail || undefined}
+                      />
+                    </div>
+                  </motion.div>
                 </>
               )}
             </AnimatePresence>

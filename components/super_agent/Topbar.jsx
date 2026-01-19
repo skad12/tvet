@@ -103,7 +103,7 @@ export default function Navbar({
               <span className="hidden sm:inline">
                 {signingOut ? "Logging out…" : "Logout"}
               </span>
-              <span className="sm:hidden">{signingOut ? "..." : "Exit"}</span>
+              <span className="sm:hidden">{signingOut ? "..." : "Logout"}</span>
             </button>
           </div>
         </div>
