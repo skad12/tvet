@@ -9,7 +9,7 @@ import { useAuth } from "@/context/AuthContext";
 import { FiBell, FiSettings, FiUserCheck, FiCheckCircle } from "react-icons/fi";
 import { AiOutlineRobot } from "react-icons/ai";
 
-export default function Topbar() {
+export default function Topbar({ onSidebarOpen }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -103,6 +103,29 @@ export default function Topbar() {
       className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-slate-200"
     >
       <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+        {/* Mobile menu button */}
+        <div className="md:hidden flex items-center">
+          <button
+            onClick={onSidebarOpen}
+            className="p-2 -ml-2 rounded-md text-slate-700 hover:bg-slate-100"
+            aria-label="Toggle menu"
+          >
+            <svg
+              className="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 6h16M4 12h16M4 18h16"
+              />
+            </svg>
+          </button>
+        </div>
+
         {/* left stats */}
         <div className="hidden md:flex items-center gap-4">
           <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-50 text-blue-700 text-sm">
@@ -113,7 +136,7 @@ export default function Topbar() {
 
           <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-50 text-emerald-700 text-sm">
             <AiOutlineRobot className="w-4 h-4" aria-hidden />
-            <span>AI Handling</span>
+            <span>Handled by AI</span>
             <span className="font-bold ml-2">{aiHandling}</span>
           </div>
 

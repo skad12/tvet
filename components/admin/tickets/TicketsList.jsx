@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useEffect, useState, useRef, useCallback } from "react";
@@ -10,6 +9,7 @@ import Skeleton, { ChatListSkeleton } from "@/components/ui/Skeleton";
 
 export default function TicketsList({
   categoryId,
+  categoryName,
   statusFilter = "all",
   onSelectTicket,
   selectedTicketId,
@@ -52,7 +52,6 @@ export default function TicketsList({
         let usingFallback = false;
         let totalCount = null;
 
-        const categoryBasedUrl = `/tickets/category-based/${start}/${stop}/`;
         const genericPagedUrl = `/tickets/${start}/${stop}/`;
 
         if (categoryId !== null && categoryId !== undefined) {
@@ -63,10 +62,19 @@ export default function TicketsList({
         try {
           if (categoryId !== null && categoryId !== undefined) {
             const res = await api.get(
-              categoryBasedUrl + (categoryId ? `?category=${categoryId}` : ""),
+              `/filter-ticket/by-category-id/${categoryId}/`,
               { signal: ac.signal }
             );
-            resData = res?.data ?? null;
+            // Assuming this endpoint returns ALL tickets for the category (not paginated)
+            // We perform client-side pagination here to avoid duplicates
+            const rawData = res?.data ?? [];
+            const fullList = Array.isArray(rawData)
+              ? rawData
+              : rawData?.tickets ?? rawData?.results ?? [];
+
+            totalCount = fullList.length;
+            resData = fullList.slice(start, stop + 1);
+            usingFallback = true; // Use totalCount logic for hasMore
           } else {
             const res = await api.get(genericPagedUrl, { signal: ac.signal });
             resData = res?.data ?? null;
@@ -211,7 +219,7 @@ export default function TicketsList({
     if (!statusFilter || statusFilter === "all") return tickets;
 
     function normalizeStatusForFilter(status) {
-      if (!status) return "active";
+      if (!status) return "pending";
       const s = String(status).toLowerCase().trim();
       if (s === "resolved" || s === "closed" || s === "completed")
         return "resolved";
@@ -281,7 +289,9 @@ export default function TicketsList({
     <div className="bg-white rounded-lg shadow-sm border border-slate-200">
       <div className="p-4 border-b border-slate-200">
         <h3 className="text-lg font-semibold text-slate-800">
-          {categoryId ? `Tickets in Category ${categoryId}` : "All Tickets"}
+          {categoryId
+            ? `Tickets in ${categoryName || categoryId}`
+            : "All Tickets"}
           {statusFilter !== "all" &&
             ` - ${
               statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1)
@@ -321,8 +331,11 @@ export default function TicketsList({
                   // Use title attribute to show full raw timestamp on hover
                   const titleAttr = ticket.created_at ?? "";
                   // Ensure unique key by combining id with index
-                  const uniqueKey = ticket.id ? `${ticket.id}-${idx}` : `ticket-${idx}`;
-                  const resolvedAt = ticket.raw?.resolved_at ?? ticket.resolved_at ?? null;
+                  const uniqueKey = ticket.id
+                    ? `${ticket.id}-${idx}`
+                    : `ticket-${idx}`;
+                  const resolvedAt =
+                    ticket.raw?.resolved_at ?? ticket.resolved_at ?? null;
                   const resolutionTime = calculateResolutionTime(
                     ticket.created_at,
                     resolvedAt,

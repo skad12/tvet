@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from "react";
+import { calculateResolutionTime } from "@/lib/resolutionTime";
 
 function getActionText(item) {
   if (item.action) return item.action;
@@ -107,6 +108,12 @@ export default function RecentActivity({ activities = [] }) {
                 ).toLowerCase();
                 const time = r.how_long_ago ?? r.ago ?? "";
 
+                const resolutionTime = calculateResolutionTime(
+                  r.created_at ?? r.createdAt ?? r.raw?.created_at,
+                  r.resolved_at ?? r.resolvedAt ?? r.raw?.resolved_at,
+                  status
+                );
+
                 const pillClass =
                   status === "resolved"
                     ? "bg-emerald-50 text-emerald-700 border border-emerald-100"
@@ -146,6 +153,11 @@ export default function RecentActivity({ activities = [] }) {
                         {(r.ticket_status ?? r.status) || "—"}
                       </span>
                       <div className="text-xs text-slate-400 mt-2">{time}</div>
+                      {status === "resolved" && resolutionTime && (
+                        <div className="text-xs text-emerald-600 mt-1">
+                          Resolved in {resolutionTime}
+                        </div>
+                      )}
                     </div>
                   </li>
                 );

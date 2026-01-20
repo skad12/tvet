@@ -70,7 +70,7 @@ export default function AiPerformance({ data = {} }) {
 
       <div className="mt-6 text-sm text-slate-600 space-y-3">
         <div className="flex items-center justify-between">
-          <div>Auto-resolved</div>
+          <div>Handled by AI</div>
           <div className="text-slate-800 font-medium">
             {autoResolved} tickets
           </div>

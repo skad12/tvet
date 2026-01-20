@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
@@ -14,7 +13,7 @@ import {
   normalizeChatEntries,
   postTicketMessage,
 } from "@/lib/chatClient";
-import { format, isValid } from "date-fns"; 
+import { format, isValid } from "date-fns";
 
 function normalizeAgentName(agent) {
   if (agent === null || agent === undefined) return null;
@@ -444,10 +443,7 @@ export default function ChatModal({
   };
 
   // compute time here (inside component so ticket is defined)
-  const time =
-    ticket?.created_at ??
-    ticket?.raw?.created_at ??
-    "";
+  const time = ticket?.created_at ?? ticket?.raw?.created_at ?? "";
 
   return (
     <AnimatePresence>
@@ -476,7 +472,7 @@ export default function ChatModal({
             animate={{ y: 0, opacity: 1, scale: 1 }}
             exit={{ y: 8, opacity: 0, scale: 0.98 }}
             transition={{ duration: 0.22 }}
-            className="relative w-full max-w-4xl h-[80vh] bg-white rounded-lg border border-slate-200 shadow-xl flex"
+            className="relative w-full max-w-5xl h-[80vh] bg-white rounded-lg border border-slate-200 shadow-xl flex"
           >
             {/* Left: conversation */}
             <div className="flex-1 flex flex-col">
@@ -898,7 +894,7 @@ export default function ChatModal({
             </AnimatePresence>
 
             {/* Right: user details (compact) */}
-            <aside className="w-80 border-l border-slate-200 p-6 overflow-auto">
+            <aside className="w-full border-l border-slate-200 p-6 overflow-auto">
               <div className="flex items-center gap-4 mb-4">
                 <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center font-medium text-slate-700">
                   {String(ticket?.email ?? ticket?.name ?? "U")

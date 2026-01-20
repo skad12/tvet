@@ -1,9 +1,11 @@
-
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
 import AgentsGrid from "@/components/admin/agents/AgentsGrid";
 import AgentCategoriesList from "@/components/admin/agents/AgentCategoriesList";
+import AddAgentModal from "@/components/admin/agents/AddAgentModal";
+import { FiPlus } from "react-icons/fi";
+
 import api from "@/lib/axios";
 
 function normalizeAccountType(raw) {
@@ -14,7 +16,7 @@ function normalizeAccountType(raw) {
 function normalizeUserStatus(status) {
   const value = String(status || "").toLowerCase();
   if (value.includes("avail") || value === "available") return "available";
-  if (value.includes("engag") || value === "engaged") return "engaged";
+  // if (value.includes("engag") || value === "engaged") return "engaged";
   return "offline";
 }
 
@@ -45,6 +47,8 @@ export default function AgentsPage() {
   const [activeCategory, setActiveCategory] = useState("agents");
   // status filter tab (all / available / engaged / offline)
   const [statusFilter, setStatusFilter] = useState("all");
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     let mounted = true;
@@ -141,7 +145,7 @@ export default function AgentsPage() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [refreshKey]);
 
   const handleDeleteAgent = async (agentId) => {
     try {
@@ -194,23 +198,11 @@ export default function AgentsPage() {
           <div className="ml-auto">
             <button
               type="button"
+              onClick={() => setShowAddModal(true)}
               className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded shadow"
             >
-              <svg
-                className="w-4 h-4"
-                viewBox="0 0 24 24"
-                fill="none"
-                aria-hidden
-              >
-                <path
-                  d="M12 5v14M5 12h14"
-                  stroke="currentColor"
-                  strokeWidth="1.6"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-              Add Agent
+              <FiPlus />
+              <span className="text-xs lg:text-base">Add Agent</span>
             </button>
           </div>
         </div>
@@ -221,6 +213,12 @@ export default function AgentsPage() {
           </div>
         ) : (
           <>
+            <AddAgentModal
+              isOpen={showAddModal}
+              onClose={() => setShowAddModal(false)}
+              onSuccess={() => setRefreshKey((k) => k + 1)}
+            />
+
             {error && (
               <div className="mb-4 text-sm text-amber-700 bg-amber-50 p-3 rounded">
                 {error}
@@ -276,7 +274,7 @@ export default function AgentsPage() {
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                   Available
                 </button>
-                <button
+                {/* <button
                   onClick={() => setStatusFilter("engaged")}
                   className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs sm:text-sm border ${
                     statusFilter === "engaged"
@@ -286,7 +284,7 @@ export default function AgentsPage() {
                 >
                   <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
                   Engaged
-                </button>
+                </button> */}
                 <button
                   onClick={() => setStatusFilter("offline")}
                   className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs sm:text-sm border ${

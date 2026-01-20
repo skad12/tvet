@@ -117,9 +117,9 @@ export default function TicketPage() {
                   return (
                     <button
                       key={c.id}
-                      onClick={() => setActiveCategory(categoryTitle)}
+                      onClick={() => setActiveCategory(c.id)}
                       className={`inline-flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium transition shrink-0 ${
-                        activeCategory === categoryTitle
+                        activeCategory === c.id
                           ? "bg-slate-900 text-white shadow"
                           : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50"
                       }`}
@@ -139,7 +139,6 @@ export default function TicketPage() {
                   { id: "all", label: "All" },
                   { id: "pending", label: "Pending" },
                   { id: "resolved", label: "Resolved" },
-                  { id: "active", label: "Active" },
                 ].map((status) => (
                   <button
                     key={status.id}
@@ -193,6 +192,12 @@ export default function TicketPage() {
         >
           <TicketsList
             categoryId={activeCategory}
+            categoryName={
+              activeCategory
+                ? categories.find((c) => c.id === activeCategory)?.title ??
+                  categories.find((c) => c.id === activeCategory)?.name
+                : null
+            }
             statusFilter={statusFilter}
             onSelectTicket={openChat}
             selectedTicketId={selectedTicket?.id}
