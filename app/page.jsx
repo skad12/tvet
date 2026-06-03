@@ -1,21 +1,68 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
-import { motion } from "framer-motion";
-import supportImage from "../public/images/support.jpg";
+import { ArrowRight } from "lucide-react";
+import { motion, useReducedMotion } from "framer-motion";
 import NavBar from "../components/NavBar";
 import Footer from "../components/Footer";
 import FloatingWidget from "@/components/FloatingWidget";
 import FAQ from "@/components/support/Faq";
 import TicketForm from "@/components/support/TicketForm";
+import HeroVideoMontage from "@/components/marketing/HeroVideoMontage";
 
 const fadeInUp = {
   hidden: { opacity: 0, y: 20 },
   visible: { opacity: 1, y: 0 },
 };
 
+const fadeInLeft = {
+  hidden: { opacity: 0, x: -20 },
+  visible: { opacity: 1, x: 0 },
+};
+
+const heroSlides = [
+  {
+    eyebrow: "Responsive support, from ticket to resolution",
+    title: "Student support that feels fast, clear, and human.",
+    body: "Open a ticket for registration, finance, onboarding, or general TVET questions and keep every update in one easy place.",
+    primaryHref: "#support",
+    primaryLabel: "Create Ticket",
+    secondaryHref: "#faq",
+    secondaryLabel: "Browse FAQs",
+  },
+  {
+    eyebrow: "Registration and onboarding help",
+    title:
+      "Get unstuck quickly when forms, accounts, or documents slow you down.",
+    body: "Share the details once, attach what matters, and let the support team route your request to the right desk.",
+    primaryHref: "#support",
+    primaryLabel: "Start a request",
+    secondaryHref: "#about",
+    secondaryLabel: "How it works",
+  },
+  {
+    eyebrow: "Finance and payment queries",
+    title: "Track finance questions without losing context.",
+    body: "Tickets keep conversations, proof of payment, and escalation notes together so every reply moves the issue forward.",
+    primaryHref: "#support",
+    primaryLabel: "Open finance ticket",
+    secondaryHref: "#faq",
+    secondaryLabel: "Common questions",
+  },
+  {
+    eyebrow: "Clear updates for every student",
+    title: "Know what is happening, who is helping, and what comes next.",
+    body: "Follow ticket status from submission to resolution with a support workflow designed for transparency.",
+    primaryHref: "#support",
+    primaryLabel: "Get support",
+    secondaryHref: "#about",
+    secondaryLabel: "Learn more",
+  },
+];
+
 export default function Home() {
+  const shouldReduceMotion = useReducedMotion();
+
   return (
     <>
       <NavBar />
@@ -29,45 +76,69 @@ export default function Home() {
         <motion.header
           variants={fadeInUp}
           transition={{ duration: 0.5 }}
-          className="relative bg-gradient-to-r from-blue-600 to-cyan-500 text-white"
+          className="relative min-h-[720px] overflow-hidden bg-slate-950 text-white"
         >
-          <div className="max-w-6xl mx-auto px-4 py-24 flex flex-col md:flex-row items-center gap-8">
-            <motion.div variants={fadeInUp} className="md:w-1/2">
-              <h1 className="text-4xl md:text-5xl font-extrabold leading-tight">
-                TVET Support — Help Desk
-              </h1>
-              <p className="mt-4 text-blue-100 max-w-xl">
-                Fast, reliable support for registrations, finance queries and
-                general student onboarding — open a ticket and track progress
-                from start to finish.
-              </p>
-              <div className="mt-4">
-                <Link
-                  href="/support"
-                  className="inline-block px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition border border-slate-300"
-                >
-                  Create Ticket
-                </Link>
-              </div>
-            </motion.div>
+          <HeroVideoMontage />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_15%_18%,rgb(37_99_235/0.42),transparent_34%),linear-gradient(90deg,rgb(15_23_42/0.92),rgb(15_23_42/0.68)_48%,rgb(15_23_42/0.30)),linear-gradient(to_top,rgb(15_23_42/0.9),transparent_52%)]" />
 
+          <div className="relative z-10 mx-auto flex min-h-[720px] max-w-6xl items-center px-4 py-24">
             <motion.div
-              variants={fadeInUp}
-              transition={{ delay: 0.2 }}
-              className="md:w-1/2 flex justify-center"
+              variants={fadeInLeft}
+              transition={{ duration: 0.6 }}
+              className="w-full max-w-3xl"
             >
-              <div className="w-full max-w-md rounded overflow-hidden shadow-lg bg-white">
-                <Image
-                  src={supportImage}
-                  alt="support hero"
-                  width={800}
-                  height={600}
-                  className="block object-cover"
-                  priority
-                />
+              <div className="hero-content-slider relative min-h-[430px]">
+                {heroSlides.map((slide, index) => (
+                  <div
+                    key={slide.title}
+                    className="hero-content-slide absolute inset-0 flex flex-col justify-center space-y-6"
+                    style={{ animationDelay: `${index * 8}s` }}
+                  >
+                    <p className="inline-flex w-fit items-center gap-2 rounded-full border border-white/20 bg-white/12 px-3 py-1 text-xs font-medium text-cyan-100 shadow-sm backdrop-blur">
+                      {slide.eyebrow}
+                    </p>
+                    <h1 className="text-4xl font-extrabold leading-tight tracking-tight text-white md:text-5xl lg:text-6xl">
+                      {slide.title}
+                    </h1>
+                    <p className="max-w-2xl text-base leading-relaxed text-blue-50 md:text-lg">
+                      {slide.body}
+                    </p>
+                    <div className="flex flex-wrap gap-3">
+                      <motion.div
+                        whileHover={!shouldReduceMotion ? { scale: 1.04 } : {}}
+                        whileTap={!shouldReduceMotion ? { scale: 0.97 } : {}}
+                      >
+                        <Link
+                          href={slide.primaryHref}
+                          className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-blue-600 px-6 text-sm font-semibold text-white shadow-sm shadow-blue-950/25 transition hover:bg-blue-700"
+                        >
+                          {slide.primaryLabel}
+                          <ArrowRight className="h-4 w-4" aria-hidden />
+                        </Link>
+                      </motion.div>
+                      <Link
+                        href={slide.secondaryHref}
+                        className="inline-flex h-11 items-center justify-center rounded-full border border-white/35 bg-white/10 px-6 text-sm font-semibold text-white backdrop-blur transition hover:bg-white/20"
+                      >
+                        {slide.secondaryLabel}
+                      </Link>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-6 flex gap-2">
+                {heroSlides.map((slide, index) => (
+                  <span
+                    key={slide.title}
+                    className="hero-content-tick h-1.5 w-12 rounded-full bg-white/25"
+                    style={{ animationDelay: `${index * 8}s` }}
+                  />
+                ))}
               </div>
             </motion.div>
           </div>
+
           <div className="h-8 md:h-12 w-full bg-white rounded-t-full -mt-6"></div>
         </motion.header>
 
@@ -112,7 +183,7 @@ export default function Home() {
                 </p>
                 <div className="mt-4">
                   <Link
-                    href="/support"
+                    href="#support"
                     className="inline-block px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
                   >
                     Create Ticket
