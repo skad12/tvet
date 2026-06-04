@@ -74,27 +74,27 @@ export default function TicketPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 py-4 sm:py-6 lg:py-8">
-      <div className="max-w-7xl mx-auto px-2 sm:px-4">
-        <motion.h1
+    <div className="min-h-screen py-2">
+      <div className="mx-auto max-w-7xl px-1 sm:px-2">
+        <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
-          className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-800 mb-1"
+          className="mb-6 rounded-4xl border border-white/70 bg-white/90 p-5 shadow-xl shadow-slate-950/5"
         >
-          Tickets
-        </motion.h1>
-        <motion.p
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-          className="text-xs sm:text-sm text-slate-500 mb-4 sm:mb-6"
-        >
-          Browse tickets by category and open conversations
-        </motion.p>
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-blue-700">
+            Ticket operations
+          </p>
+          <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-950 lg:text-3xl">
+            Tickets
+          </h1>
+          <p className="mt-1 text-xs text-slate-500 sm:text-sm">
+            Browse tickets by category and open conversations
+          </p>
+        </motion.div>
 
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-          <div className="mb-4">
+          <div className="mb-4 rounded-3xl border border-white/70 bg-white/90 p-4 shadow-lg shadow-slate-950/5">
             {catError && (
               <div className="text-red-600 text-sm mb-2">{catError}</div>
             )}
@@ -105,8 +105,8 @@ export default function TicketPage() {
                   onClick={() => setActiveCategory(null)}
                   className={`inline-flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium transition shrink-0 ${
                     activeCategory === null
-                      ? "bg-slate-900 text-white shadow"
-                      : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50"
+                      ? "bg-blue-600 text-white shadow shadow-blue-600/20"
+                      : "bg-white border border-slate-200 text-slate-700 hover:border-blue-200 hover:bg-blue-50"
                   }`}
                 >
                   All Categories
@@ -120,8 +120,8 @@ export default function TicketPage() {
                       onClick={() => setActiveCategory(c.id)}
                       className={`inline-flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium transition shrink-0 ${
                         activeCategory === c.id
-                          ? "bg-slate-900 text-white shadow"
-                          : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50"
+                          ? "bg-blue-600 text-white shadow shadow-blue-600/20"
+                          : "bg-white border border-slate-200 text-slate-700 hover:border-blue-200 hover:bg-blue-50"
                       }`}
                     >
                       {categoryTitle}

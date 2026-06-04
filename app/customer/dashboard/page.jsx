@@ -171,9 +171,9 @@ export default function CustomerDashboardPage() {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35 }}
-        className="min-h-screen bg-slate-50 py-4 md:py-6"
+        className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgb(219_234_254/0.8),transparent_30%),linear-gradient(135deg,#f8fafc,#eef6ff_45%,#f8fafc)] py-4 md:py-6"
       >
-        <div className="max-w-7xl mx-auto px-4 md:px-6">
+        <div className="mx-auto max-w-7xl px-4 md:px-6">
           <Navbar
             userEmail={userEmail || undefined}
             onTicketCreated={() => {
@@ -184,11 +184,11 @@ export default function CustomerDashboardPage() {
             }}
           />
           {ticketsError && (
-            <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-sm">
               {ticketsError}
             </div>
           )}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+          <div className="grid grid-cols-1 gap-4 md:gap-6 lg:grid-cols-3">
             {/* Chat box - HIDDEN on mobile, shown on larger screens */}
             <div className="hidden lg:block">
               <ChatBox key={selected?.id} selected={selected} />
@@ -224,7 +224,7 @@ export default function CustomerDashboardPage() {
                     style={{ maxHeight: "85vh" }}
                     data-chat-box
                   >
-                    <div className="p-4 border-b border-slate-200 flex items-center justify-between flex-shrink-0">
+                    <div className="flex shrink-0 items-center justify-between border-b border-slate-200 p-4">
                       <div className="flex-1 min-w-0">
                         <h3 className="font-medium text-slate-800 text-sm truncate">
                           {selected.subject || selected.name || "Chat"}
@@ -235,7 +235,7 @@ export default function CustomerDashboardPage() {
                       </div>
                       <button
                         onClick={() => setSelected(null)}
-                        className="ml-2 p-2 rounded-lg text-slate-500 hover:bg-slate-100 flex-shrink-0"
+                        className="ml-2 shrink-0 rounded-lg p-2 text-slate-500 hover:bg-slate-100"
                         aria-label="Close chat"
                       >
                         <svg

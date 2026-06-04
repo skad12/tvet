@@ -108,31 +108,30 @@ export default function DashboardPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50 flex">
+    <div className="flex min-h-screen">
       <div className="flex-1">
-        <main className="max-w-7xl mx-auto px-4 py-8">
+        <main className="mx-auto max-w-7xl px-1 py-2">
           {/* Header with motion */}
-          <motion.h1
+          <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4 }}
-            className="text-3xl font-bold text-slate-800 mb-1"
+            className="mb-6 overflow-hidden rounded-4xl bg-slate-950 p-6 text-white shadow-2xl shadow-slate-950/20"
           >
-            Analytics Dashboard
-          </motion.h1>
-
-          <motion.p
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="text-sm text-slate-500 mb-6"
-          >
-            Overview of your support platform
-          </motion.p>
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-blue-200">
+              Admin overview
+            </p>
+            <h1 className="mt-2 text-3xl font-bold tracking-tight">
+              Analytics Dashboard
+            </h1>
+            <p className="mt-2 text-sm text-slate-300">
+              Overview of your support platform
+            </p>
+          </motion.div>
 
           {/* Metric Cards */}
           <motion.div
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6"
+            className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4"
             initial="hidden"
             animate="visible"
             variants={{
@@ -160,7 +159,7 @@ export default function DashboardPage() {
 
           {/* Recent Activity + AI Performance */}
           <motion.div
-            className="grid grid-cols-1 lg:grid-cols-3 gap-6"
+            className="grid grid-cols-1 gap-6 lg:grid-cols-3"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3, duration: 0.6 }}
@@ -175,7 +174,7 @@ export default function DashboardPage() {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="text-red-600 mt-6"
+              className="mt-6 rounded-2xl border border-red-100 bg-red-50 p-4 text-red-600"
             >
               {error}
             </motion.div>

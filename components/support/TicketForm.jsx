@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import api from "../../lib/axios";
 import { motion, AnimatePresence } from "framer-motion";
 
+const FALLBACK_GENERAL = { id: "general", title: "General" };
+
 export default function TicketForm() {
   const [categories, setCategories] = useState([]);
   const [catLoading, setCatLoading] = useState(true);
@@ -24,9 +26,6 @@ export default function TicketForm() {
   const router = useRouter();
   const popupTimer = useRef(null);
 
-  // Fallback default category object
-  const FALLBACK_GENERAL = { id: "general", title: "General" };
-
   // fetch categories on mount
   useEffect(() => {
     let mounted = true;
@@ -37,7 +36,7 @@ export default function TicketForm() {
         const res = await api.get("/get-all-category/");
         const data = Array.isArray(res.data)
           ? res.data
-          : res.data?.categories ?? [];
+          : (res.data?.categories ?? []);
 
         if (mounted) {
           setCategories(data);
@@ -46,7 +45,7 @@ export default function TicketForm() {
             data.find((c) =>
               String(c.title || c.name || c.label || c.id || "")
                 .toLowerCase()
-                .includes("general")
+                .includes("general"),
             ) ??
             data.find((c) => String(c.id || "").toLowerCase() === "general") ??
             data[0] ??
@@ -54,7 +53,7 @@ export default function TicketForm() {
 
           if (found)
             setCategoryId(
-              found.id ?? found._id ?? String(found.title ?? found.name ?? "")
+              found.id ?? found._id ?? String(found.title ?? found.name ?? ""),
             );
           else setCategoryId(FALLBACK_GENERAL.id);
         }
@@ -93,8 +92,8 @@ export default function TicketForm() {
       categories.find(
         (c) =>
           String(
-            c.id ?? c._id ?? c.title ?? c.name ?? c.label ?? ""
-          ).toString() === String(categoryId ?? "")
+            c.id ?? c._id ?? c.title ?? c.name ?? c.label ?? "",
+          ).toString() === String(categoryId ?? ""),
       ) ?? FALLBACK_GENERAL;
 
     if (!email.trim()) {
@@ -166,19 +165,26 @@ export default function TicketForm() {
     categories.find(
       (c) =>
         String(
-          c.id ?? c._id ?? c.title ?? c.name ?? c.label ?? ""
-        ).toString() === String(categoryId ?? "")
+          c.id ?? c._id ?? c.title ?? c.name ?? c.label ?? "",
+        ).toString() === String(categoryId ?? ""),
     ) ??
     categories[0] ??
     FALLBACK_GENERAL;
 
   return (
-    <div className="max-w-xl mx-auto bg-white p-8 rounded shadow relative">
-      <h3 className="text-2xl font-semibold mb-4">
-        Get Started with Help Desk
+    <div className="relative mx-auto max-w-xl rounded-3xl bg-white p-6 shadow-none md:p-8">
+      <h3 className="mb-2 text-2xl font-bold tracking-tight text-slate-950">
+        Get Started with Tvet Support
       </h3>
+      <p className="mb-5 text-sm leading-relaxed text-slate-500">
+        Share the details your support team needs to open and route your ticket.
+      </p>
 
-      {catError && <div className="mb-3 text-sm text-red-600">{catError}</div>}
+      {catError && (
+        <div className="mb-3 rounded-2xl border border-red-100 bg-red-50 p-3 text-sm text-red-600">
+          {catError}
+        </div>
+      )}
 
       <form onSubmit={submit} className="space-y-4">
         {/* Category is defaulted to "General" and shown as a pill */}
@@ -189,13 +195,13 @@ export default function TicketForm() {
           <select
             value={categoryId}
             onChange={(e) => setCategoryId(e.target.value)}
-            className="w-full border rounded px-3 py-2 border-slate-500"
+            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none transition focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-100"
             disabled={catLoading}
             required
           >
             {categories.map((c, idx) => {
               const value = String(
-                c.id ?? c._id ?? c.title ?? c.name ?? c.label ?? ""
+                c.id ?? c._id ?? c.title ?? c.name ?? c.label ?? "",
               );
               const label = c.title ?? c.name ?? c.label ?? value;
               return (
@@ -217,7 +223,7 @@ export default function TicketForm() {
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           placeholder="Describe your issue "
-          className="w-full border rounded px-3 py-2 border-slate-500"
+          className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none transition focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-100"
           rows="4"
           required
         />
@@ -226,7 +232,7 @@ export default function TicketForm() {
         <select
           value={priority}
           onChange={(e) => setPriority(e.target.value)}
-          className="w-full border rounded px-3 py-2 border-slate-500"
+          className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none transition focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-100"
         >
           <option value="Low">Low</option>
           <option value="Medium">Medium</option>
@@ -250,7 +256,7 @@ export default function TicketForm() {
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           type="submit"
-          className="w-full bg-blue-600 text-white py-2 rounded"
+          className="w-full rounded-2xl bg-blue-600 py-3 font-semibold text-white shadow-lg shadow-blue-600/20 transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
           disabled={loading || catLoading}
         >
           {loading ? "Submitting..." : "Submit"}
@@ -259,7 +265,7 @@ export default function TicketForm() {
         {/* Inline error message (don't show inline success because we use popup for success) */}
         {alert && alert.type !== "success" && (
           <div
-            className={`p-3 rounded ${
+            className={`rounded-2xl p-3 ${
               alert.type === "success"
                 ? "bg-green-50 text-green-700"
                 : "bg-red-50 text-red-700"
@@ -283,7 +289,7 @@ export default function TicketForm() {
             aria-live="polite"
           >
             <div className="flex items-start gap-3 p-3 rounded bg-white border border-slate-200">
-              <div className="flex-shrink-0">
+              <div className="shrink-0">
                 {/* green check icon inside circle */}
                 <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-green-50 text-green-600 border border-green-100">
                   <svg

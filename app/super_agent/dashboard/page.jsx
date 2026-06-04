@@ -133,7 +133,6 @@ export default function SuperAgentDashboardPage() {
 
   useEffect(() => {
     fetchEscalatedTickets();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -142,7 +141,6 @@ export default function SuperAgentDashboardPage() {
     // Refresh status every 10 seconds
     const interval = setInterval(() => fetchUserStatus(userId), 10000);
     return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
   useEffect(() => {
@@ -152,7 +150,6 @@ export default function SuperAgentDashboardPage() {
       10000
     );
     return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -173,21 +170,21 @@ export default function SuperAgentDashboardPage() {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35 }}
-        className="min-h-screen bg-slate-50 py-2 sm:py-4"
+        className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgb(219_234_254/0.8),transparent_30%),linear-gradient(135deg,#f8fafc,#eef6ff_45%,#f8fafc)] py-3 sm:py-5"
       >
-        <div className="max-w-7xl mx-auto px-2 sm:px-4">
+        <div className="mx-auto max-w-7xl px-3 sm:px-5">
           <Navbar
             userEmail={userEmail || undefined}
             showCreateTicket={false}
             userStatus={userStatus}
           />
           {ticketsError && (
-            <div className="mb-3 sm:mb-4 rounded border border-red-200 bg-red-50 px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-red-700">
+            <div className="mb-3 rounded-2xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700 shadow-sm sm:mb-4 sm:px-4 sm:py-3 sm:text-sm">
               {ticketsError}
             </div>
           )}
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
+          <div className="grid grid-cols-1 gap-3 sm:gap-4 lg:grid-cols-3 lg:gap-6">
             {/* Chat box - HIDDEN on mobile, shown on larger screens */}
             <div className="hidden lg:block">
               <SuperAgentChatBox
@@ -246,7 +243,7 @@ export default function SuperAgentDashboardPage() {
                     style={{ maxHeight: "85vh" }}
                     data-chat-box
                   >
-                    <div className="p-4 border-b border-slate-200 flex items-center justify-between flex-shrink-0">
+                    <div className="flex shrink-0 items-center justify-between border-b border-slate-200 p-4">
                       <div className="flex-1 min-w-0">
                         <h3 className="font-medium text-slate-800 text-sm truncate">
                           {selected.subject || selected.name || "Chat"}
@@ -257,7 +254,7 @@ export default function SuperAgentDashboardPage() {
                       </div>
                       <button
                         onClick={() => setSelected(null)}
-                        className="ml-2 p-2 rounded-lg text-slate-500 hover:bg-slate-100 flex-shrink-0"
+                        className="ml-2 shrink-0 rounded-lg p-2 text-slate-500 hover:bg-slate-100"
                         aria-label="Close chat"
                       >
                         <svg

@@ -10,11 +10,11 @@ export default function AdminLayout({ children }) {
 
   return (
     <ProtectedRoute allowed={["admin"]}>
-      <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row">
+      <div className="flex min-h-screen flex-col bg-[radial-gradient(circle_at_top_left,rgb(219_234_254/0.75),transparent_32%),linear-gradient(135deg,#f8fafc,#eef6ff_45%,#f8fafc)] md:flex-row">
         {/* Mobile sidebar overlay */}
         {sidebarOpen && (
           <div
-            className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden"
+            className="fixed inset-0 z-40 bg-slate-950/60 backdrop-blur-sm md:hidden"
             onClick={() => setSidebarOpen(false)}
           />
         )}

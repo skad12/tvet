@@ -1678,7 +1678,7 @@ export default function ChatList({
                       </div>
                     </div>
 
-                    <div className="text-right flex-shrink-0 flex flex-col items-end ml-4">
+                    <div className="ml-4 flex shrink-0 flex-col items-end text-right">
                       <span
                         className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-medium ${pillClass}`}
                       >

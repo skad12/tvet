@@ -49,7 +49,7 @@ export default function Navbar({
   return (
     <>
       <motion.div
-        className="sticky top-0 z-40 bg-white/95 backdrop-blur-sm border-b border-slate-200 py-4 mb-6 md:mb-8 px-6"
+        className="sticky top-0 z-40 mb-6 rounded-3xl border border-white/70 bg-white/85 px-5 py-4 shadow-xl shadow-slate-950/5 backdrop-blur md:mb-8"
         initial={{ opacity: 0, y: -6 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
@@ -72,7 +72,7 @@ export default function Navbar({
               </span>
 
               {userStatus && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                   {userStatus}
                 </span>
@@ -91,7 +91,7 @@ export default function Navbar({
             {showCreateTicket && (
               <button
                 onClick={() => setIsModalOpen(true)}
-                className="px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-lg text-sm sm:text-base font-medium hover:bg-blue-700 transition-colors"
+                className="rounded-full bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-lg shadow-blue-600/20 transition-colors hover:bg-blue-700 sm:text-base"
                 aria-haspopup="dialog"
                 aria-expanded={isModalOpen}
               >
@@ -102,7 +102,7 @@ export default function Navbar({
 
             <button
               onClick={handleSignOut}
-              className="px-3 sm:px-4 py-2 border border-slate-300 rounded-lg text-sm sm:text-base hover:bg-slate-50 transition-colors"
+              className="rounded-full border border-slate-300 bg-white/80 px-4 py-2 text-sm transition-colors hover:bg-slate-50 sm:text-base"
               aria-label="Sign out"
               disabled={signingOut}
             >

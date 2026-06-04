@@ -439,7 +439,7 @@ export default function ChatBox({ selected, userEmail: propUserEmail }) {
           {/* input area: pinned, won't shrink */}
           <form
             onSubmit={sendMessage}
-            className="flex gap-2 items-center mt-2 flex-shrink-0"
+            className="mt-2 flex shrink-0 items-center gap-2"
             style={{ paddingBottom: "env(safe-area-inset-bottom, 8px)" }}
           >
             <input

@@ -162,6 +162,9 @@ export default function ChatBox({
     setIsResolved(resolved);
   }, [
     selected?.id,
+    selected?.progress,
+    selected?.status,
+    selected?.statusDisplay,
     selected?.ticket_status,
     selected?.raw?.ticket_status,
     selected?.raw?.escalated,
@@ -593,7 +596,7 @@ export default function ChatBox({
           {/* input area: pinned, won't shrink */}
           <form
             onSubmit={sendMessage}
-            className="flex gap-2 items-center mt-2 flex-shrink-0"
+            className="mt-2 flex shrink-0 items-center gap-2"
             style={{ paddingBottom: "env(safe-area-inset-bottom, 8px)" }}
           >
             <input

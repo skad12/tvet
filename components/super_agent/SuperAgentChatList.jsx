@@ -512,6 +512,7 @@ export default function SuperAgentChatList({
   const [recentlyAdded, setRecentlyAdded] = useState({});
   const seenTicketsRef = useRef(new Set());
   const didAutoSelectRef = useRef(false);
+  const selectedId = selected?.id ?? selected?.pk ?? null;
 
   const TABS = [
     { id: "all", label: "All" },
@@ -588,8 +589,14 @@ export default function SuperAgentChatList({
       setTickets(normalized);
 
       // DESKTOP-only auto-select
-      const canAutoSelect = typeof window === "undefined" ? true : window.innerWidth >= 1024;
-      if (normalized.length > 0 && !didAutoSelectRef.current && !selected && canAutoSelect) {
+      const canAutoSelect =
+        typeof window === "undefined" ? true : window.innerWidth >= 1024;
+      if (
+        normalized.length > 0 &&
+        !didAutoSelectRef.current &&
+        !selectedId &&
+        canAutoSelect
+      ) {
         setSelected?.(normalized[0]);
         didAutoSelectRef.current = true;
       }
@@ -654,8 +661,14 @@ export default function SuperAgentChatList({
         setTickets(normalized);
 
         // DESKTOP-only auto-select after load
-        const canAutoSelect2 = typeof window === "undefined" ? true : window.innerWidth >= 1024;
-        if (normalized.length > 0 && !didAutoSelectRef.current && !selected && canAutoSelect2) {
+        const canAutoSelect2 =
+          typeof window === "undefined" ? true : window.innerWidth >= 1024;
+        if (
+          normalized.length > 0 &&
+          !didAutoSelectRef.current &&
+          !selectedId &&
+          canAutoSelect2
+        ) {
           setSelected?.(normalized[0]);
           didAutoSelectRef.current = true;
         }
@@ -681,7 +694,7 @@ export default function SuperAgentChatList({
       mounted = false;
       ac.abort();
     };
-  }, [ticketsProp, token]);
+  }, [ticketsProp, token, selectedId, setSelected]);
 
   const owned = useMemo(
     () => (Array.isArray(tickets) ? tickets : []),

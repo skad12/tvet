@@ -1296,7 +1296,7 @@ export default function SuperAgentChatBox({
             )}
           </div>
 
-          <form onSubmit={sendMessage} className="flex gap-2 items-center mt-2 flex-shrink-0" style={{ paddingBottom: "env(safe-area-inset-bottom, 8px)" }}>
+          <form onSubmit={sendMessage} className="mt-2 flex shrink-0 items-center gap-2" style={{ paddingBottom: "env(safe-area-inset-bottom, 8px)" }}>
             <input
               className="flex-1 border border-slate-200 px-2 sm:px-3 py-1.5 sm:py-2 rounded text-sm active:shadow-sm"
               placeholder="Type a message..."

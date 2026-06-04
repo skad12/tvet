@@ -100,14 +100,14 @@ export default function Topbar({ onSidebarOpen }) {
       initial={{ opacity: 0, y: -8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35 }}
-      className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-slate-200"
+      className="sticky top-0 z-40 mb-6 rounded-3xl border border-white/70 bg-white/85 shadow-xl shadow-slate-950/5 backdrop-blur"
     >
-      <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3">
         {/* Mobile menu button */}
         <div className="md:hidden flex items-center">
           <button
             onClick={onSidebarOpen}
-            className="p-2 -ml-2 rounded-md text-slate-700 hover:bg-slate-100"
+            className="-ml-2 rounded-2xl p-2 text-slate-700 transition hover:bg-slate-100"
             aria-label="Toggle menu"
           >
             <svg
@@ -128,19 +128,19 @@ export default function Topbar({ onSidebarOpen }) {
 
         {/* left stats */}
         <div className="hidden md:flex items-center gap-4">
-          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-50 text-blue-700 text-sm">
+          <div className="flex items-center gap-2 rounded-2xl border border-blue-100 bg-blue-50 px-3 py-2 text-sm text-blue-700">
             <FiUserCheck className="w-4 h-4" aria-hidden />
             <span>Active</span>
             <span className="font-bold ml-2">{active}</span>
           </div>
 
-          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-50 text-emerald-700 text-sm">
+          <div className="flex items-center gap-2 rounded-2xl border border-emerald-100 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
             <AiOutlineRobot className="w-4 h-4" aria-hidden />
             <span>Handled by AI</span>
             <span className="font-bold ml-2">{aiHandling}</span>
           </div>
 
-          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-50 text-slate-700 text-sm">
+          <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
             <FiCheckCircle className="w-4 h-4" aria-hidden />
             <span>Total Resolved</span>
             <span className="font-bold ml-2">{resolvedToday}</span>
@@ -151,7 +151,7 @@ export default function Topbar({ onSidebarOpen }) {
         <div className="flex items-center gap-3">
           <input
             placeholder="Search..."
-            className="hidden sm:inline-block w-64 border border-slate-200 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
+            className="hidden w-64 rounded-full border border-slate-200 bg-white/80 px-4 py-2 text-sm shadow-inner focus:outline-none focus:ring-2 focus:ring-blue-100 sm:inline-block"
           />
 
           {/* Notification bell */}
@@ -159,7 +159,7 @@ export default function Topbar({ onSidebarOpen }) {
             type="button"
             aria-label="Notifications"
             title="Notifications"
-            className="p-2 rounded-full text-slate-600 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-100"
+            className="rounded-full p-2 text-slate-600 transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-100"
           >
             <FiBell className="w-5 h-5" />
           </button>
@@ -169,7 +169,7 @@ export default function Topbar({ onSidebarOpen }) {
             type="button"
             aria-label="Settings"
             title="Settings"
-            className="p-2 rounded-full hover:bg-slate-100 text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-100"
+            className="rounded-full p-2 text-slate-700 transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-100"
           >
             <FiSettings className="w-5 h-5" />
           </button>

@@ -96,7 +96,7 @@ export default function AgentTopbar({ userEmail }) {
 
   return (
     <motion.div
-      className="sticky top-0 z-40 bg-white/95 backdrop-blur-sm border-b border-slate-200 py-3 sm:py-4 mb-4 sm:mb-6 lg:mb-8 px-4"
+      className="sticky top-0 z-40 mb-4 rounded-3xl border border-white/70 bg-white/85 px-5 py-4 shadow-xl shadow-slate-950/5 backdrop-blur sm:mb-6 lg:mb-8"
       initial={{ opacity: 0, y: -6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
@@ -115,7 +115,7 @@ export default function AgentTopbar({ userEmail }) {
             </span>
 
             <span
-              className={`px-2 py-0.5 rounded-full border text-[10px] sm:text-xs font-medium capitalize ${statusClass}`}
+              className={`rounded-full border px-2 py-0.5 text-[10px] font-medium capitalize sm:text-xs ${statusClass}`}
             >
               {agentStatus}
             </span>
@@ -126,7 +126,7 @@ export default function AgentTopbar({ userEmail }) {
           <button
             onClick={handleSignOut}
             disabled={signingOut}
-            className="px-3 sm:px-4 py-1.5 sm:py-2 border border-slate-300 rounded text-xs sm:text-sm w-full sm:w-auto disabled:opacity-60"
+            className="w-full rounded-full border border-slate-300 bg-white/80 px-4 py-2 text-xs transition hover:bg-slate-50 disabled:opacity-60 sm:w-auto sm:text-sm"
           >
             {signingOut ? "Logging out…" : "Logout"}
           </button>

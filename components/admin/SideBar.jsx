@@ -64,13 +64,13 @@ export default function Sidebar({ onClose }) {
     <aside
       role="navigation"
       aria-label="Admin sidebar"
-      className={` left-0 top-0 min-h-screen bg-white text-slate-800 flex flex-col justify-between transition-[width] duration-300 shadow-lg z-50 overflow-hidden ${
+      className={`left-0 top-0 z-50 flex min-h-screen flex-col justify-between overflow-hidden border-r border-white/60 bg-slate-950 text-white shadow-2xl shadow-slate-950/20 transition-[width] duration-300 ${
         collapsed ? "w-20" : "w-64"
       }`}
     >
       {/* Top: Logo + Toggle */}
       <div>
-        <div className="flex items-center justify-between pt-3 pb-1.5 px-3 border-b border-slate-200">
+        <div className="flex items-center justify-between border-b border-white/10 px-3 pb-3 pt-4">
           <div className="flex items-center gap-3">
             <Image
               src={logo}
@@ -83,9 +83,10 @@ export default function Sidebar({ onClose }) {
 
             {!collapsed && (
               <div>
-                <h2 className="text-lg font-semibold text-slate-800 tracking-tight">
+                <h2 className="text-lg font-semibold tracking-tight text-white">
                   TVET Support
                 </h2>
+                <p className="text-xs text-slate-400">Admin workspace</p>
               </div>
             )}
           </div>
@@ -94,7 +95,7 @@ export default function Sidebar({ onClose }) {
             onClick={() => setCollapsed((s) => !s)}
             aria-expanded={!collapsed}
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            className="pt-5 pb-1.5 px-2 rounded"
+            className="rounded-xl p-2 text-slate-300 transition hover:bg-white/10 hover:text-white"
             title={collapsed ? "Expand" : "Collapse"}
           >
             {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
@@ -102,21 +103,21 @@ export default function Sidebar({ onClose }) {
         </div>
 
         {/* Navigation */}
-        <nav className="mt-4 px-1" aria-label="Main navigation">
-          <ul className="space-y-1">
+        <nav className="mt-5 px-2" aria-label="Main navigation">
+          <ul className="space-y-1.5">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive =
                 pathname === item.href || pathname?.startsWith(item.href + "/");
 
               const linkBase =
-                "flex items-center gap-3 rounded-md transition-colors duration-200";
+                "flex items-center gap-3 rounded-2xl transition-colors duration-200";
               const collapsedLayout = collapsed
                 ? "justify-center px-2 py-3"
                 : "px-3 py-2";
               const activeClasses = isActive
-                ? "bg-blue-700 text-white"
-                : "text-slate-700 hover:bg-slate-100";
+                ? "bg-blue-600 text-white shadow-lg shadow-blue-950/30"
+                : "text-slate-300 hover:bg-white/10 hover:text-white";
 
               // special-case Logout: render a button that calls signOut
               if (item.isLogout) {
@@ -160,13 +161,13 @@ export default function Sidebar({ onClose }) {
       </div>
 
       {/* Footer */}
-      <div className="border-t border-slate-200">
+      <div className="border-t border-white/10">
         {!collapsed ? (
-          <div className="p-4 text-xs text-slate-600">
+          <div className="p-4 text-xs text-slate-400">
             © {new Date().getFullYear()} TVET Support
           </div>
         ) : (
-          <div className="p-2 flex items-center justify-center text-xs text-slate-600">
+          <div className="flex items-center justify-center p-2 text-xs text-slate-400">
             ©{new Date().getFullYear()}
           </div>
         )}

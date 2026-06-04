@@ -146,16 +146,31 @@ export default function FAQ() {
   }, [faqData, categories]);
 
   return (
-    <section className="bg-slate-50 py-16">
-      <div className="max-w-4xl mx-auto px-4 text-center">
+    <section className="relative overflow-hidden rounded-4xl border border-slate-200 bg-white p-4 shadow-xl shadow-slate-950/5 md:p-6">
+      <div className="pointer-events-none absolute -left-16 -top-16 h-40 w-40 rounded-full bg-blue-100/70 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-20 -right-16 h-48 w-48 rounded-full bg-cyan-100/70 blur-3xl" />
+
+      <div className="relative mx-auto max-w-5xl text-center">
+        <div className="mb-6">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-blue-700">
+            Self-service help
+          </p>
+          <h2 className="mt-2 text-3xl font-bold tracking-tight text-slate-950 md:text-4xl">
+            Frequently Asked Questions
+          </h2>
+          <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-slate-600">
+            Find quick answers by category before opening a support ticket.
+          </p>
+        </div>
+
         {/* scroll container: header + tabs sticky */}
-        <div className="h-[520px] md:h-[420px] overflow-auto">
+        <div className="h-[560px] overflow-hidden rounded-3xl border border-slate-200 bg-slate-50/80 text-left shadow-inner md:h-[460px]">
           {/* Sticky header */}
-          <div className="sticky top-0 z-30 bg-slate-50 border-b border-slate-200">
+          <div className="sticky top-0 z-30 border-b border-slate-200 bg-white/90 backdrop-blur">
             <div className="flex items-center justify-between p-4">
-              <h2 className="text-2xl font-bold text-slate-800">
+              <h3 className="text-lg font-semibold text-slate-900">
                 Frequently Asked Questions
-              </h2>
+              </h3>
               {/* <div className="text-sm text-slate-500">
                 {loading
                   ? "…"
@@ -199,12 +214,18 @@ export default function FAQ() {
                         }}
                         className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition ${
                           active
-                            ? "bg-slate-900 text-white shadow"
-                            : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50"
+                            ? "bg-blue-600 text-white shadow shadow-blue-600/20"
+                            : "bg-white border border-slate-200 text-slate-700 hover:border-blue-200 hover:bg-blue-50"
                         }`}
                       >
                         <span>{cat}</span>
-                        <span className="inline-flex items-center justify-center px-2 py-0.5 text-xs rounded-full bg-slate-100 text-slate-700">
+                        <span
+                          className={`inline-flex items-center justify-center rounded-full px-2 py-0.5 text-xs ${
+                            active
+                              ? "bg-white/20 text-white"
+                              : "bg-slate-100 text-slate-700"
+                          }`}
+                        >
                           {counts[cat] ?? 0}
                         </span>
                       </button>
@@ -216,17 +237,21 @@ export default function FAQ() {
           </div>
 
           {/* Content area */}
-          <div className="p-4 text-left">
+          <div className="h-[calc(100%-116px)] overflow-auto p-4 text-left">
             {loading ? (
-              <div className="py-8 text-sm text-slate-500">Loading FAQs…</div>
+              <div className="rounded-2xl border border-slate-200 bg-white p-8 text-sm text-slate-500">
+                Loading FAQs…
+              </div>
             ) : error ? (
-              <div className="p-4 text-sm text-red-600">{error}</div>
+              <div className="rounded-2xl border border-red-100 bg-red-50 p-4 text-sm text-red-600">
+                {error}
+              </div>
             ) : categories.length === 0 ? (
-              <div className="py-8 text-sm text-slate-500">
+              <div className="rounded-2xl border border-slate-200 bg-white p-8 text-sm text-slate-500">
                 No FAQs available.
               </div>
             ) : (faqData?.[activeCategory] || []).length === 0 ? (
-              <div className="py-8 text-sm text-slate-500">
+              <div className="rounded-2xl border border-slate-200 bg-white p-8 text-sm text-slate-500">
                 No FAQs found for this category.
               </div>
             ) : (
@@ -234,7 +259,7 @@ export default function FAQ() {
                 {(faqData?.[activeCategory] || []).map((item, idx) => (
                   <li
                     key={`${item.q ?? "q"}-${idx}`}
-                    className="bg-white rounded-lg p-4 border border-slate-200 shadow-sm"
+                    className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-blue-200 hover:shadow-md"
                   >
                     <div className="flex items-start justify-between">
                       <div className="min-w-0 text-left">
@@ -246,17 +271,17 @@ export default function FAQ() {
                           aria-expanded={openIndex === idx}
                         >
                           <div className="flex items-center justify-between">
-                            <div className="font-medium text-slate-800 truncate">
+                            <div className="font-semibold text-slate-900">
                               {item.q || "Untitled question"}
                             </div>
-                            <div className="text-xl text-slate-500 ml-4">
+                            <div className="ml-4 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xl text-slate-600">
                               {openIndex === idx ? "−" : "+"}
                             </div>
                           </div>
                         </button>
 
                         {openIndex === idx && (
-                          <div className="mt-3 text-sm text-slate-600">
+                          <div className="mt-3 border-t border-slate-100 pt-3 text-sm leading-relaxed text-slate-600">
                             {item.a || "No answer provided."}
                           </div>
                         )}

@@ -127,7 +127,7 @@ export default function AgentCard({
             className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6"
           >
             <div className="flex items-start gap-4">
-              <div className="flex-shrink-0 w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-red-100">
                 <FiTrash2 className="w-6 h-6 text-red-600" />
               </div>
               <div className="flex-1">

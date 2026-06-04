@@ -1,5 +1,17 @@
 @import "tailwindcss";
 
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .hero-montage {
   isolation: isolate;
 }
@@ -43,8 +55,8 @@
 
 @keyframes hero-montage-cut {
   0% {
-    opacity: 0;
-    transform: scale(1.05);
+    opacity: 1;
+    transform: scale(1.035);
   }
 
   2%,
@@ -61,19 +73,12 @@
 
 @keyframes hero-content-cycle {
   0% {
-    opacity: 0;
-    pointer-events: none;
-    transform: translateY(18px);
-  }
-
-  3%,
-  21% {
     opacity: 1;
     pointer-events: auto;
     transform: translateY(0);
   }
 
-  25%,
+  22%,
   100% {
     opacity: 0;
     pointer-events: none;

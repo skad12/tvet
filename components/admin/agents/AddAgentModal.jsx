@@ -14,6 +14,12 @@ const AddAgentSchema = z
     name: z.string().min(1, "Full name is required"),
     username: z.string().optional(),
     email: z.string().email("Invalid email address"),
+    phone: z
+      .string()
+      .optional()
+      .refine((value) => !value || /^[0-9+\-\s()]{6,25}$/.test(value), {
+        message: "Enter a valid phone number",
+      }),
     password: z.string().min(8, "Password must be at least 8 characters"),
     confirmPassword: z.string().min(1, "Confirm Password is required"),
     accountType: z.enum(["agent", "super_agent"]).default("agent"),
@@ -52,6 +58,7 @@ export default function AddAgentModal({ isOpen, onClose, onSuccess }) {
     defaultValues: {
       accountType: "agent",
       category: "",
+      phone: "",
     },
   });
 
@@ -68,7 +75,7 @@ export default function AddAgentModal({ isOpen, onClose, onSuccess }) {
         email: values.email,
         password: values.password,
         account_type: values.accountType,
-        phone_number: "", // Optional
+        phone_number: values.phone?.trim() || "",
         // category_id: values.category || null,
       };
 
@@ -106,7 +113,7 @@ export default function AddAgentModal({ isOpen, onClose, onSuccess }) {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="relative bg-white rounded-lg shadow-xl w-full max-w-md overflow-hidden"
+            className="relative max-h-[90vh] w-full max-w-md overflow-hidden rounded-lg bg-white shadow-xl"
           >
             <div className="p-4 border-b border-slate-100 flex justify-between items-center">
               <h3 className="font-semibold text-lg">Add New Agent</h3>
@@ -118,7 +125,7 @@ export default function AddAgentModal({ isOpen, onClose, onSuccess }) {
               </button>
             </div>
 
-            <div className="p-6">
+            <div className="max-h-[calc(90vh-65px)] overflow-y-auto p-6">
               {error && (
                 <div className="mb-4 p-3 bg-red-50 text-red-600 text-sm rounded border border-red-100">
                   {error}
@@ -155,6 +162,24 @@ export default function AddAgentModal({ isOpen, onClose, onSuccess }) {
                   {errors.email && (
                     <p className="text-xs text-red-500 mt-1">
                       {errors.email.message}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Phone Number
+                  </label>
+                  <input
+                    {...register("phone")}
+                    type="tel"
+                    autoComplete="tel"
+                    className="w-full px-3 py-2 border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="+234 800 000 0000"
+                  />
+                  {errors.phone && (
+                    <p className="text-xs text-red-500 mt-1">
+                      {errors.phone.message}
                     </p>
                   )}
                 </div>

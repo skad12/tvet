@@ -8,31 +8,35 @@ export default function MetricCard({
   Icon = null, // pass an icon component e.g. FiUsers
 }) {
   const colorMap = {
-    blue: "bg-blue-800",
-    green: "bg-emerald-800",
-    cyan: "bg-cyan-400",
-    yellow: "bg-yellow-500",
-    slate: "bg-slate-600",
-    white: "bg-white",
+    blue: "bg-blue-50 text-blue-700 border-blue-100",
+    green: "bg-emerald-50 text-emerald-700 border-emerald-100",
+    cyan: "bg-cyan-50 text-cyan-700 border-cyan-100",
+    yellow: "bg-yellow-50 text-yellow-700 border-yellow-100",
+    slate: "bg-slate-100 text-slate-700 border-slate-200",
+    white: "bg-white text-slate-700 border-slate-200",
   };
 
   const bgColor = colorMap[badgeColor] || colorMap.blue;
 
   return (
-    <div className="bg-white rounded-lg p-5 border border-slate-200 shadow-sm">
+    <div className="group overflow-hidden rounded-3xl border border-white/70 bg-white/90 p-5 shadow-xl shadow-slate-950/5 transition hover:-translate-y-1 hover:shadow-blue-950/10">
       <div className="flex justify-between items-start">
         <div className="flex items-center gap-3">
-          <div className="text-sm text-slate-500">{title}</div>
-          {Icon && <Icon className="w-5 h-5 text-slate-500" aria-hidden />}
+          {Icon && (
+            <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-lg shadow-blue-600/20">
+              <Icon className="h-5 w-5" aria-hidden />
+            </span>
+          )}
+          <div className="text-sm font-medium text-slate-500">{title}</div>
         </div>
       </div>
 
-      <div className="mt-3 text-2xl font-bold text-slate-800">
+      <div className="mt-5 text-3xl font-bold tracking-tight text-slate-950">
         {value ?? "—"}
       </div>
 
       <div
-        className={`mt-3 inline-block text-xs ${bgColor} text-white px-2 py-1 rounded-full`}
+        className={`mt-4 inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${bgColor}`}
       >
         {badge}
       </div>
