@@ -679,8 +679,9 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { useUsersDirectory } from "@/hooks/useUsersDirectory";
 import { GoAlertFill } from "react-icons/go";
 import api from "@/lib/axios";
 import AssignAgentModal from "./AssignAgentModal";
@@ -688,9 +689,36 @@ import {
   DEFAULT_CHAT_POLL_MS,
   digestMessages,
   fetchTicketChats,
+  mergeChatMessages,
   normalizeChatEntries,
   postTicketMessage,
 } from "@/lib/chatClient";
+
+function getUserId(user) {
+  return (
+    user?.app_user_id ??
+    user?.appUserId ??
+    user?.user_id ??
+    user?.userId ??
+    user?.id ??
+    user?.uid ??
+    user?.pk ??
+    null
+  );
+}
+
+function normalizeIdentity(value) {
+  return String(value ?? "")
+    .trim()
+    .toLowerCase();
+}
+
+function isAgentAccount(user) {
+  const accountType = normalizeIdentity(
+    user?.account_type ?? user?.accountType ?? user?.role
+  );
+  return accountType === "agent" || accountType === "agents";
+}
 
 export default function SuperAgentChatBox({
   selected,
@@ -699,6 +727,8 @@ export default function SuperAgentChatBox({
 }) {
   const { token, user } = useAuth();
   const userEmail = propUserEmail ?? user?.email ?? user?.username ?? "me";
+  const { users: usersDirectory = [], loading: usersDirectoryLoading } =
+    useUsersDirectory({ enabled: true });
 
   const appUserId =
     user?.app_user_id ??
@@ -708,6 +738,55 @@ export default function SuperAgentChatBox({
     user?.uid ??
     user?.pk ??
     null;
+
+  const assignedAgent = useMemo(() => {
+    if (!selected) return null;
+
+    const assignedRaw =
+      selected?.assigned_to ??
+      selected?.assigned_to_id ??
+      selected?.agent_id ??
+      selected?.agentId ??
+      selected?.raw?.assigned_to ??
+      selected?.raw?.assigned_to_id ??
+      selected?.raw?.agent_id ??
+      selected?.raw?.agentId ??
+      null;
+
+    const assignedId =
+      typeof assignedRaw === "object" ? getUserId(assignedRaw) : assignedRaw;
+
+    if (assignedId) {
+      const byId = usersDirectory.find(
+        (candidate) =>
+          isAgentAccount(candidate) &&
+          String(getUserId(candidate)) === String(assignedId)
+      );
+      if (byId) return byId;
+    }
+
+    const assignedName = normalizeIdentity(
+      selected?.assigned_to_name ??
+        selected?.raw?.assigned_to_name ??
+        selected?.raw?.assigned_to?.name ??
+        selected?.raw?.assigned_to?.username ??
+        selected?.raw?.assignee_name
+    );
+    if (!assignedName) return null;
+
+    return (
+      usersDirectory.find((candidate) => {
+        if (!isAgentAccount(candidate)) return false;
+        return [
+          candidate?.name,
+          candidate?.username,
+          candidate?.email,
+        ].some((value) => normalizeIdentity(value) === assignedName);
+      }) ?? null
+    );
+  }, [selected, usersDirectory]);
+
+  const messageAppUserId = getUserId(assignedAgent) ?? null;
 
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -772,15 +851,17 @@ export default function SuperAgentChatBox({
         const mapped = normalizeChatEntries(data, {
           ticketId: selected.id,
         });
-        const digest = digestMessages(mapped);
-        if (digest !== digestRef.current) {
+        setMessages((prev) => {
+          const merged = mergeChatMessages(mapped, prev);
+          const digest = digestMessages(merged);
+          if (digest === digestRef.current) return prev;
           digestRef.current = digest;
-          setMessages(mapped);
           if (selected?.id) {
-            messagesCacheRef.current.set(selected.id, mapped);
+            messagesCacheRef.current.set(selected.id, merged);
           }
           requestAnimationFrame(scrollToBottom);
-        }
+          return merged;
+        });
         setError(null);
       } catch (err) {
         const isCanceled =
@@ -861,10 +942,13 @@ export default function SuperAgentChatBox({
     const text = (msgText || "").trim();
     if (!text || !selected?.id) return;
 
-    if (!appUserId) {
-      console.warn(
-        "[SuperAgentChatBox] app_user_id missing; backend may require it."
+    if (!messageAppUserId) {
+      setError(
+        usersDirectoryLoading
+          ? "Loading assigned agent details. Please try again in a moment."
+          : "Assign an agent to this ticket before sending a reply."
       );
+      return;
     }
 
     const ticket_id = selected.id;
@@ -875,7 +959,7 @@ export default function SuperAgentChatBox({
       text,
       at: new Date().toISOString(),
       role: CURRENT_ROLE,
-      from: appUserId ?? userEmail,
+      from: messageAppUserId ?? userEmail,
       status: "pending",
     };
     setMessages((prev) => {
@@ -892,7 +976,9 @@ export default function SuperAgentChatBox({
       await postTicketMessage({
         ticketId: ticket_id,
         message: text,
-        appUserId: appUserId ?? "",
+        appUserId: messageAppUserId ?? "",
+        email: assignedAgent?.email ?? "",
+        username: assignedAgent?.username,
         token,
         fromTicket:
           selected?.from_ticket ?? selected?.raw?.from_ticket ?? false,
@@ -945,6 +1031,14 @@ export default function SuperAgentChatBox({
 
   async function retryMessage(msg) {
     if (!msg || msg.status !== "failed") return;
+    if (!messageAppUserId) {
+      setError(
+        usersDirectoryLoading
+          ? "Loading assigned agent details. Please try again in a moment."
+          : "Assign an agent to this ticket before retrying."
+      );
+      return;
+    }
     setMessages((prev) => {
       const pendingMessages = prev.map((m) =>
         m.id === msg.id ? { ...m, status: "pending" } : m
@@ -961,7 +1055,9 @@ export default function SuperAgentChatBox({
       await postTicketMessage({
         ticketId: selected.id,
         message: msg.text,
-        appUserId: appUserId ?? "",
+        appUserId: messageAppUserId ?? "",
+        email: assignedAgent?.email ?? "",
+        username: assignedAgent?.username,
         token,
         fromTicket:
           selected?.from_ticket ?? selected?.raw?.from_ticket ?? false,
@@ -1255,7 +1351,7 @@ export default function SuperAgentChatBox({
                           : "bg-gray-200 text-gray-800 rounded-tl-none"
                       }`}
                     >
-                      <div className="text-sm whitespace-pre-wrap break-words">
+                      <div className="text-sm whitespace-pre-wrap wrap-break-word">
                         {m.text}
                       </div>
                       <div

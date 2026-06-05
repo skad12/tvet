@@ -8,6 +8,7 @@ import {
   DEFAULT_CHAT_POLL_MS,
   digestMessages,
   fetchTicketChats,
+  mergeChatMessages,
   normalizeChatEntries,
 } from "@/lib/chatClient";
 import { useUsersDirectory } from "@/hooks/useUsersDirectory";
@@ -76,12 +77,14 @@ export default function ChatBox({ selected, userEmail: propUserEmail }) {
         const mapped = normalizeChatEntries(data, {
           ticketId: selected.id,
         });
-        const digest = digestMessages(mapped);
-        if (digest !== digestRef.current) {
+        setMessages((prev) => {
+          const merged = mergeChatMessages(mapped, prev);
+          const digest = digestMessages(merged);
+          if (digest === digestRef.current) return prev;
           digestRef.current = digest;
-          setMessages(mapped);
           requestAnimationFrame(scrollToBottom);
-        }
+          return merged;
+        });
         setError(null);
       } catch (err) {
         const isAbort =
@@ -395,7 +398,7 @@ export default function ChatBox({ selected, userEmail: propUserEmail }) {
                           : "bg-gray-200 text-gray-800 rounded-tl-none"
                       }`}
                     >
-                      <div className="text-sm whitespace-pre-wrap break-words">
+                      <div className="text-sm whitespace-pre-wrap wrap-break-word">
                         {m.text}
                       </div>
                       <div

@@ -10,6 +10,7 @@ import {
   DEFAULT_CHAT_POLL_MS,
   digestMessages,
   fetchTicketChats,
+  mergeChatMessages,
   normalizeChatEntries,
   postTicketMessage,
 } from "@/lib/chatClient";
@@ -39,6 +40,41 @@ function normalizeStatusValue(statusVal) {
     return "pending";
   if (raw === "active" || raw === "open" || raw === "new") return "active";
   return raw;
+}
+
+function coerceUsersArray(payload) {
+  if (!payload) return [];
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload.results)) return payload.results;
+  if (Array.isArray(payload.data)) return payload.data;
+  if (Array.isArray(payload.users)) return payload.users;
+  return [];
+}
+
+function getUserId(user) {
+  return (
+    user?.app_user_id ??
+    user?.appUserId ??
+    user?.user_id ??
+    user?.userId ??
+    user?.id ??
+    user?.uid ??
+    user?.pk ??
+    null
+  );
+}
+
+function getAgentDisplayName(agent) {
+  return agent?.name ?? agent?.username ?? agent?.email ?? "Agent";
+}
+
+function isAssignableAgent(agent) {
+  const accountType = String(
+    agent?.account_type ?? agent?.accountType ?? agent?.role ?? ""
+  )
+    .trim()
+    .toLowerCase();
+  return accountType === "agent" || accountType === "agents";
 }
 
 // Format date safely; prefer server's created_at_display if given
@@ -71,6 +107,7 @@ export default function ChatModal({
     user?.uid ??
     user?.pk ??
     null;
+  const currentUserEmail = user?.email ?? user?.username ?? "";
 
   const CURRENT_ROLE = "agent";
   const [messages, setMessages] = useState([]);
@@ -83,6 +120,8 @@ export default function ChatModal({
   const [showNotification, setShowNotification] = useState(false);
   const [notificationMessage, setNotificationMessage] = useState("");
   const { users: agents = [] } = useUsersDirectory({ enabled: true });
+  const [availableAgents, setAvailableAgents] = useState([]);
+  const [loadingAvailableAgents, setLoadingAvailableAgents] = useState(false);
 
   // resolve / popup / escalate states
   const [resolving, setResolving] = useState(false);
@@ -238,6 +277,49 @@ export default function ChatModal({
   }, [showAssignMenu]);
 
   useEffect(() => {
+    if (!showAssignMenu) return;
+
+    let mounted = true;
+    const controller = new AbortController();
+
+    async function loadAvailableAgents() {
+      setLoadingAvailableAgents(true);
+      try {
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+        const res = await api.get("/get-all-users-available/", {
+          headers,
+          signal: controller.signal,
+        });
+        if (!mounted) return;
+        setAvailableAgents(
+          coerceUsersArray(res?.data).filter(isAssignableAgent)
+        );
+      } catch (err) {
+        const isCanceled =
+          err?.name === "AbortError" ||
+          err?.name === "CanceledError" ||
+          err?.code === "ERR_CANCELED" ||
+          err?.message === "canceled";
+        if (isCanceled) return;
+        console.error("Failed to load available agents:", err);
+        if (mounted) {
+          setAvailableAgents([]);
+          setError("Failed to load available agents");
+        }
+      } finally {
+        if (mounted) setLoadingAvailableAgents(false);
+      }
+    }
+
+    loadAvailableAgents();
+
+    return () => {
+      mounted = false;
+      controller.abort();
+    };
+  }, [showAssignMenu, token]);
+
+  useEffect(() => {
     if (!open || !ticketId) {
       return () => {};
     }
@@ -257,11 +339,13 @@ export default function ChatModal({
         });
         if (!mounted) return;
         const mapped = normalizeChatEntries(data, { ticketId });
-        const digest = digestMessages(mapped);
-        if (digest !== digestRef.current) {
+        setMessages((prev) => {
+          const merged = mergeChatMessages(mapped, prev);
+          const digest = digestMessages(merged);
+          if (digest === digestRef.current) return prev;
           digestRef.current = digest;
-          setMessages(mapped);
-        }
+          return merged;
+        });
         setError(null);
       } catch (err) {
         const isCanceled =
@@ -314,6 +398,8 @@ export default function ChatModal({
         ticketId,
         message: body,
         appUserId: currentUserId ?? "",
+        email: currentUserEmail,
+        username: user?.username,
         token,
         fromTicket: ticket?.from_ticket ?? ticket?.raw?.from_ticket ?? false,
       });
@@ -554,33 +640,38 @@ export default function ChatModal({
                           <div className="text-xs font-semibold text-slate-700 px-2 py-1 mb-1">
                             Select Agent
                           </div>
-                          {agents.length === 0 ? (
+                          {loadingAvailableAgents ? (
+                            <div className="text-xs text-slate-500 px-2 py-4 text-center">
+                              Loading available agents...
+                            </div>
+                          ) : availableAgents.length === 0 ? (
                             <div className="text-xs text-slate-500 px-2 py-4 text-center">
                               No agents available
                             </div>
                           ) : (
-                            agents
-                              .filter((a) => a.account_type === "agent")
-                              .map((agent) => (
+                            availableAgents.map((agent) => {
+                              const agentId = getUserId(agent);
+                              const agentName = getAgentDisplayName(agent);
+                              return (
                                 <button
-                                  key={agent.id}
+                                  key={agentId ?? agent.email ?? agentName}
                                   onClick={async () => {
+                                    if (!agentId) {
+                                      setError("Selected agent has no user id");
+                                      return;
+                                    }
                                     setAssigning(true);
                                     try {
                                       await api.post(
                                         "/assign-ticket/to-user/",
                                         {
                                           ticket_id: ticketId,
-                                          assigned_to_id: agent.id,
+                                          assigned_to_id: agentId,
                                         }
                                       );
                                       setShowAssignMenu(false);
                                       setNotificationMessage(
-                                        `Ticket assigned to ${
-                                          agent.name ||
-                                          agent.username ||
-                                          agent.email
-                                        }`
+                                        `Ticket assigned to ${agentName}`
                                       );
                                       setShowNotification(true);
                                       setTimeout(() => {
@@ -605,15 +696,14 @@ export default function ChatModal({
                                   className="w-full text-left px-3 py-2 text-sm hover:bg-slate-50 rounded transition-colors"
                                 >
                                   <div className="font-medium text-slate-800">
-                                    {agent.name ||
-                                      agent.username ||
-                                      agent.email}
+                                    {agentName}
                                   </div>
                                   <div className="text-xs text-slate-500">
                                     {agent.email}
                                   </div>
                                 </button>
-                              ))
+                              );
+                            })
                           )}
                         </div>
                       </div>
@@ -729,7 +819,7 @@ export default function ChatModal({
                             : "bg-gray-200 text-gray-800 rounded-tl-none"
                         }`}
                       >
-                        <div className="text-sm whitespace-pre-wrap break-words">
+                        <div className="text-sm whitespace-pre-wrap wrap-break-word">
                           {m.text}
                         </div>
                         <div

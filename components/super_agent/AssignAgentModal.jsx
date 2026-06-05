@@ -73,7 +73,7 @@ export default function AssignAgentModal({
       );
 
       const name = agent?.name ?? agent?.username ?? agent?.email ?? "Agent";
-      setNotice(`Assigned to ${username} successfully.`);
+      setNotice(`Assigned to ${name} successfully.`);
 
       // Notify parent
       try {

@@ -9,6 +9,7 @@ import {
   DEFAULT_CHAT_POLL_MS,
   digestMessages,
   fetchTicketChats,
+  mergeChatMessages,
   normalizeChatEntries,
   postTicketMessage,
 } from "@/lib/chatClient";
@@ -78,14 +79,14 @@ export default function ChatBox({
         const mapped = normalizeChatEntries(data, {
           ticketId: selected.id,
         });
-        const digest = digestMessages(mapped);
-        if (digest !== digestRef.current) {
+        setMessages((prev) => {
+          const merged = mergeChatMessages(mapped, prev);
+          const digest = digestMessages(merged);
+          if (digest === digestRef.current) return prev;
           digestRef.current = digest;
-          setMessages(mapped);
-          // Cache messages for this ticket if needed (keeps existing behavior)
-          // messagesCacheRef.current.set(selected.id, mapped); // omitted for brevity if not used
           requestAnimationFrame(scrollToBottom);
-        }
+          return merged;
+        });
         setError(null);
       } catch (err) {
         const isCanceled =
@@ -202,6 +203,8 @@ export default function ChatBox({
         ticketId: ticket_id,
         message: text,
         appUserId: appUserId ?? "",
+        email: userEmail,
+        username: user?.username,
         token,
         fromTicket:
           selected?.from_ticket ?? selected?.raw?.from_ticket ?? false,
@@ -253,6 +256,8 @@ export default function ChatBox({
         ticketId: selected.id,
         message: msg.text,
         appUserId: appUserId ?? "",
+        email: userEmail,
+        username: user?.username,
         token,
         fromTicket:
           selected?.from_ticket ?? selected?.raw?.from_ticket ?? false,
@@ -327,56 +332,58 @@ export default function ChatBox({
                 <span className="text-xs text-green-600">{selected.id}</span>
               </span>
               <div className="flex items-center gap-2">
-                <button
-                  onClick={async (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    if (!selected?.id || escalating) return;
+                {!isResolved && (
+                  <button
+                    onClick={async (e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      if (!selected?.id || escalating) return;
 
-                    setEscalateError(null);
-                    setEscalating(true);
-
-                    try {
-                      await api.post("/tickets/escalate-ticket/", {
-                        ticket_id: selected.id,
-                        agent_id: appUserId ?? null,
-                      });
-
-                      setEscalated(true);
-                      setEscalationNotice("Ticket escalated successfully.");
-
-                      requestAnimationFrame(() => {
-                        setShowPopup(true);
-                        setTimeout(() => setShowPopup(false), 5000);
-                      });
+                      setEscalateError(null);
+                      setEscalating(true);
 
                       try {
-                        if (typeof onEscalated === "function")
-                          onEscalated(selected.id);
-                      } catch (e) {}
-                    } catch (e) {
-                      setEscalateError(
-                        e?.message ?? "Failed to escalate ticket"
-                      );
-                      setEscalated(false);
-                    } finally {
-                      setEscalating(false);
-                    }
-                  }}
-                  disabled={escalating || escalated || isResolved}
-                  className={`text-xs px-2 py-1 rounded border transition-colors ${
-                    escalated
-                      ? "border-purple-300 bg-purple-50 text-purple-700 cursor-not-allowed"
-                      : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
-                  } ${escalating ? "opacity-50 cursor-not-allowed" : ""}`}
-                  aria-label="Escalate ticket"
-                >
-                  {escalating
-                    ? "Escalating…"
-                    : escalated
-                    ? "Escalated"
-                    : "Escalate"}
-                </button>
+                        await api.post("/tickets/escalate-ticket/", {
+                          ticket_id: selected.id,
+                          agent_id: appUserId ?? null,
+                        });
+
+                        setEscalated(true);
+                        setEscalationNotice("Ticket escalated successfully.");
+
+                        requestAnimationFrame(() => {
+                          setShowPopup(true);
+                          setTimeout(() => setShowPopup(false), 5000);
+                        });
+
+                        try {
+                          if (typeof onEscalated === "function")
+                            onEscalated(selected.id);
+                        } catch (e) {}
+                      } catch (e) {
+                        setEscalateError(
+                          e?.message ?? "Failed to escalate ticket"
+                        );
+                        setEscalated(false);
+                      } finally {
+                        setEscalating(false);
+                      }
+                    }}
+                    disabled={escalating || escalated}
+                    className={`text-xs px-2 py-1 rounded border transition-colors ${
+                      escalated
+                        ? "border-purple-300 bg-purple-50 text-purple-700 cursor-not-allowed"
+                        : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+                    } ${escalating ? "opacity-50 cursor-not-allowed" : ""}`}
+                    aria-label="Escalate ticket"
+                  >
+                    {escalating
+                      ? "Escalating…"
+                      : escalated
+                      ? "Escalated"
+                      : "Escalate"}
+                  </button>
+                )}
 
                 {!isResolved && (
                   <button
@@ -552,7 +559,7 @@ export default function ChatBox({
                           : "bg-gray-200 text-gray-800 rounded-tl-none"
                       }`}
                     >
-                      <div className="text-sm whitespace-pre-wrap break-words">
+                      <div className="text-sm whitespace-pre-wrap wrap-break-word">
                         {m.text}
                       </div>
                       <div
