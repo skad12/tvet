@@ -1,57 +1,53 @@
 "use client";
 
-import Image from "next/image";
 import React, { useState } from "react";
 
 const CHATBOT_URL = "https://tvet-support.previewapp.cc/chat-widget/x/";
-const LOGO_URL =
-  "https://stalwartng.com/wp-content/uploads/2025/09/cropped-cropped-Stalwart-Horizontal-768x186.png";
 
 export default function FloatingWidget() {
   const [open, setOpen] = useState(false);
-
-  const startChat = () => {
-    window.open(CHATBOT_URL, "_blank", "noopener,noreferrer");
-  };
 
   return (
     <>
       <button
         type="button"
-        onClick={() => setOpen((current) => !current)}
-        id="my-chatbot-btn"
+        onClick={() => setOpen(true)}
+        id="cb-btn"
         aria-label="Open support chat"
-        className="fixed bottom-5 right-5 z-9999 flex h-[55px] w-[55px] cursor-pointer items-center justify-center rounded-full bg-[#007bff] text-[28px] text-white shadow-[0_4px_10px_rgba(0,0,0,0.3)] transition-transform duration-200 hover:scale-105"
+        className="fixed bottom-5 right-5 z-999999 flex h-[60px] w-[60px] cursor-pointer items-center justify-center rounded-full bg-[#007bff] text-[30px] text-white shadow-[0_4px_14px_rgba(0,0,0,0.25)] transition-transform duration-200 hover:scale-105"
       >
         💬
       </button>
 
       <div
-        id="my-chatbot-popup"
-        className={`fixed bottom-[85px] right-5 z-9999 w-[350px] max-w-[calc(100vw-40px)] rounded-xl bg-white p-5 text-center font-sans shadow-[0_8px_20px_rgba(0,0,0,0.3)] ${
-          open ? "animate-[fadeIn_0.3s_ease] block" : "hidden"
+        id="cb-popup"
+        className={`fixed bottom-[90px] right-5 z-999999 h-[650px] w-[380px] flex-col overflow-hidden rounded-2xl bg-white shadow-[0_8px_30px_rgba(0,0,0,0.25)] max-md:right-[15px] max-md:h-[80vh] max-md:w-[calc(100vw-30px)] max-[480px]:bottom-0 max-[480px]:right-0 max-[480px]:h-screen max-[480px]:w-screen max-[480px]:rounded-none ${
+          open ? "flex" : "hidden"
         }`}
       >
-        <Image
-          id="chat-logo"
-          src={LOGO_URL}
-          alt="Stalwart logo"
-          width={248}
-          height={60}
-          className="mx-auto mb-2.5 h-[60px] w-auto object-contain"
-        />
-        <div id="chat-welcome" className="mb-5 text-[15px] text-[#333]">
-          Welcome! We&apos;re here to assist you. Click on the button below to
-          initiate a chat.
-        </div>
-        <button
-          type="button"
-          id="chat-init-btn"
-          onClick={startChat}
-          className="mt-[15px] cursor-pointer rounded-lg border-0 bg-[#007bff] px-5 py-3 text-base font-bold text-white shadow-[0_4px_10px_rgba(0,0,0,0.2)] transition hover:bg-[#0056b3]"
+        <div
+          id="cb-head"
+          className="flex h-[55px] shrink-0 items-center justify-between bg-[#007bff] px-4 font-sans text-base font-bold text-white"
         >
-          Initiate Chat
-        </button>
+          <span>Live Support</span>
+          <button
+            type="button"
+            id="cb-close"
+            onClick={() => setOpen(false)}
+            aria-label="Close support chat"
+            className="cursor-pointer rounded-full px-1 text-[28px] leading-none transition hover:bg-white/15"
+          >
+            &times;
+          </button>
+        </div>
+
+        <iframe
+          src={CHATBOT_URL}
+          id="cb-frame"
+          title="Live support chat"
+          allow="clipboard-write; microphone"
+          className="h-full w-full border-0"
+        />
       </div>
     </>
   );
