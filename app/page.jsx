@@ -72,8 +72,8 @@ const heroSlides = [
 
 const supportStats = [
   { value: "24/7", label: "ticket intake" },
-  { value: "4", label: "support categories" },
-  { value: "1", label: "central help desk" },
+  { value: "3-step", label: "support flow" },
+  { value: "Email", label: "status updates" },
 ];
 
 const supportHighlights = [
@@ -123,7 +123,7 @@ export default function Home() {
 
   return (
     <>
-      <NavBar />
+      <NavBar variant="transparent" />
       <motion.div
         className="min-h-screen flex flex-col"
         initial="hidden"

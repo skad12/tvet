@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import Link from "next/link";
+import { Eye, EyeOff } from "lucide-react";
 import logo from "@/public/images/tvet-logo.png";
 import { useAuth } from "@/context/AuthContext"; // adjust if needed
 
@@ -22,6 +22,7 @@ export default function LoginForm({ demoCredentials = true }) {
   const ROUTES = {
     admin: "/admin/dashboard/analytics",
     agent: "/agent/dashboard", // handle plural explicitly
+    agents: "/agent/dashboard",
     super_agent: "/super_agent/dashboard",
     customer: "/customer/dashboard",
     user: "/dashboard",
@@ -224,23 +225,34 @@ export default function LoginForm({ demoCredentials = true }) {
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.45 }}
-      className="w-full max-w-md mx-auto"
+      className="mx-auto w-full max-w-md"
     >
-      <div className="bg-white px-6 py-12 rounded-lg shadow-md  ">
-        <div className="grid justify-center">
+      <div className="rounded-4xl border border-slate-200 bg-white/95 px-6 py-10 shadow-2xl shadow-blue-950/10 backdrop-blur md:px-8">
+        <div className="mb-8 grid justify-center text-center">
           <Image
             src={logo}
-            alt="Customer dashboard hero"
-            width={40}
-            height={40}
-            className="rounded object-cover"
+            alt="TVET Support"
+            width={56}
+            height={56}
+            className="mx-auto rounded object-cover"
             priority
           />
-          <h3 className="text-2xl font-semibold mb-4 text-slate-800">Login</h3>
+          <p className="mt-4 text-xs font-semibold uppercase tracking-[0.22em] text-blue-700">
+            Welcome back
+          </p>
+          <h3 className="mt-2 text-3xl font-bold tracking-tight text-slate-950">
+            Login
+          </h3>
+          <p className="mt-2 text-sm text-slate-500">
+            Access your TVET support dashboard.
+          </p>
         </div>
 
         {/* username */}
-        <label htmlFor="username" className="block text-sm text-slate-600 mb-1">
+        <label
+          htmlFor="username"
+          className="mb-2 block text-sm font-medium text-slate-700"
+        >
           Username
         </label>
         <input
@@ -251,14 +263,17 @@ export default function LoginForm({ demoCredentials = true }) {
           onChange={(e) => setUsername(e.target.value)}
           placeholder="admin"
           required
-          className="w-full px-3 py-2 rounded-md mb-3 transition-shadow duration-150 outline-none focus:ring-2 focus:ring-blue-400 shadow-sm"
+          className="mb-4 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none transition focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-100"
         />
 
         {/* password with toggle */}
-        <label htmlFor="password" className="block text-sm text-slate-600 mb-1">
+        <label
+          htmlFor="password"
+          className="mb-2 block text-sm font-medium text-slate-700"
+        >
           Password
         </label>
-        <div className="relative mb-3">
+        <div className="relative mb-4">
           <input
             id="password"
             name="password"
@@ -267,16 +282,20 @@ export default function LoginForm({ demoCredentials = true }) {
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Password"
             required
-            className="w-full px-3 py-2 rounded-md pr-20 transition-shadow duration-150 outline-none focus:ring-2 focus:ring-blue-400 shadow-sm"
+            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 pr-12 text-sm outline-none transition focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-100"
           />
 
           <button
             type="button"
             onClick={() => setShow((s) => !s)}
-            className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md px-3 py-1 text-sm text-slate-600"
+            className="absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
             aria-label={show ? "Hide password" : "Show password"}
           >
-            {show ? "Hide" : "Show"}
+            {show ? (
+              <EyeOff className="h-5 w-5" aria-hidden />
+            ) : (
+              <Eye className="h-5 w-5" aria-hidden />
+            )}
           </button>
         </div>
 
@@ -284,7 +303,7 @@ export default function LoginForm({ demoCredentials = true }) {
           type="submit"
           disabled={loadingLocal}
           whileTap={{ scale: 0.98 }}
-          className="w-full bg-blue-600 text-white py-2 mt-4 rounded-md hover:opacity-95 disabled:opacity-60"
+          className="mt-4 w-full rounded-2xl bg-blue-600 py-3 font-semibold text-white shadow-lg shadow-blue-600/20 transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {loadingLocal ? "Signing in..." : "Log in"}
         </motion.button>
@@ -294,7 +313,7 @@ export default function LoginForm({ demoCredentials = true }) {
             initial={{ opacity: 0, y: -6 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.25 }}
-            className="mt-3 text-red-700 text-sm"
+            className="mt-4 rounded-2xl border border-red-100 bg-red-50 p-3 text-sm text-red-700"
           >
             {error}
           </motion.div>

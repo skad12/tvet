@@ -248,7 +248,7 @@ export default function TicketForm() {
           onChange={(e) => setEmail(e.target.value)}
           type="email"
           placeholder="Email Address"
-          className="w-full border rounded px-3 py-2 border-slate-500"
+          className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none transition focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-100"
           required
         />
 
