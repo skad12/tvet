@@ -786,8 +786,6 @@ export default function SuperAgentChatBox({
     );
   }, [selected, usersDirectory]);
 
-  const messageAppUserId = getUserId(assignedAgent) ?? null;
-
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
@@ -803,12 +801,14 @@ export default function SuperAgentChatBox({
   // --- New states for assign-agent modal ---
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [assignNotice, setAssignNotice] = useState(null);
+  const [localAssignedAgent, setLocalAssignedAgent] = useState(null);
   const [localAssignedName, setLocalAssignedName] = useState(
     selected?.assigned_to_name ?? null
   );
 
   useEffect(() => {
     setLocalAssignedName(selected?.assigned_to_name ?? null);
+    setLocalAssignedAgent(null);
   }, [selected?.id, selected?.assigned_to_name]);
 
   const containerRef = useRef(null);
@@ -834,6 +834,57 @@ export default function SuperAgentChatBox({
   const pollTimerRef = useRef(null);
   const controllerRef = useRef(null);
   const CURRENT_ROLE = "super_agent";
+  const activeMessageAgent = localAssignedAgent ?? assignedAgent;
+  const messageAppUserId = getUserId(activeMessageAgent) ?? null;
+
+  function getAgentName(agent) {
+    return agent?.name ?? agent?.username ?? agent?.email ?? "Agent";
+  }
+
+  function getFallbackAgents() {
+    return usersDirectory
+      .filter((candidate) => isAgentAccount(candidate) && getUserId(candidate))
+      .sort((a, b) => {
+        const aAvailable = normalizeIdentity(a?.user_status) === "available";
+        const bAvailable = normalizeIdentity(b?.user_status) === "available";
+        if (aAvailable === bAvailable) return 0;
+        return aAvailable ? -1 : 1;
+      });
+  }
+
+  async function ensureMessageAgent() {
+    if (activeMessageAgent && messageAppUserId) return activeMessageAgent;
+    if (!selected?.id) return null;
+
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    let lastAssignError = null;
+
+    for (const fallbackAgent of getFallbackAgents()) {
+      const fallbackAgentId = getUserId(fallbackAgent);
+      try {
+        await api.post(
+          "/assign-ticket/to-user/",
+          {
+            ticket_id: selected.id,
+            assigned_to_id: fallbackAgentId,
+          },
+          { headers }
+        );
+
+        setLocalAssignedAgent(fallbackAgent);
+        setLocalAssignedName(getAgentName(fallbackAgent));
+        setAssignNotice(
+          `Assigned to ${getAgentName(fallbackAgent)} successfully.`
+        );
+        return fallbackAgent;
+      } catch (err) {
+        lastAssignError = err;
+      }
+    }
+
+    if (lastAssignError) throw lastAssignError;
+    return null;
+  }
 
   const fetchChats = useCallback(
     async ({ showLoading = false } = {}) => {
@@ -942,12 +993,30 @@ export default function SuperAgentChatBox({
     const text = (msgText || "").trim();
     if (!text || !selected?.id) return;
 
-    if (!messageAppUserId) {
+    setSending(true);
+
+    let messageAgent = null;
+    try {
+      messageAgent = await ensureMessageAgent();
+    } catch (err) {
+      console.error("Failed to assign ticket before sending:", err);
+      setError(
+        err?.response?.data?.message ??
+          err?.message ??
+          "Failed to assign this ticket before sending."
+      );
+      setSending(false);
+      return;
+    }
+
+    const senderAppUserId = getUserId(messageAgent);
+    if (!senderAppUserId) {
       setError(
         usersDirectoryLoading
           ? "Loading assigned agent details. Please try again in a moment."
           : "Assign an agent to this ticket before sending a reply."
       );
+      setSending(false);
       return;
     }
 
@@ -959,7 +1028,7 @@ export default function SuperAgentChatBox({
       text,
       at: new Date().toISOString(),
       role: CURRENT_ROLE,
-      from: messageAppUserId ?? userEmail,
+      from: senderAppUserId ?? userEmail,
       status: "pending",
     };
     setMessages((prev) => {
@@ -970,15 +1039,14 @@ export default function SuperAgentChatBox({
       return updatedMessages;
     });
     setMsgText("");
-    setSending(true);
 
     try {
       await postTicketMessage({
         ticketId: ticket_id,
         message: text,
-        appUserId: messageAppUserId ?? "",
-        email: assignedAgent?.email ?? "",
-        username: assignedAgent?.username,
+        appUserId: senderAppUserId ?? "",
+        email: messageAgent?.email ?? "",
+        username: messageAgent?.username,
         token,
         fromTicket:
           selected?.from_ticket ?? selected?.raw?.from_ticket ?? false,
@@ -1031,7 +1099,21 @@ export default function SuperAgentChatBox({
 
   async function retryMessage(msg) {
     if (!msg || msg.status !== "failed") return;
-    if (!messageAppUserId) {
+    let messageAgent = null;
+    try {
+      messageAgent = await ensureMessageAgent();
+    } catch (err) {
+      console.error("Failed to assign ticket before retrying:", err);
+      setError(
+        err?.response?.data?.message ??
+          err?.message ??
+          "Failed to assign this ticket before retrying."
+      );
+      return;
+    }
+
+    const senderAppUserId = getUserId(messageAgent);
+    if (!senderAppUserId) {
       setError(
         usersDirectoryLoading
           ? "Loading assigned agent details. Please try again in a moment."
@@ -1055,9 +1137,9 @@ export default function SuperAgentChatBox({
       await postTicketMessage({
         ticketId: selected.id,
         message: msg.text,
-        appUserId: messageAppUserId ?? "",
-        email: assignedAgent?.email ?? "",
-        username: assignedAgent?.username,
+        appUserId: senderAppUserId ?? "",
+        email: messageAgent?.email ?? "",
+        username: messageAgent?.username,
         token,
         fromTicket:
           selected?.from_ticket ?? selected?.raw?.from_ticket ?? false,

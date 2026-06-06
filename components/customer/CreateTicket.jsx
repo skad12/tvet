@@ -477,7 +477,7 @@ export default function CreateTicket({
   // derive email from auth/localStorage when modal opens
   useEffect(() => {
     if (!isOpen) return;
-    let resolved =
+    const resolved =
       authEmail ||
       defaultReporterEmail ||
       (() => {
@@ -518,7 +518,7 @@ export default function CreateTicket({
     if (!emailToUse) {
       setMessage({
         type: "error",
-        text: "Please enter an email address.",
+        text: "We could not determine your email. Please re-login and try again.",
       });
       return;
     }
@@ -731,18 +731,9 @@ export default function CreateTicket({
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium">
-              Email Address <span className="text-red-600">*</span>
-            </label>
-            <input
-              value={reporterEmail}
-              onChange={(e) => setReporterEmail(e.target.value)}
-              type="email"
-              placeholder="Email Address"
-              className="w-full border border-slate-300 rounded px-3 py-2"
-              required
-            />
+          <div className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-sm text-blue-800">
+            <span className="font-medium">Submitting as:</span>{" "}
+            {reporterEmail || "Signed-in customer"}
           </div>
 
           <div className="flex items-center gap-2">

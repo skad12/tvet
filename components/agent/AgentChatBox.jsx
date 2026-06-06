@@ -332,7 +332,7 @@ export default function ChatBox({
                 <span className="text-xs text-green-600">{selected.id}</span>
               </span>
               <div className="flex items-center gap-2">
-                {!isResolved && (
+                {!isResolved && !escalated && (
                   <button
                     onClick={async (e) => {
                       e.preventDefault();
@@ -369,19 +369,13 @@ export default function ChatBox({
                         setEscalating(false);
                       }
                     }}
-                    disabled={escalating || escalated}
-                    className={`text-xs px-2 py-1 rounded border transition-colors ${
-                      escalated
-                        ? "border-purple-300 bg-purple-50 text-purple-700 cursor-not-allowed"
-                        : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
-                    } ${escalating ? "opacity-50 cursor-not-allowed" : ""}`}
+                    disabled={escalating}
+                    className={`text-xs px-2 py-1 rounded border border-slate-300 bg-white text-slate-700 transition-colors hover:bg-slate-50 ${
+                      escalating ? "opacity-50 cursor-not-allowed" : ""
+                    }`}
                     aria-label="Escalate ticket"
                   >
-                    {escalating
-                      ? "Escalating…"
-                      : escalated
-                      ? "Escalated"
-                      : "Escalate"}
+                    {escalating ? "Escalating…" : "Escalate"}
                   </button>
                 )}
 

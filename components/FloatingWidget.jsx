@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 
-const CHATBOT_URL = "https://tvet-support.previewapp.cc/chat-widget/x/";
+const CHATBOT_URL = "https://ticket.stalwartng.com/chat-widget/x/";
 
 export default function FloatingWidget() {
   const [open, setOpen] = useState(false);

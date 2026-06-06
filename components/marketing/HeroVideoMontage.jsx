@@ -1,23 +1,23 @@
 const clips = [
   {
-    label: "Support specialist speaking with a customer",
-    poster: "https://assets.mixkit.co/videos/42628/42628-thumb-720-0.jpg",
-    src: "https://assets.mixkit.co/videos/42628/42628-720.mp4",
+    label: "Black customer support specialist speaking with a headset",
+    poster: "https://assets.mixkit.co/videos/24213/24213-thumb-720-0.jpg",
+    src: "https://assets.mixkit.co/videos/24213/24213-720.mp4",
   },
   {
-    label: "Call center team working together",
-    poster: "https://assets.mixkit.co/videos/4658/4658-thumb-720-0.jpg",
-    src: "https://assets.mixkit.co/videos/4658/4658-720.mp4",
+    label: "Black woman on a business support call",
+    poster: "https://assets.mixkit.co/videos/24421/24421-thumb-720-0.jpg",
+    src: "https://assets.mixkit.co/videos/24421/24421-720.mp4",
   },
   {
-    label: "Support agents working at a call center",
-    poster: "https://assets.mixkit.co/videos/4610/4610-thumb-720-0.jpg",
-    src: "https://assets.mixkit.co/videos/4610/4610-720.mp4",
+    label: "Black professional on a phone call in a data center",
+    poster: "https://assets.mixkit.co/videos/23081/23081-thumb-720-0.jpg",
+    src: "https://assets.mixkit.co/videos/23081/23081-720.mp4",
   },
   {
-    label: "Customer support team assisting callers",
-    poster: "https://assets.mixkit.co/videos/4603/4603-thumb-720-0.jpg",
-    src: "https://assets.mixkit.co/videos/4603/4603-720.mp4",
+    label: "Black professional working with a computer in a server room",
+    poster: "https://assets.mixkit.co/videos/23040/23040-thumb-720-0.jpg",
+    src: "https://assets.mixkit.co/videos/23040/23040-720.mp4",
   },
 ];
 
