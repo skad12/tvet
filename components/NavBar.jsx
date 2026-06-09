@@ -6,7 +6,7 @@ import Image from "next/image";
 import logo from "@/public/images/tvet-logo.png";
 import TrackTicketModal from "@/components/TrackTicketModal";
 
-const MotionLink = motion(Link);
+const MotionLink = motion.create(Link);
 
 export default function NavBar({ variant = "solid" }) {
   const [showTrackTicketModal, setShowTrackTicketModal] = useState(false);

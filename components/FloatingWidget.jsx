@@ -7,11 +7,23 @@ const CHATBOT_URL = "https://ticket.stalwartng.com/chat-widget/x/";
 export default function FloatingWidget() {
   const [open, setOpen] = useState(false);
 
+  const handleOpen = () => {
+    if (
+      typeof window !== "undefined" &&
+      window.matchMedia("(max-width: 768px)").matches
+    ) {
+      window.location.href = CHATBOT_URL;
+      return;
+    }
+
+    setOpen(true);
+  };
+
   return (
     <>
       <button
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={handleOpen}
         id="cb-btn"
         aria-label="Open support chat"
         className="fixed bottom-5 right-5 z-999999 flex h-[60px] w-[60px] cursor-pointer items-center justify-center rounded-full bg-[#007bff] text-[30px] text-white shadow-[0_4px_14px_rgba(0,0,0,0.25)] transition-transform duration-200 hover:scale-105"

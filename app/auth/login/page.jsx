@@ -1,10 +1,32 @@
 "use client";
 
 import LoginForm from "@/components/LoginForm";
+import { useRouter } from "next/navigation";
 
 export default function AdminLoginPage() {
+  const router = useRouter();
+
+  const handleBack = () => {
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      router.back();
+      return;
+    }
+
+    router.push("/");
+  };
+
   return (
-    <main className="grid min-h-screen bg-[radial-gradient(circle_at_top_left,rgb(219_234_254/0.8),transparent_30%),linear-gradient(135deg,#f8fafc,#eef6ff_45%,#f8fafc)] lg:grid-cols-2">
+    <main className="relative grid min-h-screen bg-[radial-gradient(circle_at_top_left,rgb(219_234_254/0.8),transparent_30%),linear-gradient(135deg,#f8fafc,#eef6ff_45%,#f8fafc)] lg:grid-cols-2">
+      <button
+        type="button"
+        onClick={handleBack}
+        className="absolute left-4 top-4 z-20 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/85 px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm backdrop-blur transition hover:bg-white sm:left-6 sm:top-6"
+        aria-label="Go back"
+      >
+        <span aria-hidden="true">&larr;</span>
+        Back
+      </button>
+
       <div className="flex min-h-screen items-center justify-center px-4 py-10 sm:px-6 lg:px-10">
         <div className="w-full max-w-lg">
           <LoginForm />
