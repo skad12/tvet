@@ -6,6 +6,7 @@ import { format, isValid } from "date-fns";
 import api from "@/lib/axios";
 import { calculateResolutionTime } from "@/lib/resolutionTime";
 import Skeleton, { ChatListSkeleton } from "@/components/ui/Skeleton";
+import { toast } from "sonner";
 
 export default function TicketsList({
   categoryId,
@@ -197,7 +198,9 @@ export default function TicketsList({
           err?.message === "canceled";
         if (isCanceled) return;
         console.error("Failed to load tickets:", err);
-        setError(err?.message ?? "Failed to load tickets");
+        const message = err?.message ?? "Failed to load tickets";
+        setError(message);
+        toast.error(message);
         setTickets([]);
       } finally {
         if (mounted) {

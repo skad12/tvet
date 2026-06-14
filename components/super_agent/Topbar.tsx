@@ -3,6 +3,7 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
+import { toast } from "sonner";
 import api from "@/lib/axios";
 import { useAuth } from "@/context/AuthContext"; // adjust path if needed
 // adjust path if you place CreateTicket elsewhere
@@ -48,9 +49,11 @@ export default function Navbar({
         await api.post("/sign-out/", { app_user_id: appUserId });
       }
       // signOut defined in AuthContext will clear storage and redirect
+      toast.success("Signed out successfully");
       signOut("/auth/login");
     } catch (err) {
       console.error("Failed to sign out:", err);
+      toast.error("Sign out failed. Redirecting to login.");
       try {
         localStorage.removeItem("user");
         localStorage.removeItem("token");

@@ -1151,6 +1151,7 @@ import { useUsersDirectory } from "@/hooks/useUsersDirectory";
 import { GoAlertFill } from "react-icons/go";
 import { calculateResolutionTime } from "@/lib/resolutionTime";
 import Skeleton, { ChatListSkeleton } from "@/components/ui/Skeleton";
+import { toast } from "sonner";
 
 let api = null;
 try {
@@ -1366,9 +1367,11 @@ function formatMaybeDate(val: any, display?: any) {
 
     async function load() {
       if (!effectiveUserEmail && !effectiveUserId) {
+        const message = "No user email or identity to fetch tickets for.";
         setTickets([]);
         setLoading(false);
-        setError("No user email or identity to fetch tickets for.");
+        setError(message);
+        toast.error(message);
         return;
       }
 
@@ -1462,7 +1465,9 @@ function formatMaybeDate(val: any, display?: any) {
       } catch (err) {
         if (err.name === "AbortError") return;
         console.error("Failed to fetch tickets by user id/email:", err);
-        setError(err.message || "Failed to load tickets");
+        const message = err.message || "Failed to load tickets";
+        setError(message);
+        toast.error(message);
         setTickets([]);
       } finally {
         if (mounted) setLoading(false);

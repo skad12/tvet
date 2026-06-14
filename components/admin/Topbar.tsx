@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import api from "../../lib/axios";
 import { motion } from "framer-motion";
 import { useAuth } from "@/context/AuthContext";
+import { toast } from "sonner";
 
 // react-icons
 import { FiBell, FiSettings, FiUserCheck, FiCheckCircle } from "react-icons/fi";
@@ -78,7 +79,11 @@ export default function Topbar({ onSidebarOpen }) {
           setError(null);
         } catch (proxyErr) {
           console.error("Proxy request failed:", proxyErr);
-          if (mounted) setError("Failed to load analytics");
+          if (mounted) {
+            const message = "Failed to load analytics";
+            setError(message);
+            toast.error(message);
+          }
         }
       } finally {
         if (mounted) setLoading(false);

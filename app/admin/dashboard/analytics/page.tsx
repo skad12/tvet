@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
 
 import MetricCard from "@/components/admin/analytics/MetricCards";
 import RecentActivity from "@/components/admin/analytics/RecentActivity";
@@ -35,7 +36,11 @@ export default function DashboardPage() {
           setAnalytics(data);
         } catch (err2) {
           console.error("Proxy also failed:", err2);
-          if (mounted) setError("Failed to load analytics");
+          if (mounted) {
+            const message = "Failed to load analytics";
+            setError(message);
+            toast.error(message);
+          }
         }
       } finally {
         if (mounted) setLoading(false);

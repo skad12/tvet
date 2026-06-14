@@ -1858,6 +1858,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 import api from "@/lib/axios"; // your axios instance (adjust path if different)
 
 function normalizeAgentName(agent) {
@@ -1973,7 +1974,9 @@ export default function AgentCategoriesList({
       })
       .catch((err) => {
         if (!mounted) return;
-        setError(err?.message || "Failed to load categories");
+        const message = err?.message || "Failed to load categories";
+        setError(message);
+        toast.error(message);
       })
       .finally(() => mounted && setLoading(false));
 
@@ -2099,6 +2102,7 @@ export default function AgentCategoriesList({
       });
 
       setAssignSuccess(true);
+      toast.success("Agent assigned to category successfully");
       setShowAssignModal(false);
       setSelectedAgentId("");
 
@@ -2113,11 +2117,12 @@ export default function AgentCategoriesList({
       setTimeout(() => setAssignSuccess(false), 3000);
     } catch (err) {
       console.error("Failed to assign agent:", err);
-      setAssignError(
+      const message =
         err?.response?.data?.message ||
-          err?.message ||
-          "Failed to assign agent to category"
-      );
+        err?.message ||
+        "Failed to assign agent to category";
+      setAssignError(message);
+      toast.error(message);
     } finally {
       setAssigning(false);
     }
@@ -2135,7 +2140,9 @@ export default function AgentCategoriesList({
 
     // don't attempt to remove if there's no usable id (synthetic entries have id === null)
     if (!agentId) {
-      setRemoveError("This agent cannot be removed (no valid user id).");
+      const message = "This agent cannot be removed (no valid user id).";
+      setRemoveError(message);
+      toast.error(message);
       return;
     }
 
@@ -2162,12 +2169,14 @@ export default function AgentCategoriesList({
       setCategories(data);
 
       setRemoveSuccess(true);
+      toast.success("Agent removed from category successfully");
       setTimeout(() => setRemoveSuccess(false), 3000);
     } catch (err) {
       console.error("Failed to remove agent:", err);
-      setRemoveError(
-        err?.response?.data?.message || err?.message || "Failed to remove agent"
-      );
+      const message =
+        err?.response?.data?.message || err?.message || "Failed to remove agent";
+      setRemoveError(message);
+      toast.error(message);
     } finally {
       setRemovingAgentId(null);
     }

@@ -3,6 +3,7 @@
 
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
 import api from "@/lib/axios";
 
 type AssignAgentModalProps = {
@@ -49,7 +50,9 @@ export default function AssignAgentModal({
       } catch (err) {
         if (err?.name === "AbortError" || err?.message === "canceled") return;
         console.error("AssignAgentModal: failed to load agents", err);
-        setError(err?.message ?? "Failed to load agents");
+        const message = err?.message ?? "Failed to load agents";
+        setError(message);
+        toast.error(message);
         setAgents([]);
       } finally {
         if (mounted) setLoading(false);
@@ -82,6 +85,7 @@ export default function AssignAgentModal({
 
       const name = agent?.name ?? agent?.username ?? agent?.email ?? "Agent";
       setNotice(`Assigned to ${name} successfully.`);
+      toast.success(`Assigned to ${name} successfully`);
 
       // Notify parent
       try {
@@ -92,7 +96,9 @@ export default function AssignAgentModal({
       setTimeout(() => onClose(), 700);
     } catch (err) {
       console.error("AssignAgentModal: assignment failed", err);
-      setNotice(err?.response?.data ?? err?.message ?? "Assignment failed");
+      const message = err?.response?.data ?? err?.message ?? "Assignment failed";
+      setNotice(message);
+      toast.error(String(message));
     } finally {
       setAssignLoading(false);
     }

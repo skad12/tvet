@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
 import logo from "@/public/images/tvet-logo.png";
 import api from "@/lib/axios"; // if missing, the code falls back to fetch
 import { useUserStore } from "@/stores/useUserStore";
@@ -105,6 +106,7 @@ export default function RegisterForm({
         const msg =
           res?.data?.message ?? res?.data?.detail ?? "Registration failed";
         setServerError(String(msg));
+        toast.error(String(msg));
         setLoading(false);
         return;
       }
@@ -149,6 +151,7 @@ export default function RegisterForm({
       setToken(token ?? null);
 
       // success UI
+      toast.success("Account created successfully");
       setShowPopup(true);
       reset();
       popupTimer.current && clearTimeout(popupTimer.current);
@@ -164,6 +167,7 @@ export default function RegisterForm({
         err?.message ||
         "Unknown server error";
       setServerError(String(msg));
+      toast.error(String(msg));
     } finally {
       setLoading(false);
     }

@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { IoClose } from "react-icons/io5";
+import { toast } from "sonner";
 
 import api from "@/lib/axios";
 
@@ -81,6 +82,7 @@ export default function AddAgentModal({ isOpen, onClose, onSuccess }) {
 
       await api.post("/sign-up/", payload);
 
+      toast.success("Agent created successfully");
       reset();
       onSuccess?.();
       onClose();
@@ -91,6 +93,7 @@ export default function AddAgentModal({ isOpen, onClose, onSuccess }) {
         err?.response?.data?.detail ||
         "Failed to create agent";
       setError(String(msg));
+      toast.error(String(msg));
     } finally {
       setLoading(false);
     }

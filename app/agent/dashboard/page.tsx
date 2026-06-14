@@ -260,6 +260,13 @@ export default function AgentDashboardPage() {
                             ...t,
                             status: "escalated",
                             progress: "Escalated",
+                            statusDisplay: "Escalated",
+                            ticket_status: "Escalated",
+                            raw: {
+                              ...(t?.raw ?? {}),
+                              escalated: true,
+                              ticket_status: "Escalated",
+                            },
                           };
                         }
                         return t;
@@ -267,7 +274,18 @@ export default function AgentDashboardPage() {
                     );
                     setSelected((prev) =>
                       prev && String(prev.id) === String(ticketId)
-                        ? { ...prev, status: "escalated", progress: "Escalated" }
+                        ? {
+                            ...prev,
+                            status: "escalated",
+                            progress: "Escalated",
+                            statusDisplay: "Escalated",
+                            ticket_status: "Escalated",
+                            raw: {
+                              ...(prev?.raw ?? {}),
+                              escalated: true,
+                              ticket_status: "Escalated",
+                            },
+                          }
                         : prev
                     );
                   } catch (e) {}
@@ -348,6 +366,13 @@ export default function AgentDashboardPage() {
                                     ...t,
                                     status: "escalated",
                                     progress: "Escalated",
+                                    statusDisplay: "Escalated",
+                                    ticket_status: "Escalated",
+                                    raw: {
+                                      ...(t?.raw ?? {}),
+                                      escalated: true,
+                                      ticket_status: "Escalated",
+                                    },
                                   };
                                 }
                                 return t;
@@ -355,7 +380,18 @@ export default function AgentDashboardPage() {
                             );
                             setSelected((prev) =>
                               prev && String(prev.id) === String(ticketId)
-                                ? { ...prev, status: "escalated", progress: "Escalated" }
+                                ? {
+                                    ...prev,
+                                    status: "escalated",
+                                    progress: "Escalated",
+                                    statusDisplay: "Escalated",
+                                    ticket_status: "Escalated",
+                                    raw: {
+                                      ...(prev?.raw ?? {}),
+                                      escalated: true,
+                                      ticket_status: "Escalated",
+                                    },
+                                  }
                                 : prev
                             );
                           } catch (e) {}

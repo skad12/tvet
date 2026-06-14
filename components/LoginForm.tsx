@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Eye, EyeOff } from "lucide-react";
+import { toast } from "sonner";
 import logo from "@/public/images/tvet-logo.png";
 import { useAuth } from "@/context/AuthContext"; // adjust if needed
 
@@ -170,6 +171,7 @@ export default function LoginForm({ demoCredentials = true }) {
           result?.raw?.message ||
           "Invalid credentials — try again";
         setError(message);
+        toast.error(message);
         return;
       }
 
@@ -204,6 +206,7 @@ export default function LoginForm({ demoCredentials = true }) {
 
       const rawDest = routeForRole(role);
       const dest = ensureAbsolutePath(rawDest);
+      toast.success("Signed in successfully");
 
       if (dest.startsWith("http://") || dest.startsWith("https://")) {
         window.location.href = dest;
@@ -213,7 +216,9 @@ export default function LoginForm({ demoCredentials = true }) {
       }
     } catch (err) {
       console.error("Login error:", err);
-      setError(err?.message || "Sign in failed");
+      const message = err?.message || "Sign in failed";
+      setError(message);
+      toast.error(message);
     } finally {
       setLoadingLocal(false);
     }
@@ -307,7 +312,7 @@ export default function LoginForm({ demoCredentials = true }) {
         >
           {loadingLocal ? "Signing in..." : "Log in"}
         </motion.button>
-
+{/* 
         {error && (
           <motion.div
             initial={{ opacity: 0, y: -6 }}
@@ -317,7 +322,7 @@ export default function LoginForm({ demoCredentials = true }) {
           >
             {error}
           </motion.div>
-        )}
+        )} */}
 
         {/* <div className="mt-4 text-sm text-slate-600 text-center">
           <span className="mr-1">Don&apos;t have an account?</span>

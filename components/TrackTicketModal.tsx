@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import api from "@/lib/axios"; // ensure this exists and has baseURL set
 import { useUserStore } from "@/stores/useUserStore";
 
@@ -32,7 +33,9 @@ export default function TrackTicketModal({ show = false, onClose = () => {} }) {
   const handleSendEmail = async (e) => {
     if (e && e.preventDefault) e.preventDefault();
     if (!email.trim()) {
-      setError("Please enter your email");
+      const message = "Please enter your email";
+      setError(message);
+      toast.error(message);
       return;
     }
 
@@ -53,6 +56,7 @@ export default function TrackTicketModal({ show = false, onClose = () => {} }) {
         "Verification code sent. Check your email.";
 
       setInfo(message);
+      toast.success(message);
 
       // Move to OTP step
       setStep("otp");
@@ -66,7 +70,9 @@ export default function TrackTicketModal({ show = false, onClose = () => {} }) {
         err?.response?.data?.message ||
         err?.response?.data?.detail ||
         (err?.response?.data ? JSON.stringify(err.response.data) : null);
-      setError(apiMsg || err?.message || "Failed to send email");
+      const message = apiMsg || err?.message || "Failed to send email";
+      setError(message);
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -76,7 +82,9 @@ export default function TrackTicketModal({ show = false, onClose = () => {} }) {
   const handleVerifyOtp = async (e) => {
     e.preventDefault();
     if (!otp.trim()) {
-      setError("Please enter the OTP");
+      const message = "Please enter the OTP";
+      setError(message);
+      toast.error(message);
       return;
     }
 
@@ -121,6 +129,7 @@ export default function TrackTicketModal({ show = false, onClose = () => {} }) {
       }
 
       // Route to customer dashboard after successful authentication
+      toast.success("OTP verified successfully");
       router.push("/customer/dashboard");
       handleClose();
     } catch (err) {
@@ -129,7 +138,9 @@ export default function TrackTicketModal({ show = false, onClose = () => {} }) {
         err?.response?.data?.message ||
         err?.response?.data?.detail ||
         (err?.response?.data ? JSON.stringify(err.response.data) : null);
-      setError(apiMsg || err?.message || "Invalid OTP. Please try again.");
+      const message = apiMsg || err?.message || "Invalid OTP. Please try again.";
+      setError(message);
+      toast.error(message);
     } finally {
       setLoading(false);
     }

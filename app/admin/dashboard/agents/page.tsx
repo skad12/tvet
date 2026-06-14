@@ -5,6 +5,7 @@ import AgentsGrid from "@/components/admin/agents/AgentsGrid";
 import AgentCategoriesList from "@/components/admin/agents/AgentCategoriesList";
 import AddAgentModal from "@/components/admin/agents/AddAgentModal";
 import { FiPlus } from "react-icons/fi";
+import { toast } from "sonner";
 
 import api from "@/lib/axios";
 
@@ -101,7 +102,9 @@ export default function AgentsPage() {
       } catch (err) {
         console.error("Failed to load agents", err);
         if (mounted) {
-          setError("Failed to load agents — showing demo data");
+          const message = "Failed to load agents — showing demo data";
+          setError(message);
+          toast.error(message);
           const demoAgents = [
             {
               id: "a-1",
@@ -167,7 +170,7 @@ export default function AgentsPage() {
       });
     } catch (error) {
       console.error("Failed to delete agent:", error);
-      alert("Failed to delete agent. Please try again.");
+      toast.error("Failed to delete agent. Please try again.");
       throw error;
     }
   };

@@ -486,6 +486,7 @@ import { useAuth } from "@/context/AuthContext";
 import { GoAlertFill } from "react-icons/go";
 import { calculateResolutionTime } from "@/lib/resolutionTime";
 import Skeleton, { ChatListSkeleton } from "@/components/ui/Skeleton";
+import { toast } from "sonner";
 
 let api = null;
 try {
@@ -681,7 +682,9 @@ function formatMaybeDate(val: any, display?: any) {
         )
           return;
         console.error("Failed to fetch escalated tickets:", err);
-        setError(err.message || "Failed to load escalated tickets");
+        const message = err.message || "Failed to load escalated tickets";
+        setError(message);
+        toast.error(message);
         setTickets([]);
       } finally {
         if (mounted) setLoading(false);

@@ -693,6 +693,7 @@ import {
   normalizeChatEntries,
   postTicketMessage,
 } from "@/lib/chatClient";
+import { toast } from "sonner";
 
 function getUserId(user) {
   return (
@@ -882,6 +883,7 @@ export default function SuperAgentChatBox({
         setAssignNotice(
           `Assigned to ${getAgentName(fallbackAgent)} successfully.`
         );
+        toast.success(`Assigned to ${getAgentName(fallbackAgent)} successfully`);
         return fallbackAgent;
       } catch (err) {
         lastAssignError = err;
@@ -928,7 +930,9 @@ export default function SuperAgentChatBox({
           err?.message === "canceled";
         if (isCanceled) return;
         console.error("Failed to load chats:", err);
-        setError(err.message || "Failed to load chats");
+        const message = err.message || "Failed to load chats";
+        setError(message);
+        if (showLoading) toast.error(message);
       } finally {
         if (showLoading) setLoading(false);
       }
@@ -1006,22 +1010,24 @@ export default function SuperAgentChatBox({
       messageAgent = await ensureMessageAgent();
     } catch (err) {
       console.error("Failed to assign ticket before sending:", err);
-      setError(
+      const message =
         err?.response?.data?.message ??
           err?.message ??
-          "Failed to assign this ticket before sending."
-      );
+          "Failed to assign this ticket before sending.";
+      setError(message);
+      toast.error(message);
       setSending(false);
       return;
     }
 
     const senderAppUserId = getUserId(messageAgent);
     if (!senderAppUserId) {
-      setError(
+      const message =
         usersDirectoryLoading
           ? "Loading assigned agent details. Please try again in a moment."
-          : "Assign an agent to this ticket before sending a reply."
-      );
+          : "Assign an agent to this ticket before sending a reply.";
+      setError(message);
+      toast.error(message);
       setSending(false);
       return;
     }
@@ -1069,6 +1075,7 @@ export default function SuperAgentChatBox({
       digestRef.current = "";
       fetchChats();
       requestAnimationFrame(scrollToBottom);
+      toast.success("Message sent");
     } catch (err) {
       console.error("Failed to send message:", err);
       let snippet = null;
@@ -1086,9 +1093,10 @@ export default function SuperAgentChatBox({
         snippet = err.message ?? String(err);
       }
       setServerResponseSnippet(snippet?.slice?.(0, 5000) ?? String(snippet));
-      setError(
-        `Failed to send message. Server returned error (see console or "Show response").`
-      );
+      const message =
+        `Failed to send message. Server returned error (see console or "Show response").`;
+      setError(message);
+      toast.error(message);
       setMessages((prev) => {
         const failedMessages = prev.map((m) =>
           m.id === tempId ? { ...m, status: "failed" } : m
@@ -1110,21 +1118,23 @@ export default function SuperAgentChatBox({
       messageAgent = await ensureMessageAgent();
     } catch (err) {
       console.error("Failed to assign ticket before retrying:", err);
-      setError(
+      const message =
         err?.response?.data?.message ??
           err?.message ??
-          "Failed to assign this ticket before retrying."
-      );
+          "Failed to assign this ticket before retrying.";
+      setError(message);
+      toast.error(message);
       return;
     }
 
     const senderAppUserId = getUserId(messageAgent);
     if (!senderAppUserId) {
-      setError(
+      const message =
         usersDirectoryLoading
           ? "Loading assigned agent details. Please try again in a moment."
-          : "Assign an agent to this ticket before retrying."
-      );
+          : "Assign an agent to this ticket before retrying.";
+      setError(message);
+      toast.error(message);
       return;
     }
     setMessages((prev) => {
@@ -1162,6 +1172,7 @@ export default function SuperAgentChatBox({
       digestRef.current = "";
       fetchChats();
       requestAnimationFrame(scrollToBottom);
+      toast.success("Message resent");
     } catch (err) {
       console.error("Retry failed:", err);
       let snippet = null;
@@ -1171,7 +1182,9 @@ export default function SuperAgentChatBox({
             ? err.response.data
             : JSON.stringify(err.response.data, null, 2);
       setServerResponseSnippet(snippet?.slice?.(0, 5000) ?? String(snippet));
-      setError("Retry failed. See server response.");
+      const message = "Retry failed. See server response.";
+      setError(message);
+      toast.error(message);
       setMessages((prev) => {
         const retryFailedMessages = prev.map((m) =>
           m.id === msg.id ? { ...m, status: "failed" } : m
@@ -1276,6 +1289,7 @@ export default function SuperAgentChatBox({
 
                       setIsResolved(true);
                       setResolveNotice("Ticket resolved successfully.");
+                      toast.success("Ticket resolved successfully");
 
                       requestAnimationFrame(() => {
                         setShowPopup(true);
@@ -1292,6 +1306,7 @@ export default function SuperAgentChatBox({
                     } catch (err) {
                       setResolveNotice(null);
                       console.error("Failed to resolve ticket:", err);
+                      toast.error("Failed to resolve ticket");
                     } finally {
                       setResolving(false);
                     }

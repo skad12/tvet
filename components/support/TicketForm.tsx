@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 import api from "../../lib/axios";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
 
 const FALLBACK_GENERAL = { id: "general", title: "General" };
 
@@ -97,13 +98,17 @@ export default function TicketForm() {
       ) ?? FALLBACK_GENERAL;
 
     if (!email.trim()) {
-      setAlert({ type: "error", text: "Please enter an email address." });
+      const message = "Please enter an email address.";
+      setAlert({ type: "error", text: message });
+      toast.error(message);
       setLoading(false);
       return;
     }
 
     if (!description.trim()) {
-      setAlert({ type: "error", text: "Please enter a message." });
+      const message = "Please enter a message.";
+      setAlert({ type: "error", text: message });
+      toast.error(message);
       setLoading(false);
       return;
     }
@@ -126,6 +131,7 @@ export default function TicketForm() {
 
         // show popup instead of inline success message
         setAlert({ type: "success", text: successText });
+        toast.success(successText);
         setShowPopup(true);
 
         // clear form fields
@@ -143,10 +149,9 @@ export default function TicketForm() {
 
         //
       } else {
-        setAlert({
-          type: "error",
-          text: res?.data?.message ?? "Failed to create ticket.",
-        });
+        const message = res?.data?.message ?? "Failed to create ticket.";
+        setAlert({ type: "error", text: message });
+        toast.error(message);
       }
     } catch (err) {
       console.error("submit error", err);
@@ -155,6 +160,7 @@ export default function TicketForm() {
         err?.message ||
         "Failed to submit ticket.";
       setAlert({ type: "error", text: serverMsg });
+      toast.error(serverMsg);
     } finally {
       setLoading(false);
     }

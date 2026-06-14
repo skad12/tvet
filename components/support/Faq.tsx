@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 
 // try to use axios instance if available (safe require)
 let api = null;
@@ -119,7 +120,9 @@ export default function FAQ() {
         if (isCanceled) return;
         console.error("Failed to load FAQs", err);
         if (mounted) {
-          setError(err.message || "Failed to load FAQs");
+          const message = err.message || "Failed to load FAQs";
+          setError(message);
+          toast.error(message);
           setFaqData({});
           setActiveCategory("");
           setOpenIndex(null);

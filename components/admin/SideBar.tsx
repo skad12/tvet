@@ -16,6 +16,7 @@ import {
 import Image from "next/image";
 import logo from "@/public/images/tvet-logo.png";
 import { useAuth } from "@/context/AuthContext"; // <-- adjust path if your AuthContext lives elsewhere
+import { toast } from "sonner";
 
 const navItems = [
   {
@@ -48,10 +49,12 @@ export default function Sidebar({ onClose }) {
 
     try {
       // call context signOut (this should clear localStorage and redirect)
+      toast.success("Signed out successfully");
       signOut("/auth/login");
     } catch (err) {
       // fallback: clear client storage and redirect
       console.error("Sign out failed:", err);
+      toast.error("Sign out failed. Redirecting to login.");
       try {
         localStorage.removeItem("user");
         localStorage.removeItem("token");

@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import api from "@/lib/axios";
 import { useAuth } from "@/context/AuthContext";
 
@@ -94,7 +95,9 @@ export default function AgentTopbar({ userEmail }: AgentTopbarProps) {
       }
     } catch (err) {
       console.warn("Sign-out sync failed:", err);
+      toast.error("Could not sync sign-out status, signing out locally.");
     } finally {
+      toast.success("Signed out successfully");
       signOut("/auth/login");
     }
   }

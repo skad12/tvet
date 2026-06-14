@@ -1,6 +1,7 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import FloatingWidget from "@/components/FloatingWidget";
+import AppToaster from "@/components/AppToaster";
 import { AuthProvider } from "@/context/AuthContext";
 
 const geistSans = Geist({
@@ -25,6 +26,7 @@ export default function RootLayout({ children }) {
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <AuthProvider>{children}</AuthProvider>
+        <AppToaster />
         {/* Floating support widget */}
         <FloatingWidget />
       </body>

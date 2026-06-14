@@ -14,6 +14,7 @@ import {
   postTicketMessage,
 } from "@/lib/chatClient";
 import { GoAlertFill } from "react-icons/go";
+import { toast } from "sonner";
 
 type AgentChatBoxProps = {
   selected?: any;
@@ -53,6 +54,9 @@ export default function ChatBox({
   const [resolving, setResolving] = useState(false);
   const [resolveNotice, setResolveNotice] = useState(null);
   const [isResolved, setIsResolved] = useState(false);
+  const [localEscalatedTicketIds, setLocalEscalatedTicketIds] = useState<
+    Set<string>
+  >(() => new Set());
 
   const containerRef = useRef(null);
 
@@ -102,7 +106,9 @@ export default function ChatBox({
           err?.message === "canceled";
         if (isCanceled) return;
         console.error("Failed to load chats:", err);
-        setError(err.message || "Failed to load chats");
+        const message = err.message || "Failed to load chats";
+        setError(message);
+        if (showLoading) toast.error(message);
       } finally {
         if (showLoading) setLoading(false);
       }
@@ -142,18 +148,10 @@ export default function ChatBox({
   }, [messages.length]);
 
   useEffect(() => {
+    const selectedId = selected?.id ? String(selected.id) : null;
     const s = String(selected?.status || "").toLowerCase();
     const p = String(selected?.progress || "").toLowerCase();
     const d = String(selected?.statusDisplay || "").toLowerCase();
-    setEscalated(
-      s === "escalated" ||
-        p === "escalated" ||
-        d === "escalated" ||
-        selected?.raw?.escalated === true
-    );
-    setEscalationNotice(null);
-    setShowPopup(false);
-
     const ticketStatus =
       typeof selected?.ticket_status === "string"
         ? String(selected.ticket_status).toLowerCase()
@@ -162,11 +160,24 @@ export default function ChatBox({
       typeof selected?.raw?.ticket_status === "string"
         ? String(selected.raw.ticket_status).toLowerCase()
         : "";
+    const locallyEscalated =
+      Boolean(selectedId) && localEscalatedTicketIds.has(selectedId);
+    setEscalated(
+      s === "escalated" ||
+        p === "escalated" ||
+        d === "escalated" ||
+        ticketStatus === "escalated" ||
+        rawTicketStatus === "escalated" ||
+        selected?.raw?.escalated === true ||
+        locallyEscalated
+    );
 
     const resolved =
       ticketStatus === "resolved" || rawTicketStatus === "resolved";
 
     setIsResolved(resolved);
+    setEscalationNotice(locallyEscalated ? "Ticket escalated successfully." : null);
+    setShowPopup(false);
   }, [
     selected?.id,
     selected?.progress,
@@ -175,6 +186,7 @@ export default function ChatBox({
     selected?.ticket_status,
     selected?.raw?.ticket_status,
     selected?.raw?.escalated,
+    localEscalatedTicketIds,
   ]);
 
   async function sendMessage(e) {
@@ -221,6 +233,7 @@ export default function ChatBox({
       digestRef.current = "";
       fetchChats();
       requestAnimationFrame(scrollToBottom);
+      toast.success("Message sent");
     } catch (err) {
       console.error("Failed to send message:", err);
       let snippet = null;
@@ -238,9 +251,10 @@ export default function ChatBox({
         snippet = err.message ?? String(err);
       }
       setServerResponseSnippet(snippet?.slice?.(0, 5000) ?? String(snippet));
-      setError(
-        `Failed to send message. Server returned error (see console or "Show response").`
-      );
+      const message =
+        `Failed to send message. Server returned error (see console or "Show response").`;
+      setError(message);
+      toast.error(message);
       setMessages((prev) =>
         prev.map((m) => (m.id === tempId ? { ...m, status: "failed" } : m))
       );
@@ -276,6 +290,7 @@ export default function ChatBox({
       digestRef.current = "";
       fetchChats();
       requestAnimationFrame(scrollToBottom);
+      toast.success("Message resent");
     } catch (err) {
       console.error("Retry failed:", err);
       let snippet = null;
@@ -285,7 +300,9 @@ export default function ChatBox({
             ? err.response.data
             : JSON.stringify(err.response.data, null, 2);
       setServerResponseSnippet(snippet?.slice?.(0, 5000) ?? String(snippet));
-      setError("Retry failed. See server response.");
+      const message = "Retry failed. See server response.";
+      setError(message);
+      toast.error(message);
       setMessages((prev) =>
         prev.map((m) => (m.id === msg.id ? { ...m, status: "failed" } : m))
       );
@@ -354,22 +371,23 @@ export default function ChatBox({
                           agent_id: appUserId ?? null,
                         });
 
+                        setLocalEscalatedTicketIds((prev) => {
+                          const next = new Set(prev);
+                          next.add(String(selected.id));
+                          return next;
+                        });
                         setEscalated(true);
                         setEscalationNotice("Ticket escalated successfully.");
-
-                        requestAnimationFrame(() => {
-                          setShowPopup(true);
-                          setTimeout(() => setShowPopup(false), 5000);
-                        });
+                        toast.success("Ticket escalated successfully");
 
                         try {
                           if (typeof onEscalated === "function")
                             onEscalated(selected.id);
                         } catch (e) {}
                       } catch (e) {
-                        setEscalateError(
-                          e?.message ?? "Failed to escalate ticket"
-                        );
+                        const message = e?.message ?? "Failed to escalate ticket";
+                        setEscalateError(message);
+                        toast.error(message);
                         setEscalated(false);
                       } finally {
                         setEscalating(false);
@@ -404,6 +422,7 @@ export default function ChatBox({
                         setIsResolved(true);
                         setEscalated(false);
                         setResolveNotice("Ticket resolved successfully.");
+                        toast.success("Ticket resolved successfully");
 
                         requestAnimationFrame(() => {
                           setShowPopup(true);
@@ -417,6 +436,7 @@ export default function ChatBox({
                       } catch (err) {
                         setResolveNotice(null);
                         console.error("Failed to resolve ticket:", err);
+                        toast.error("Failed to resolve ticket");
                       } finally {
                         setResolving(false);
                       }

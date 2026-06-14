@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { LuMail } from "react-icons/lu";
 import { FiPhoneCall } from "react-icons/fi";
 import { FiTrash2 } from "react-icons/fi";
+import { toast } from "sonner";
 
 export default function AgentCard({
   agent,
@@ -75,8 +76,10 @@ export default function AgentCard({
     setShowDeleteModal(false);
     try {
       await onDelete(agent.id);
+      toast.success(`${username || "Agent"} deleted successfully`);
     } catch (error) {
       console.error("Failed to delete agent:", error);
+      toast.error("Failed to delete agent");
       setIsDeleting(false);
     }
   };

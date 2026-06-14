@@ -2,6 +2,7 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
+import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext"; // adjust path if needed
 import CreateTicket from "./CreateTicket"; // adjust path if you place CreateTicket elsewhere
 
@@ -42,9 +43,11 @@ export default function Navbar({
     setSigningOut(true);
     try {
       // signOut defined in AuthContext will clear storage and redirect
+      toast.success("Signed out successfully");
       signOut("/auth/login");
     } catch (err) {
       console.error("Failed to sign out:", err);
+      toast.error("Sign out failed. Redirecting to login.");
       try {
         localStorage.removeItem("user");
         localStorage.removeItem("token");

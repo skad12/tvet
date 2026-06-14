@@ -618,6 +618,7 @@ import { GoAlertFill } from "react-icons/go";
 import { calculateResolutionTime } from "@/lib/resolutionTime";
 import Skeleton, { ChatListSkeleton } from "@/components/ui/Skeleton";
 import type { ApiTicket, IdValue, NormalizedTicket } from "@/types/domain";
+import { toast } from "sonner";
 
 type AgentChatListProps = {
   tickets?: ApiTicket[] | ApiTicket | NormalizedTicket[] | NormalizedTicket | null;
@@ -840,9 +841,11 @@ export default function ChatList({
 
     async function load() {
       if (!effectiveUserId && !effectiveUserEmail) {
+        const message = "No user identity to fetch tickets for.";
         setTickets([]);
         setLoading(false);
-        setError("No user identity to fetch tickets for.");
+        setError(message);
+        toast.error(message);
         return;
       }
 
@@ -926,7 +929,9 @@ export default function ChatList({
         )
           return;
         console.error("Failed to fetch tickets by user id:", err);
-        setError(err.message || "Failed to load tickets");
+        const message = err.message || "Failed to load tickets";
+        setError(message);
+        toast.error(message);
         setTickets([]);
       } finally {
         if (mounted) setLoading(false);
@@ -1103,6 +1108,11 @@ export default function ChatList({
                 const email = t.email ?? "";
                 const statusKey = (t.status ?? "active").toLowerCase();
                 const statusLabel = t.statusDisplay || "Pending";
+                const isEscalated =
+                  t.raw?.escalated === true ||
+                  statusKey === "escalated" ||
+                  String(t.ticket_status ?? "").toLowerCase() === "escalated" ||
+                  String(statusLabel ?? "").toLowerCase() === "escalated";
                 const time = t.created_at ?? "";
                 const resolvedAt = t.raw?.resolved_at ?? null;
                 const resolutionTime = calculateResolutionTime(t.created_at, resolvedAt, t.status || t.ticket_status);
@@ -1120,7 +1130,7 @@ export default function ChatList({
                     <div className="text-right shrink-0 flex flex-col items-end ml-2 sm:ml-4 gap-1">
                       <span className={`inline-flex items-center justify-center px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-medium ${pillClass}`}>{statusLabel}</span>
 
-                      {t.raw?.escalated === true && <span className="inline-flex items-center gap-1 text-[10px] sm:text-xs font-semibold px-2 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-100"><GoAlertFill />Escalated</span>}
+                      {isEscalated && <span className="inline-flex items-center gap-1 text-[10px] sm:text-xs font-semibold px-2 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-100"><GoAlertFill />Escalated</span>}
 
                       <div className="text-[10px] sm:text-xs text-slate-400 mt-1 sm:mt-2">{formatMaybeDate(time)}</div>
                       {resolutionTime && <div className="text-[10px] sm:text-xs text-emerald-600 mt-1 font-medium">Resolved in {resolutionTime}</div>}

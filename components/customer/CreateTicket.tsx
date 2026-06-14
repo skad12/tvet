@@ -372,6 +372,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
 import api from "@/lib/axios"; // adjust path if needed
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
@@ -525,22 +526,27 @@ export default function CreateTicket({
 
     const emailToUse = reporterEmail?.trim();
     if (!emailToUse) {
-      setMessage({
-        type: "error",
-        text: "We could not determine your email. Please re-login and try again.",
-      });
+      const text = "We could not determine your email. Please re-login and try again.";
+      setMessage({ type: "error", text });
+      toast.error(text);
       return;
     }
     if (!categoryId) {
-      setMessage({ type: "error", text: "Please pick a category." });
+      const text = "Please pick a category.";
+      setMessage({ type: "error", text });
+      toast.error(text);
       return;
     }
     if (!subject?.trim()) {
-      setMessage({ type: "error", text: "Please enter a subject." });
+      const text = "Please enter a subject.";
+      setMessage({ type: "error", text });
+      toast.error(text);
       return;
     }
     if (!description?.trim()) {
-      setMessage({ type: "error", text: "Please enter a message." });
+      const text = "Please enter a message.";
+      setMessage({ type: "error", text });
+      toast.error(text);
       return;
     }
 
@@ -596,14 +602,18 @@ export default function CreateTicket({
         const txt =
           res?.data?.message ?? JSON.stringify(res?.data ?? res ?? "");
         setMessage({ type: "error", text: String(txt) });
+        toast.error(String(txt));
         setLoading(false);
         return;
       }
 
+      const successText =
+        "Ticket created successfully. A confirmation mail should be sent.";
       setMessage({
         type: "success",
-        text: "Ticket created successfully. A confirmation mail should be sent.",
+        text: successText,
       });
+      toast.success(successText);
       onTicketCreated?.(res?.data);
       try {
         if (typeof window !== "undefined" && emailToUse)
@@ -630,6 +640,7 @@ export default function CreateTicket({
         err?.message ||
         "Failed to create ticket.";
       setMessage({ type: "error", text: String(serverMsg) });
+      toast.error(String(serverMsg));
     } finally {
       setLoading(false);
     }

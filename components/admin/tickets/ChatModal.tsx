@@ -15,6 +15,7 @@ import {
   postTicketMessage,
 } from "@/lib/chatClient";
 import { format, isValid } from "date-fns";
+import { toast } from "sonner";
 
 function normalizeAgentName(agent) {
   if (agent === null || agent === undefined) return null;
@@ -312,7 +313,9 @@ export default function ChatModal({
         console.error("Failed to load available agents:", err);
         if (mounted) {
           setAvailableAgents([]);
-          setError("Failed to load available agents");
+          const message = "Failed to load available agents";
+          setError(message);
+          toast.error(message);
         }
       } finally {
         if (mounted) setLoadingAvailableAgents(false);
@@ -363,7 +366,9 @@ export default function ChatModal({
           err?.message === "canceled";
         if (isCanceled) return;
         console.error("Failed to load chats:", err);
-        setError(err.message || "Failed to load messages");
+        const message = err.message || "Failed to load messages";
+        setError(message);
+        if (initial) toast.error(message);
       } finally {
         if (mounted) setLoading(false);
       }
@@ -424,9 +429,12 @@ export default function ChatModal({
         );
       }
       setText("");
+      toast.success("Message sent");
     } catch (err) {
       console.error("Failed to send message:", err);
-      setError(err.message || "Failed to send message");
+      const message = err.message || "Failed to send message";
+      setError(message);
+      toast.error(message);
       setMessages((prev) =>
         prev.map((msg) =>
           msg.id === optimisticMsg.id ? { ...msg, status: "failed" } : msg
@@ -464,6 +472,7 @@ export default function ChatModal({
 
       setIsResolved(true);
       setResolveNotice("Ticket resolved successfully.");
+      toast.success("Ticket resolved successfully");
 
       requestAnimationFrame(() => {
         setShowPopup(true);
@@ -485,6 +494,7 @@ export default function ChatModal({
     } catch (err) {
       console.error("Failed to resolve ticket:", err);
       setResolveNotice("Failed to resolve ticket");
+      toast.error("Failed to resolve ticket");
     } finally {
       setResolving(false);
     }
@@ -509,6 +519,7 @@ export default function ChatModal({
 
       setEscalated(true);
       setEscalationNotice("Ticket escalated successfully.");
+      toast.success("Ticket escalated successfully");
 
       requestAnimationFrame(() => {
         setShowPopup(true);
@@ -530,6 +541,7 @@ export default function ChatModal({
     } catch (err) {
       console.error("Failed to escalate ticket:", err);
       setEscalationNotice(err?.message ?? "Failed to escalate ticket");
+      toast.error(err?.message ?? "Failed to escalate ticket");
       setEscalated(false);
     } finally {
       setEscalating(false);
@@ -665,7 +677,9 @@ export default function ChatModal({
                                   key={agentId ?? agent.email ?? agentName}
                                   onClick={async () => {
                                     if (!agentId) {
-                                      setError("Selected agent has no user id");
+                                      const message = "Selected agent has no user id";
+                                      setError(message);
+                                      toast.error(message);
                                       return;
                                     }
                                     setAssigning(true);
@@ -681,6 +695,7 @@ export default function ChatModal({
                                       setNotificationMessage(
                                         `Ticket assigned to ${agentName}`
                                       );
+                                      toast.success(`Ticket assigned to ${agentName}`);
                                       setShowNotification(true);
                                       setTimeout(() => {
                                         setShowNotification(false);
@@ -693,10 +708,11 @@ export default function ChatModal({
                                         "Failed to assign ticket:",
                                         err
                                       );
-                                      setError(
+                                      const message =
                                         err?.response?.data?.message ||
-                                          "Failed to assign ticket"
-                                      );
+                                        "Failed to assign ticket";
+                                      setError(message);
+                                      toast.error(message);
                                     } finally {
                                       setAssigning(false);
                                     }

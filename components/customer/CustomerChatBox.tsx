@@ -12,6 +12,7 @@ import {
   normalizeChatEntries,
 } from "@/lib/chatClient";
 import { useUsersDirectory } from "@/hooks/useUsersDirectory";
+import { toast } from "sonner";
 
 let api = null;
 try {
@@ -104,7 +105,9 @@ export default function ChatBox({
         if (isAbort) return;
 
         console.error("Failed to load chats:", err);
-        setError(err.message || "Failed to load chats");
+        const message = err.message || "Failed to load chats";
+        setError(message);
+        if (showLoading) toast.error(message);
       } finally {
         if (showLoading) setLoading(false);
       }
@@ -185,6 +188,7 @@ export default function ChatBox({
       digestRef.current = "";
       await fetchChats();
       requestAnimationFrame(scrollToBottom);
+      toast.success("Message sent");
     } catch (err) {
       console.error("Failed to send message:", err);
       let snippet = null;
@@ -202,9 +206,10 @@ export default function ChatBox({
         snippet = err.message ?? String(err);
       }
       setServerResponseSnippet(snippet?.slice?.(0, 5000) ?? String(snippet));
-      setError(
-        `Failed to send message. Server returned error (see console or "Show response").`
-      );
+      const message =
+        `Failed to send message. Server returned error (see console or "Show response").`;
+      setError(message);
+      toast.error(message);
       setMessages((s) =>
         s.map((m) => (m.id === tempId ? { ...m, status: "failed" } : m))
       );
@@ -243,6 +248,7 @@ export default function ChatBox({
       digestRef.current = "";
       await fetchChats();
       requestAnimationFrame(scrollToBottom);
+      toast.success("Message resent");
     } catch (err) {
       console.error("Retry failed:", err);
       let snippet = null;
@@ -252,7 +258,9 @@ export default function ChatBox({
             ? err.response.data
             : JSON.stringify(err.response.data, null, 2);
       setServerResponseSnippet(snippet?.slice?.(0, 5000) ?? String(snippet));
-      setError("Retry failed. See server response.");
+      const message = "Retry failed. See server response.";
+      setError(message);
+      toast.error(message);
       setMessages((s) =>
         s.map((m) => (m.id === msg.id ? { ...m, status: "failed" } : m))
       );
