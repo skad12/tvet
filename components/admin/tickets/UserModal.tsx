@@ -19,7 +19,7 @@ function normalizeStatusValue(statusVal) {
 
 // Format date safely; prefer server's created_at_display if given
 // Uses same format as AgentChatList: PPpp
-function formatMaybeDate(val, display) {
+function formatMaybeDate(val: any, display?: any) {
   if (display) return display;
   if (!val) return "—";
   const dt = new Date(val);

@@ -2,12 +2,19 @@
 
 import { motion } from "framer-motion";
 
+type SkeletonProps = {
+  className?: string;
+  variant?: "default" | "text" | "avatar" | "card" | "button" | string;
+  lines?: number;
+  width?: number | string;
+};
+
 export default function Skeleton({
   className = "",
   variant = "default",
   lines = 1,
   width,
-}) {
+}: SkeletonProps) {
   const variants = {
     default: "bg-slate-200 rounded",
     text: "bg-slate-200 rounded h-4",

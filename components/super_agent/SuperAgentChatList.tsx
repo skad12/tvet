@@ -15,40 +15,15 @@
 //   api = null;
 // }
 
-// export default function ChatList({
+// export default function SuperAgentChatList({
 //   tickets: ticketsProp = null,
 //   selected,
 //   setSelected,
 //   loading: loadingProp = false,
-//   userId: propUserId = null,
-//   userEmail: propUserEmail = null,
-//   categoryId = null,
-//   forceFetch = false,
 //   onRefresh = null,
 //   refreshing = false,
-//   skipUserFilter = false,
 // }) {
 //   const { user, token } = useAuth?.() ?? {};
-
-//   const authUserId =
-//     user?.app_user_id ??
-//     user?.appUserId ??
-//     user?.user_id ??
-//     user?.userId ??
-//     user?.id ??
-//     user?.uid ??
-//     user?.pk ??
-//     null;
-
-//   const authUserEmail =
-//     user?.email ??
-//     user?.username ??
-//     (Array.isArray(user?.emails) ? user.emails[0] : null) ??
-//     user?.contact_email ??
-//     null;
-
-//   const effectiveUserId = propUserId ?? authUserId;
-//   const effectiveUserEmail = propUserEmail ?? authUserEmail;
 
 //   const [tickets, setTickets] = useState([]);
 //   const [loading, setLoading] = useState(Boolean(loadingProp || !ticketsProp));
@@ -57,25 +32,21 @@
 //   const [newTicketNotice, setNewTicketNotice] = useState(null);
 //   const [recentlyAdded, setRecentlyAdded] = useState({});
 //   const seenTicketsRef = useRef(new Set());
-//   const [showEscalatedOnly, setShowEscalatedOnly] = useState(false);
 //   const didAutoSelectRef = useRef(false);
 
 //   const TABS = [
 //     { id: "all", label: "All" },
-//     // { id: "active", label: "Active" },
 //     { id: "pending", label: "Pending" },
 //     { id: "resolved", label: "Resolved" },
 //   ];
 
-//   // Normalize a single ticket object from various API shapes.
-//   // ONLY uses ticket_status field as the source of truth for status
+//   // Normalize a single ticket object - ONLY uses ticket_status field as source of truth
 //   function normalizeTicket(t) {
 //     const id = t?.id ?? t?.pk ?? null;
 //     const subject = t?.subject ?? t?.title ?? null;
 //     const name = t?.name ?? t?.reporter_name ?? null;
 //     const email = t?.email ?? t?.reporter_email ?? t?.user_email ?? "";
 
-//     // escalate flag
 //     const isEscalated = t?.escalated === true;
 
 //     // ONLY use ticket_status field - THIS IS THE ONLY SOURCE OF TRUTH
@@ -87,7 +58,6 @@
 
 //     if (ticketStatusField) {
 //       const ticketStatusLower = ticketStatusField.toLowerCase();
-//       // Normalize to capitalized display names
 //       if (ticketStatusLower === "resolved") {
 //         statusDisplay = "Resolved";
 //       } else if (ticketStatusLower === "pending") {
@@ -95,7 +65,6 @@
 //       } else if (ticketStatusLower === "escalated") {
 //         statusDisplay = "Escalated";
 //       } else {
-//         // Keep original casing for other statuses
 //         statusDisplay =
 //           ticketStatusField.charAt(0).toUpperCase() +
 //           ticketStatusField.slice(1);
@@ -106,21 +75,12 @@
 //       ? String(statusDisplay).toLowerCase()
 //       : "pending";
 
-//     // prefer explicit created_at fields for machine-readable value
-//     const created_at = t?.created_at ?? t?.createdAt ?? null;
+//     const created_at = t?.created_at ?? null;
+//     const created_at_display = t?.created_at_display ?? null;
 
-//     // prefer pub_date for the human/display date (fall back to created_at_display if pub_date is absent)
-//     const created_at_display = t?.pub_date ?? t?.created_at_display ?? null;
-
-//     const ticketUserId =
-//       t?.user_id ??
-//       t?.userId ??
-//       t?.reporter_id ??
-//       t?.owner ??
-//       t?.created_by ??
-//       t?.assigned_to_id ??
-//       t?.assigned_to?.id ??
-//       null;
+//     // NEW: normalize assigned-to name so UI can show who the ticket is assigned to
+//     const assigned_to_name =
+//       t?.assigned_to_name ?? t?.assigned_to?.name ?? t?.assignee_name ?? null;
 
 //     return {
 //       id,
@@ -130,15 +90,14 @@
 //       email,
 //       status: statusKey,
 //       statusDisplay,
-//       ticket_status: ticketStatusField, // Store original ticket_status for reference
+//       ticket_status: ticketStatusField,
 //       created_at,
 //       created_at_display,
-//       raw: { ...t, escalated: isEscalated },
-//       ticketUserId,
+//       assigned_to_name,
+//       raw: { ...t, escalated: isEscalated, assigned_to_name },
 //     };
 //   }
 
-//   // Format date safely; prefer server's created_at_display if given
 //   function formatMaybeDate(val, display) {
 //     if (display) return display;
 //     if (!val) return "—";
@@ -151,58 +110,15 @@
 //     }
 //   }
 
-//   function ticketBelongsToUser(normalized, effId, effEmail) {
-//     if (!effId && !effEmail) return false;
-//     const raw = normalized.raw ?? {};
-//     const idCandidates = [
-//       normalized.ticketUserId,
-//       raw?.user_id,
-//       raw?.userId,
-//       raw?.reporter_id,
-//       raw?.owner,
-//       raw?.created_by,
-//       raw?.user?.id,
-//       raw?.reporter?.id,
-//       raw?.assigned_to_id,
-//       raw?.assigned_to?.id,
-//     ];
-//     const emailCandidates = [
-//       normalized.email,
-//       raw?.email,
-//       raw?.reporter_email,
-//       raw?.user_email,
-//       raw?.assigned_to_email,
-//       raw?.reporter?.email,
-//       raw?.user?.email,
-//     ];
-//     const idMatch = effId
-//       ? idCandidates.some((c) => c != null && String(c) === String(effId))
-//       : false;
-//     const emailMatch = effEmail
-//       ? emailCandidates.some(
-//           (c) => c && String(c).toLowerCase() === String(effEmail).toLowerCase()
-//         )
-//       : false;
-//     return idMatch || emailMatch;
-//   }
-
-//   // Fetch tickets by user id using the required endpoint
+//   // Fetch escalated tickets from /get-all-escalated-tickets/
 //   useEffect(() => {
-//     if (ticketsProp && !forceFetch) {
+//     // If tickets are provided as prop, use them directly (no user filtering)
+//     if (ticketsProp !== null) {
 //       const arr = Array.isArray(ticketsProp) ? ticketsProp : [ticketsProp];
 //       const normalized = arr.map(normalizeTicket);
-//       const shouldFilter = skipUserFilter
-//         ? false
-//         : Boolean(effectiveUserId || effectiveUserEmail);
-//       const filteredByUser = shouldFilter
-//         ? normalized.filter((n) =>
-//             ticketBelongsToUser(n, effectiveUserId, effectiveUserEmail)
-//           )
-//         : normalized;
-
-//       setTickets(filteredByUser);
-//       if (filteredByUser.length > 0 && !didAutoSelectRef.current && !selected) {
-//         setSelected?.(filteredByUser[0]);
+//       setTickets(normalized);
+//       if (normalized.length > 0 && !didAutoSelectRef.current && !selected) {
+//         setSelected?.(normalized[0]);
 //         didAutoSelectRef.current = true;
 //       }
 //       setLoading(false);
@@ -214,27 +130,14 @@
 //     const ac = new AbortController();
 
 //     async function load() {
-//       if (!effectiveUserId && !effectiveUserEmail) {
-//         setTickets([]);
-//         setLoading(false);
-//         setError("No user identity to fetch tickets for.");
-//         return;
-//       }
-
 //       setLoading(true);
 //       setError(null);
-
-//       const endpointRelative = categoryId
-//         ? `/tickets/category-based/?category=${categoryId}`
-//         : showEscalatedOnly
-//         ? `/get-all-escalated-tickets/`
-//         : `/tickets/`;
 
 //       try {
 //         let data;
 //         if (api && typeof api.get === "function") {
 //           const headers = token ? { Authorization: `Bearer ${token}` } : {};
-//           const res = await api.get(endpointRelative, {
+//           const res = await api.get("/get-all-escalated-tickets/", {
 //             headers,
 //             signal: ac.signal,
 //           });
@@ -245,8 +148,8 @@
 //               ? process.env.NEXT_PUBLIC_API_BASE
 //               : undefined;
 //           const endpoint = base
-//             ? `${base.replace(/\/$/, "")}${endpointRelative}`
-//             : endpointRelative;
+//             ? `${base.replace(/\/$/, "")}/get-all-escalated-tickets/`
+//             : "/get-all-escalated-tickets/";
 
 //           const res = await fetch(endpoint, {
 //             method: "GET",
@@ -265,7 +168,6 @@
 
 //         if (!mounted) return;
 
-//         // normalize response — expect an array (per your example)
 //         let arr = [];
 //         if (!data) arr = [];
 //         else if (Array.isArray(data)) arr = data;
@@ -276,25 +178,12 @@
 
 //         let normalized = arr.map(normalizeTicket);
 
-//         // No longer fetching status from additional endpoint - we only use ticket_status field from ticket data
+//         // Don't filter out resolved tickets here - let the tabs handle filtering
+//         // Super agents can see all escalated tickets including resolved ones
+//         setTickets(normalized);
 
-//         const shouldFilter = skipUserFilter
-//           ? false
-//           : Boolean(effectiveUserId || effectiveUserEmail);
-//         const filteredByUser = shouldFilter
-//           ? normalized.filter((n) =>
-//               ticketBelongsToUser(n, effectiveUserId, effectiveUserEmail)
-//             )
-//           : normalized;
-
-//         setTickets(filteredByUser);
-
-//         if (
-//           filteredByUser.length > 0 &&
-//           !didAutoSelectRef.current &&
-//           !selected
-//         ) {
-//           setSelected?.(filteredByUser[0]);
+//         if (normalized.length > 0 && !didAutoSelectRef.current && !selected) {
+//           setSelected?.(normalized[0]);
 //           didAutoSelectRef.current = true;
 //         }
 //       } catch (err) {
@@ -305,8 +194,8 @@
 //           err?.message === "canceled"
 //         )
 //           return;
-//         console.error("Failed to fetch tickets by user id:", err);
-//         setError(err.message || "Failed to load tickets");
+//         console.error("Failed to fetch escalated tickets:", err);
+//         setError(err.message || "Failed to load escalated tickets");
 //         setTickets([]);
 //       } finally {
 //         if (mounted) setLoading(false);
@@ -319,18 +208,7 @@
 //       mounted = false;
 //       ac.abort();
 //     };
-//   }, [
-//     effectiveUserId,
-//     effectiveUserEmail,
-//     token,
-//     ticketsProp,
-//     categoryId,
-//     showEscalatedOnly,
-//     forceFetch,
-//     selected,
-//     setSelected,
-//     skipUserFilter,
-//   ]);
+//   }, [ticketsProp, token]);
 
 //   const owned = useMemo(
 //     () => (Array.isArray(tickets) ? tickets : []),
@@ -338,36 +216,30 @@
 //   );
 
 //   const counts = useMemo(() => {
-//     const map = { all: owned.length, active: 0, pending: 0, resolved: 0 };
+//     const map = { all: owned.length, pending: 0, resolved: 0 };
 //     owned.forEach((t) => {
 //       const s = (t.status ?? "").toLowerCase();
-//       if (s === "pending" || s === "waiting") map.pending++;
+//       if (s === "pending" || s === "waiting" || s === "escalated")
+//         map.pending++;
 //       else if (s === "resolved") map.resolved++;
-//       else map.active++;
 //     });
 //     return map;
 //   }, [owned]);
 
 //   const filtered = useMemo(() => {
 //     let list = owned;
-//     if (showEscalatedOnly) {
-//       // Filter by escalated flag from raw data
-//       list = list.filter((t) => t.raw?.escalated === true);
-//     }
 //     if (!activeTab || activeTab === "all") return list;
 //     return list.filter((t) => {
 //       const s = (t.status ?? "").toLowerCase();
-//       const statusBool =
-//         typeof t.raw?.status === "boolean" ? t.raw.status : undefined;
 //       if (activeTab === "pending") {
-//         return s === "pending" || s === "waiting" || statusBool === false;
+//         return s === "pending" || s === "waiting" || s === "escalated";
 //       }
 //       if (activeTab === "resolved") {
-//         return s === "resolved" || statusBool === true;
+//         return s === "resolved";
 //       }
 //       return s === activeTab;
 //     });
-//   }, [owned, activeTab, showEscalatedOnly]);
+//   }, [owned, activeTab]);
 
 //   const listItem = {
 //     hidden: { opacity: 0, y: 8 },
@@ -394,9 +266,7 @@
 //         return next;
 //       });
 //       setNewTicketNotice(
-//         `${newIds.length} new ticket${
-//           newIds.length > 1 ? "s" : ""
-//         } assigned to you`
+//         `${newIds.length} new escalated ticket${newIds.length > 1 ? "s" : ""}`
 //       );
 //     }
 //   }, [owned]);
@@ -413,7 +283,7 @@
 //         <div className="sticky top-0 z-30 bg-white border-b border-slate-200">
 //           <div className="flex items-center justify-between p-3 sm:p-4">
 //             <h3 className="text-base sm:text-lg font-medium text-slate-800">
-//               Your Tickets
+//               Escalated Tickets
 //             </h3>
 //             <div className="flex items-center gap-2">
 //               {onRefresh && (
@@ -487,15 +357,6 @@
 //                   </button>
 //                 );
 //               })}
-//               <label className="inline-flex items-center gap-1 sm:gap-2 ml-1 sm:ml-2 px-1.5 sm:px-2 py-0.5 sm:py-1 text-xs sm:text-sm text-slate-700">
-//                 <input
-//                   type="checkbox"
-//                   checked={showEscalatedOnly}
-//                   onChange={(e) => setShowEscalatedOnly(e.target.checked)}
-//                   className="w-3 h-3 sm:w-4 sm:h-4"
-//                 />
-//                 <span>Escalated only</span>
-//               </label>
 //             </div>
 //           </div>
 //         </div>
@@ -509,7 +370,7 @@
 //             </div>
 //           ) : filtered.length === 0 ? (
 //             <div className="p-4 sm:p-6 text-xs sm:text-sm text-slate-500 text-center">
-//               No tickets found for this user.
+//               No escalated tickets found.
 //             </div>
 //           ) : (
 //             <ul className="space-y-2 sm:space-y-3">
@@ -517,8 +378,7 @@
 //                 const now = Date.now();
 //                 const subject = t.displaySubject ?? "No subject";
 //                 const email = t.email ?? "";
-//                 const statusKey = (t.status ?? "active").toLowerCase();
-//                 // ONLY use statusDisplay which comes from ticket_status field
+//                 const statusKey = (t.status ?? "pending").toLowerCase();
 //                 const statusLabel = t.statusDisplay || "Pending";
 //                 const time = t.created_at ?? "";
 //                 const resolvedAt = t.raw?.resolved_at ?? null;
@@ -540,8 +400,6 @@
 //                     ? "bg-amber-50 text-amber-700 border border-amber-100"
 //                     : statusKey === "pending"
 //                     ? "bg-amber-50 text-amber-700 border border-amber-100"
-//                     : statusKey === "active" || statusKey === "open"
-//                     ? "bg-sky-50 text-sky-700 border border-sky-100"
 //                     : "bg-slate-50 text-slate-700 border border-slate-100";
 
 //                 return (
@@ -564,6 +422,18 @@
 //                       <div className="text-[10px] sm:text-xs text-slate-500 mt-0.5 sm:mt-1 truncate">
 //                         {email || t.name || "From Widget"}
 //                       </div>
+
+//                       {/* NEW: show who the ticket is assigned to */}
+//                       <div className="text-[10px] sm:text-xs text-slate-500 mt-1 truncate">
+//                         Assigned to:{" "}
+//                         {t.assigned_to_name === null ||
+//                         t.assigned_to_name === undefined ||
+//                         String(t.assigned_to_name).trim() === "" ||
+//                         String(t.assigned_to_name).toLowerCase() === "null"
+//                           ? "Unassigned"
+//                           : t.assigned_to_name}
+//                       </div>
+
 //                       {isRecentlyAdded && (
 //                         <div className="text-[10px] uppercase tracking-wide font-semibold text-emerald-600">
 //                           New
@@ -578,7 +448,6 @@
 //                         {statusLabel}
 //                       </span>
 
-//                       {/* Escalated badge: show whenever escalated is true */}
 //                       {t.raw?.escalated === true && (
 //                         <span className="inline-flex items-center gap-1 text-[10px] sm:text-xs font-semibold px-2 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-100">
 //                           <GoAlertFill />
@@ -625,40 +494,15 @@ try {
   api = null;
 }
 
-export default function ChatList({
+export default function SuperAgentChatList({
   tickets: ticketsProp = null,
   selected,
   setSelected,
   loading: loadingProp = false,
-  userId: propUserId = null,
-  userEmail: propUserEmail = null,
-  categoryId = null,
-  forceFetch = false,
   onRefresh = null,
   refreshing = false,
-  skipUserFilter = false,
 }) {
   const { user, token } = useAuth?.() ?? {};
-
-  const authUserId =
-    user?.app_user_id ??
-    user?.appUserId ??
-    user?.user_id ??
-    user?.userId ??
-    user?.id ??
-    user?.uid ??
-    user?.pk ??
-    null;
-
-  const authUserEmail =
-    user?.email ??
-    user?.username ??
-    (Array.isArray(user?.emails) ? user.emails[0] : null) ??
-    user?.contact_email ??
-    null;
-
-  const effectiveUserId = propUserId ?? authUserId;
-  const effectiveUserEmail = propUserEmail ?? authUserEmail;
 
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(Boolean(loadingProp || !ticketsProp));
@@ -667,8 +511,8 @@ export default function ChatList({
   const [newTicketNotice, setNewTicketNotice] = useState(null);
   const [recentlyAdded, setRecentlyAdded] = useState({});
   const seenTicketsRef = useRef(new Set());
-  const [showEscalatedOnly, setShowEscalatedOnly] = useState(false);
   const didAutoSelectRef = useRef(false);
+  const selectedId = selected?.id ?? selected?.pk ?? null;
 
   const TABS = [
     { id: "all", label: "All" },
@@ -704,18 +548,11 @@ export default function ChatList({
 
     const statusKey = statusDisplay ? String(statusDisplay).toLowerCase() : "pending";
 
-    const created_at = t?.created_at ?? t?.createdAt ?? null;
-    const created_at_display = t?.pub_date ?? t?.created_at_display ?? null;
+    const created_at = t?.created_at ?? null;
+    const created_at_display = t?.created_at_display ?? null;
 
-    const ticketUserId =
-      t?.user_id ??
-      t?.userId ??
-      t?.reporter_id ??
-      t?.owner ??
-      t?.created_by ??
-      t?.assigned_to_id ??
-      t?.assigned_to?.id ??
-      null;
+    const assigned_to_name =
+      t?.assigned_to_name ?? t?.assigned_to?.name ?? t?.assignee_name ?? null;
 
     return {
       id,
@@ -728,12 +565,12 @@ export default function ChatList({
       ticket_status: ticketStatusField,
       created_at,
       created_at_display,
-      raw: { ...t, escalated: isEscalated },
-      ticketUserId,
+      assigned_to_name,
+      raw: { ...t, escalated: isEscalated, assigned_to_name },
     };
   }
 
-  function formatMaybeDate(val, display) {
+function formatMaybeDate(val: any, display?: any) {
     if (display) return display;
     if (!val) return "—";
     const dt = new Date(val);
@@ -745,60 +582,22 @@ export default function ChatList({
     }
   }
 
-  function ticketBelongsToUser(normalized, effId, effEmail) {
-    if (!effId && !effEmail) return false;
-    const raw = normalized.raw ?? {};
-    const idCandidates = [
-      normalized.ticketUserId,
-      raw?.user_id,
-      raw?.userId,
-      raw?.reporter_id,
-      raw?.owner,
-      raw?.created_by,
-      raw?.user?.id,
-      raw?.reporter?.id,
-      raw?.assigned_to_id,
-      raw?.assigned_to?.id,
-    ];
-    const emailCandidates = [
-      normalized.email,
-      raw?.email,
-      raw?.reporter_email,
-      raw?.user_email,
-      raw?.assigned_to_email,
-      raw?.reporter?.email,
-      raw?.user?.email,
-    ];
-    const idMatch = effId
-      ? idCandidates.some((c) => c != null && String(c) === String(effId))
-      : false;
-    const emailMatch = effEmail
-      ? emailCandidates.some(
-          (c) => c && String(c).toLowerCase() === String(effEmail).toLowerCase()
-        )
-      : false;
-    return idMatch || emailMatch;
-  }
-
   useEffect(() => {
-    if (ticketsProp && !forceFetch) {
+    if (ticketsProp !== null) {
       const arr = Array.isArray(ticketsProp) ? ticketsProp : [ticketsProp];
       const normalized = arr.map(normalizeTicket);
-      const shouldFilter = skipUserFilter
-        ? false
-        : Boolean(effectiveUserId || effectiveUserEmail);
-      const filteredByUser = shouldFilter
-        ? normalized.filter((n) =>
-            ticketBelongsToUser(n, effectiveUserId, effectiveUserEmail)
-          )
-        : normalized;
+      setTickets(normalized);
 
-      setTickets(filteredByUser);
-
-      // ===== DESKTOP-ONLY auto-select =====
-      const canAutoSelect = typeof window === "undefined" ? true : window.innerWidth >= 1024;
-      if (filteredByUser.length > 0 && !didAutoSelectRef.current && !selected && canAutoSelect) {
-        setSelected?.(filteredByUser[0]);
+      // DESKTOP-only auto-select
+      const canAutoSelect =
+        typeof window === "undefined" ? true : window.innerWidth >= 1024;
+      if (
+        normalized.length > 0 &&
+        !didAutoSelectRef.current &&
+        !selectedId &&
+        canAutoSelect
+      ) {
+        setSelected?.(normalized[0]);
         didAutoSelectRef.current = true;
       }
 
@@ -811,27 +610,14 @@ export default function ChatList({
     const ac = new AbortController();
 
     async function load() {
-      if (!effectiveUserId && !effectiveUserEmail) {
-        setTickets([]);
-        setLoading(false);
-        setError("No user identity to fetch tickets for.");
-        return;
-      }
-
       setLoading(true);
       setError(null);
-
-      const endpointRelative = categoryId
-        ? `/tickets/category-based/?category=${categoryId}`
-        : showEscalatedOnly
-        ? `/get-all-escalated-tickets/`
-        : `/tickets/`;
 
       try {
         let data;
         if (api && typeof api.get === "function") {
           const headers = token ? { Authorization: `Bearer ${token}` } : {};
-          const res = await api.get(endpointRelative, {
+          const res = await api.get("/get-all-escalated-tickets/", {
             headers,
             signal: ac.signal,
           });
@@ -842,8 +628,8 @@ export default function ChatList({
               ? process.env.NEXT_PUBLIC_API_BASE
               : undefined;
           const endpoint = base
-            ? `${base.replace(/\/$/, "")}${endpointRelative}`
-            : endpointRelative;
+            ? `${base.replace(/\/$/, "")}/get-all-escalated-tickets/`
+            : "/get-all-escalated-tickets/";
 
           const res = await fetch(endpoint, {
             method: "GET",
@@ -872,21 +658,18 @@ export default function ChatList({
 
         let normalized = arr.map(normalizeTicket);
 
-        const shouldFilter = skipUserFilter
-          ? false
-          : Boolean(effectiveUserId || effectiveUserEmail);
-        const filteredByUser = shouldFilter
-          ? normalized.filter((n) =>
-              ticketBelongsToUser(n, effectiveUserId, effectiveUserEmail)
-            )
-          : normalized;
+        setTickets(normalized);
 
-        setTickets(filteredByUser);
-
-        // ===== DESKTOP-ONLY auto-select after load =====
-        const canAutoSelect2 = typeof window === "undefined" ? true : window.innerWidth >= 1024;
-        if (filteredByUser.length > 0 && !didAutoSelectRef.current && !selected && canAutoSelect2) {
-          setSelected?.(filteredByUser[0]);
+        // DESKTOP-only auto-select after load
+        const canAutoSelect2 =
+          typeof window === "undefined" ? true : window.innerWidth >= 1024;
+        if (
+          normalized.length > 0 &&
+          !didAutoSelectRef.current &&
+          !selectedId &&
+          canAutoSelect2
+        ) {
+          setSelected?.(normalized[0]);
           didAutoSelectRef.current = true;
         }
       } catch (err) {
@@ -897,8 +680,8 @@ export default function ChatList({
           err?.message === "canceled"
         )
           return;
-        console.error("Failed to fetch tickets by user id:", err);
-        setError(err.message || "Failed to load tickets");
+        console.error("Failed to fetch escalated tickets:", err);
+        setError(err.message || "Failed to load escalated tickets");
         setTickets([]);
       } finally {
         if (mounted) setLoading(false);
@@ -911,18 +694,7 @@ export default function ChatList({
       mounted = false;
       ac.abort();
     };
-  }, [
-    effectiveUserId,
-    effectiveUserEmail,
-    token,
-    ticketsProp,
-    categoryId,
-    showEscalatedOnly,
-    forceFetch,
-    selected,
-    setSelected,
-    skipUserFilter,
-  ]);
+  }, [ticketsProp, token, selectedId, setSelected]);
 
   const owned = useMemo(
     () => (Array.isArray(tickets) ? tickets : []),
@@ -930,35 +702,30 @@ export default function ChatList({
   );
 
   const counts = useMemo(() => {
-    const map = { all: owned.length, active: 0, pending: 0, resolved: 0 };
+    const map = { all: owned.length, pending: 0, resolved: 0 };
     owned.forEach((t) => {
       const s = (t.status ?? "").toLowerCase();
-      if (s === "pending" || s === "waiting") map.pending++;
+      if (s === "pending" || s === "waiting" || s === "escalated")
+        map.pending++;
       else if (s === "resolved") map.resolved++;
-      else map.active++;
     });
     return map;
   }, [owned]);
 
   const filtered = useMemo(() => {
     let list = owned;
-    if (showEscalatedOnly) {
-      list = list.filter((t) => t.raw?.escalated === true);
-    }
     if (!activeTab || activeTab === "all") return list;
     return list.filter((t) => {
       const s = (t.status ?? "").toLowerCase();
-      const statusBool =
-        typeof t.raw?.status === "boolean" ? t.raw.status : undefined;
       if (activeTab === "pending") {
-        return s === "pending" || s === "waiting" || statusBool === false;
+        return s === "pending" || s === "waiting" || s === "escalated";
       }
       if (activeTab === "resolved") {
-        return s === "resolved" || statusBool === true;
+        return s === "resolved";
       }
       return s === activeTab;
     });
-  }, [owned, activeTab, showEscalatedOnly]);
+  }, [owned, activeTab]);
 
   const listItem = {
     hidden: { opacity: 0, y: 8 },
@@ -985,7 +752,7 @@ export default function ChatList({
         return next;
       });
       setNewTicketNotice(
-        `${newIds.length} new ticket${newIds.length > 1 ? "s" : ""} assigned to you`
+        `${newIds.length} new escalated ticket${newIds.length > 1 ? "s" : ""}`
       );
     }
   }, [owned]);
@@ -1002,7 +769,7 @@ export default function ChatList({
         <div className="sticky top-0 z-30 bg-white border-b border-slate-200">
           <div className="flex items-center justify-between p-3 sm:p-4">
             <h3 className="text-base sm:text-lg font-medium text-slate-800">
-              Your Tickets
+              Escalated Tickets
             </h3>
             <div className="flex items-center gap-2">
               {onRefresh && (
@@ -1039,11 +806,25 @@ export default function ChatList({
           )}
 
           <div className="px-3 sm:px-4 pb-2 sm:pb-3">
-            <div role="tablist" aria-label="Ticket filters" className="flex gap-1.5 sm:gap-2 overflow-x-auto whitespace-nowrap px-1 py-1">
+            <div
+              role="tablist"
+              aria-label="Ticket filters"
+              className="flex gap-1.5 sm:gap-2 overflow-x-auto whitespace-nowrap px-1 py-1"
+            >
               {TABS.map((t) => {
                 const active = activeTab === t.id;
                 return (
-                  <button key={t.id} role="tab" aria-selected={active} onClick={() => setActiveTab(t.id)} className={`inline-flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium transition ${active ? "bg-slate-900 text-white shadow" : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50"}`}>
+                  <button
+                    key={t.id}
+                    role="tab"
+                    aria-selected={active}
+                    onClick={() => setActiveTab(t.id)}
+                    className={`inline-flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium transition ${
+                      active
+                        ? "bg-slate-900 text-white shadow"
+                        : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50"
+                    }`}
+                  >
                     <span>{t.label}</span>
                     <span className="inline-flex items-center justify-center px-1.5 sm:px-2 py-0.5 text-[10px] sm:text-xs rounded-full bg-slate-100 text-slate-700">
                       {counts[t.id] ?? (t.id === "all" ? owned.length : 0)}
@@ -1051,10 +832,6 @@ export default function ChatList({
                   </button>
                 );
               })}
-              <label className="inline-flex items-center gap-1 sm:gap-2 ml-1 sm:ml-2 px-1.5 sm:px-2 py-0.5 sm:py-1 text-xs sm:text-sm text-slate-700">
-                <input type="checkbox" checked={showEscalatedOnly} onChange={(e) => setShowEscalatedOnly(e.target.checked)} className="w-3 h-3 sm:w-4 sm:h-4" />
-                <span>Escalated only</span>
-              </label>
             </div>
           </div>
         </div>
@@ -1065,26 +842,34 @@ export default function ChatList({
           ) : error ? (
             <div className="p-3 sm:p-4 text-xs sm:text-sm text-red-600">{error}</div>
           ) : filtered.length === 0 ? (
-            <div className="p-4 sm:p-6 text-xs sm:text-sm text-slate-500 text-center">No tickets found for this user.</div>
+            <div className="p-4 sm:p-6 text-xs sm:text-sm text-slate-500 text-center">No escalated tickets found.</div>
           ) : (
             <ul className="space-y-2 sm:space-y-3">
               {filtered.map((t, idx) => {
                 const now = Date.now();
                 const subject = t.displaySubject ?? "No subject";
                 const email = t.email ?? "";
-                const statusKey = (t.status ?? "active").toLowerCase();
+                const statusKey = (t.status ?? "pending").toLowerCase();
                 const statusLabel = t.statusDisplay || "Pending";
                 const time = t.created_at ?? "";
                 const resolvedAt = t.raw?.resolved_at ?? null;
                 const resolutionTime = calculateResolutionTime(t.created_at, resolvedAt, t.status || t.ticket_status);
                 const isRecentlyAdded = t.id && recentlyAdded[t.id] && now - recentlyAdded[t.id] < 60000;
-                const pillClass = statusKey === "resolved" ? "bg-emerald-50 text-emerald-700 border border-emerald-100" : statusKey === "escalated" ? "bg-red-50 text-red-700 border border-red-100" : statusKey === "waiting" ? "bg-amber-50 text-amber-700 border border-amber-100" : statusKey === "pending" ? "bg-amber-50 text-amber-700 border border-amber-100" : statusKey === "active" || statusKey === "open" ? "bg-sky-50 text-sky-700 border border-sky-100" : "bg-slate-50 text-slate-700 border border-slate-100";
+                const pillClass = statusKey === "resolved" ? "bg-emerald-50 text-emerald-700 border border-emerald-100" : statusKey === "escalated" ? "bg-red-50 text-red-700 border border-red-100" : statusKey === "waiting" ? "bg-amber-50 text-amber-700 border border-amber-100" : statusKey === "pending" ? "bg-amber-50 text-amber-700 border border-amber-100" : "bg-slate-50 text-slate-700 border border-slate-100";
 
                 return (
                   <motion.li key={t.id ?? `${idx}-${email}`} initial="hidden" animate="visible" variants={listItem} className={`bg-white rounded-lg p-3 sm:p-4 border border-slate-200 flex items-center justify-between shadow-sm cursor-pointer ${selected?.id === t.id ? "ring-2 ring-blue-200" : "hover:bg-slate-50"}`} onClick={() => setSelected?.(t)}>
                     <div className="min-w-0 flex-1">
                       <div className="font-medium text-xs sm:text-sm text-slate-800 truncate flex items-center gap-1.5">{subject}</div>
                       <div className="text-[10px] sm:text-xs text-slate-500 mt-0.5 sm:mt-1 truncate">{email || t.name || "From Widget"}</div>
+
+                      <div className="text-[10px] sm:text-xs text-slate-500 mt-1 truncate">
+                        Assigned to:{" "}
+                        {t.assigned_to_name === null || t.assigned_to_name === undefined || String(t.assigned_to_name).trim() === "" || String(t.assigned_to_name).toLowerCase() === "null"
+                          ? "Unassigned"
+                          : t.assigned_to_name}
+                      </div>
+
                       {isRecentlyAdded && <div className="text-[10px] uppercase tracking-wide font-semibold text-emerald-600">New</div>}
                     </div>
 

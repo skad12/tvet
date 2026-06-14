@@ -5,13 +5,21 @@ import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import api from "@/lib/axios";
 
+type AssignAgentModalProps = {
+  show?: boolean;
+  onClose?: () => void;
+  ticketId?: any;
+  token?: string | null;
+  onAssigned?: (agent: any) => void;
+};
+
 export default function AssignAgentModal({
   show = false,
   onClose = () => {},
   ticketId = null,
   token = null,
   onAssigned = () => {},
-}) {
+}: AssignAgentModalProps) {
   const [agents, setAgents] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);

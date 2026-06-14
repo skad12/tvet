@@ -46,7 +46,7 @@ function normalizeFromArray(arr) {
 }
 
 export default function FAQ() {
-  const [faqData, setFaqData] = useState(); // undefined until fetched
+  const [faqData, setFaqData] = useState<Record<string, any[]> | undefined>(); // undefined until fetched
   const [activeCategory, setActiveCategory] = useState("");
   const [openIndex, setOpenIndex] = useState(null);
   const [loading, setLoading] = useState(true);

@@ -255,6 +255,35 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import api from "@/lib/axios";
 
+type UserStore = {
+  user: any;
+  token: string | null;
+  loading: boolean;
+  error: any;
+  tickets: any[];
+  ticketsLoading: boolean;
+  ticketsError: any;
+  lastTicketRefresh: number | null;
+  setUser: (user: any) => void;
+  setToken: (token: string | null) => void;
+  clearUser: () => void;
+  setLoading: (value: boolean) => void;
+  setError: (error: any) => void;
+  setTickets: (tickets: any[]) => void;
+  addTicket: (ticket: any) => void;
+  updateTicket: (ticketId: any, updates: any) => void;
+  removeTicket: (ticketId: any) => void;
+  setTicketsLoading: (value: boolean) => void;
+  setTicketsError: (error: any) => void;
+  fetchTickets: (options?: any) => Promise<any[]>;
+  fetchTicketsIfNeeded: (options?: any) => Promise<any[]>;
+  isLoggedIn: () => boolean;
+  hasAnyRole: (roles: string | string[]) => boolean;
+  getUserId: () => any;
+  getUserEmail: () => string;
+  getUserRole: () => any;
+};
+
 /**
  * Unified store for user authentication and tickets state management
  *
@@ -262,7 +291,7 @@ import api from "@/lib/axios";
  * Persist only `user` and `token` (token in session storage for security).
  * Tickets are not persisted - fetched fresh on each session.
  */
-export const useUserStore = create(
+export const useUserStore = create<UserStore>()(
   persist(
     (set, get) => ({
       // User state

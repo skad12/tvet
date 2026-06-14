@@ -5,12 +5,19 @@ import { useState } from "react";
 import { useAuth } from "@/context/AuthContext"; // adjust path if needed
 import CreateTicket from "./CreateTicket"; // adjust path if you place CreateTicket elsewhere
 
+type NavbarProps = {
+  userEmail?: string;
+  onTicketCreated?: (ticket: any) => void;
+  showCreateTicket?: boolean;
+  userStatus?: string | null;
+};
+
 export default function Navbar({
   userEmail,
   onTicketCreated,
   showCreateTicket = true,
   userStatus = null,
-}) {
+}: NavbarProps) {
   const { signOut, user } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);

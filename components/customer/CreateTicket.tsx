@@ -381,7 +381,14 @@ export default function CreateTicket({
   isOpen = false,
   onClose = () => {},
   defaultReporterEmail = "",
+  onTicketCreated,
   redirectAfter = null, // optional: "/customer/dashboard"
+}: {
+  isOpen?: boolean;
+  onClose?: () => void;
+  defaultReporterEmail?: string;
+  onTicketCreated?: (ticket: any) => void;
+  redirectAfter?: any;
 }) {
   const router = useRouter();
   const [categories, setCategories] = useState([]);
@@ -449,7 +456,9 @@ export default function CreateTicket({
     }
 
     loadCategories();
-    return () => (mounted = false);
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   // when categories load pick default category (prefer "general")
@@ -546,7 +555,7 @@ export default function CreateTicket({
 
       // Build payload to match TicketForm:
       // { email, category_id, priority, message }
-      const payload = {
+      const payload: Record<string, any> = {
         email: emailToUse,
         category_id: selected.id ?? selected._id ?? String(categoryId),
         priority: priority || "Low",
@@ -595,6 +604,7 @@ export default function CreateTicket({
         type: "success",
         text: "Ticket created successfully. A confirmation mail should be sent.",
       });
+      onTicketCreated?.(res?.data);
       try {
         if (typeof window !== "undefined" && emailToUse)
           localStorage.setItem("tvet_user_email", emailToUse);
@@ -726,7 +736,7 @@ export default function CreateTicket({
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Describe the issue "
               className="w-full border border-slate-300 rounded px-3 py-2"
-              rows="4"
+              rows={4}
               required
             />
           </div>

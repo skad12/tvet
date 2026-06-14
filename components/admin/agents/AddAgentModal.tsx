@@ -23,7 +23,7 @@ const AddAgentSchema = z
     password: z.string().min(8, "Password must be at least 8 characters"),
     confirmPassword: z.string().min(1, "Confirm Password is required"),
     accountType: z.enum(["agent", "super_agent"]).default("agent"),
-    // category: z.string().optional(),
+    category: z.string().optional(),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords do not match",

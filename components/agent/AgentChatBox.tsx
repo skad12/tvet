@@ -15,11 +15,17 @@ import {
 } from "@/lib/chatClient";
 import { GoAlertFill } from "react-icons/go";
 
+type AgentChatBoxProps = {
+  selected?: any;
+  userEmail?: string;
+  onEscalated?: (ticketId: any) => void;
+};
+
 export default function ChatBox({
   selected,
   userEmail: propUserEmail,
   onEscalated,
-}) {
+}: AgentChatBoxProps) {
   const { token, user } = useAuth();
   const userEmail = propUserEmail ?? user?.email ?? user?.username ?? "me";
 

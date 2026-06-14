@@ -1284,7 +1284,7 @@ export default function ChatList({
     };
   }
 
-  function formatMaybeDate(val, display) {
+function formatMaybeDate(val: any, display?: any) {
     if (display) return display;
     if (!val) return "—";
     const dt = new Date(val);

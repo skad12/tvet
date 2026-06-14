@@ -56,7 +56,10 @@ export function AuthProvider({ children }) {
       const resolvedToken =
         data.token || data.access || data.access_token || null;
       const returnedUser =
-        data.user ?? { id: data.id, account_type: data.account_type } ?? data;
+        data.user ??
+        (data.id || data.account_type
+          ? { id: data.id, account_type: data.account_type }
+          : data);
 
       if (resolvedToken) {
         setToken(resolvedToken);

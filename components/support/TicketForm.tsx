@@ -224,7 +224,7 @@ export default function TicketForm() {
           onChange={(e) => setDescription(e.target.value)}
           placeholder="Describe your issue "
           className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none transition focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-100"
-          rows="4"
+          rows={4}
           required
         />
 

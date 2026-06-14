@@ -21,7 +21,15 @@ try {
   api = null;
 }
 
-export default function ChatBox({ selected, userEmail: propUserEmail }) {
+type CustomerChatBoxProps = {
+  selected?: any;
+  userEmail?: string;
+};
+
+export default function ChatBox({
+  selected,
+  userEmail: propUserEmail,
+}: CustomerChatBoxProps) {
   const { token, user } = useAuth();
   const userEmail = propUserEmail ?? user?.email ?? user?.username ?? "me";
   const { users: directory } = useUsersDirectory({ enabled: true });

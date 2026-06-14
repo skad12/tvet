@@ -78,7 +78,7 @@ function isAssignableAgent(agent) {
 }
 
 // Format date safely; prefer server's created_at_display if given
-function formatMaybeDate(val, display) {
+function formatMaybeDate(val: any, display?: any) {
   if (display) return display;
   if (!val) return "—";
   const dt = new Date(val);
@@ -90,13 +90,21 @@ function formatMaybeDate(val, display) {
   }
 }
 
+type ChatModalProps = {
+  ticket?: any;
+  open?: boolean;
+  onClose?: () => void;
+  onOpenUser?: (ticket: any) => void;
+  onMessageAdded?: (message: any, ticket: any) => void;
+};
+
 export default function ChatModal({
   ticket = {},
   open = false,
   onClose = () => {},
   onOpenUser = () => {},
   onMessageAdded,
-}) {
+}: ChatModalProps) {
   const { token, user } = useAuth?.() ?? {};
   const currentUserId =
     user?.app_user_id ??

@@ -4,7 +4,7 @@
 import React, { useEffect, useState } from "react";
 import { AiOutlineRobot } from "react-icons/ai";
 import api from "@/lib/axios";
-export default function AiPerformance({ data = {} }) {
+export default function AiPerformance({ data = {} }: { data?: any }) {
   const [escalatedCount, setEscalatedCount] = useState(null);
   const [loadingEscalated, setLoadingEscalated] = useState(true);
 

@@ -28,7 +28,7 @@ const RegisterSchema = z
     email: z.string().email("Enter a valid email"),
     password: z.string().min(8, "Password must be at least 8 characters"),
     confirm: z.string(),
-    terms: z.literal(true).refine(Boolean, {
+    terms: z.boolean().refine(Boolean, {
       message: "You must accept terms to continue",
     }),
   })

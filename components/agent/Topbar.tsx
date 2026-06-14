@@ -5,7 +5,12 @@ import { useEffect, useState } from "react";
 import api from "@/lib/axios";
 import { useAuth } from "@/context/AuthContext";
 
-export default function AgentTopbar({ userEmail }) {
+type AgentTopbarProps = {
+  userEmail?: string;
+  showCreateTicket?: boolean;
+};
+
+export default function AgentTopbar({ userEmail }: AgentTopbarProps) {
   const { signOut, user } = useAuth();
   const [signingOut, setSigningOut] = useState(false);
   const [agentStatus, setAgentStatus] = useState("loading");

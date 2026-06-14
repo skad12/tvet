@@ -364,34 +364,93 @@
 
 "use client";
 
-let api = null;
+import type {
+  ApiRecord,
+  ApiUser,
+  ChatMessage,
+  ChatPair,
+  ChatRole,
+  IdValue,
+} from "@/types/domain";
+
+type RequestHeaders = Record<string, string>;
+
+type FetchTicketChatsOptions = {
+  token?: string | null;
+  signal?: AbortSignal;
+};
+
+type PostTicketMessageInput = {
+  ticketId: IdValue;
+  message: string;
+  appUserId?: IdValue | null | "";
+  email?: string | null;
+  username?: string | null;
+  token?: string | null;
+  useEmailEndpoint?: boolean;
+  fromTicket?: boolean;
+  allowEmailFallback?: boolean;
+};
+
+type MessagePostAttempt = {
+  endpoint: string;
+  payload: Record<string, unknown>;
+};
+
+type ChatSubEvent = {
+  meta: string;
+  text: string;
+  roleGuess: unknown;
+  atMsRaw: number | null;
+};
+
+type ChatEvent = {
+  idBase: IdValue | string;
+  rawIndex: number;
+  meta: string;
+  text: string;
+  metaOrder: number;
+  role: ChatRole;
+  atMs: number;
+  raw: ApiRecord;
+  status: string;
+};
+
+export type NormalizedChatMessage = Required<Pick<ChatMessage, "id" | "text" | "at" | "role">> & {
+  raw: ApiRecord;
+  status?: ChatMessage["status"];
+  from?: ChatMessage["from"];
+};
+
+let api: typeof import("@/lib/axios").default | null = null;
 try {
   api = require("@/lib/axios").default;
 } catch (err) {
   api = null;
 }
 
-const DEFAULT_HEADERS = {
+const DEFAULT_HEADERS: RequestHeaders = {
   "Content-Type": "application/json",
 };
 
 export const DEFAULT_CHAT_POLL_MS = 4000;
 
 const USER_DIRECTORY_TTL_MS = 5 * 60 * 1000;
-let cachedUsersDirectory = null;
+let cachedUsersDirectory: ApiUser[] | null = null;
 let cachedUsersDirectoryAt = 0;
-let pendingUsersDirectoryPromise = null;
+let pendingUsersDirectoryPromise: Promise<ApiUser[]> | null = null;
 
-function coerceUsersArray(payload) {
+function coerceUsersArray(payload: unknown): ApiUser[] {
   if (!payload) return [];
-  if (Array.isArray(payload)) return payload;
-  if (Array.isArray(payload.results)) return payload.results;
-  if (Array.isArray(payload.data)) return payload.data;
-  if (Array.isArray(payload.users)) return payload.users;
+  if (Array.isArray(payload)) return payload as ApiUser[];
+  const record = payload as ApiRecord;
+  if (Array.isArray(record.results)) return record.results as ApiUser[];
+  if (Array.isArray(record.data)) return record.data as ApiUser[];
+  if (Array.isArray(record.users)) return record.users as ApiUser[];
   return [];
 }
 
-function getUserCandidateId(user) {
+function getUserCandidateId(user?: ApiUser | null): IdValue | null {
   return (
     user?.app_user_id ??
     user?.appUserId ??
@@ -404,24 +463,25 @@ function getUserCandidateId(user) {
   );
 }
 
-function normalizeIdentity(value) {
+function normalizeIdentity(value: unknown): string {
   return String(value ?? "")
     .trim()
     .toLowerCase();
 }
 
-function errorLooksLikeInvalidUser(error) {
+function errorLooksLikeInvalidUser(error: unknown): boolean {
+  const err = error as { response?: { data?: unknown }; data?: unknown; message?: string };
   const raw =
-    error?.response?.data ??
-    error?.data ??
-    error?.message ??
+    err?.response?.data ??
+    err?.data ??
+    err?.message ??
     error ??
     "";
   const text = typeof raw === "string" ? raw : JSON.stringify(raw);
   return text.toLowerCase().includes("invalid user");
 }
 
-async function fetchUsersDirectoryForMessage(token) {
+async function fetchUsersDirectoryForMessage(token?: string | null): Promise<ApiUser[]> {
   if (
     cachedUsersDirectory &&
     Date.now() - cachedUsersDirectoryAt < USER_DIRECTORY_TTL_MS
@@ -463,7 +523,11 @@ async function fetchUsersDirectoryForMessage(token) {
   return pendingUsersDirectoryPromise;
 }
 
-async function resolveMessageAppUserId({ email, username, token }) {
+async function resolveMessageAppUserId({
+  email,
+  username,
+  token,
+}: Pick<PostTicketMessageInput, "email" | "username" | "token">): Promise<IdValue | null> {
   const normalizedEmail = normalizeIdentity(email);
   const normalizedUsername = normalizeIdentity(username);
   if (!normalizedEmail && !normalizedUsername) return null;
@@ -481,18 +545,20 @@ async function resolveMessageAppUserId({ email, username, token }) {
   return getUserCandidateId(matched);
 }
 
-function coerceArray(payload) {
+function coerceArray(payload: unknown): ApiRecord[] {
   if (!payload) return [];
-  if (Array.isArray(payload)) return payload;
-  if (Array.isArray(payload.messages)) return payload.messages;
-  if (Array.isArray(payload.results)) return payload.results;
-  if (Array.isArray(payload.data)) return payload.data;
-  if (Array.isArray(payload.tickets)) return payload.tickets;
-  const maybe = payload?.data?.messages ?? payload?.messages ?? [];
-  return Array.isArray(maybe) ? maybe : [];
+  if (Array.isArray(payload)) return payload as ApiRecord[];
+  const record = payload as ApiRecord;
+  const dataRecord = record.data as ApiRecord | undefined;
+  if (Array.isArray(record.messages)) return record.messages as ApiRecord[];
+  if (Array.isArray(record.results)) return record.results as ApiRecord[];
+  if (Array.isArray(record.data)) return record.data as ApiRecord[];
+  if (Array.isArray(record.tickets)) return record.tickets as ApiRecord[];
+  const maybe = dataRecord?.messages ?? record.messages ?? [];
+  return Array.isArray(maybe) ? (maybe as ApiRecord[]) : [];
 }
 
-function resolveRole(input, fallback = "customer") {
+function resolveRole(input: unknown, fallback: ChatRole = "customer"): ChatRole {
   const value = (input ?? "").toString().toLowerCase();
   if (!value) return fallback;
 
@@ -520,7 +586,7 @@ function resolveRole(input, fallback = "customer") {
   return fallback;
 }
 
-function parseDateToMs(d) {
+function parseDateToMs(d: unknown): number {
   if (!d) return NaN;
   const n = Number(d);
   if (!Number.isNaN(n)) return n;
@@ -528,14 +594,14 @@ function parseDateToMs(d) {
   return Number.isNaN(parsed) ? NaN : parsed;
 }
 
-function normalizeMessageText(value) {
+function normalizeMessageText(value: unknown): string {
   return String(value ?? "")
     .trim()
     .replace(/\s+/g, " ")
     .toLowerCase();
 }
 
-function isLocalMessage(message) {
+function isLocalMessage(message?: ChatMessage | null): boolean {
   const id = String(message?.id ?? "");
   return (
     id.startsWith("tmp-") ||
@@ -545,7 +611,10 @@ function isLocalMessage(message) {
   );
 }
 
-function serverMessageMatchesLocal(serverMessage, localMessage) {
+function serverMessageMatchesLocal(
+  serverMessage: ChatMessage,
+  localMessage: ChatMessage
+): boolean {
   const serverText = normalizeMessageText(serverMessage?.text);
   const localText = normalizeMessageText(localMessage?.text);
   if (!serverText || serverText !== localText) return false;
@@ -563,8 +632,8 @@ function serverMessageMatchesLocal(serverMessage, localMessage) {
   return true;
 }
 
-function dedupeMessageEvents(messages = []) {
-  const seen = [];
+function dedupeMessageEvents(messages: NormalizedChatMessage[] = []): NormalizedChatMessage[] {
+  const seen: Array<{ text: string; role: ChatRole; atMs: number }> = [];
   return messages.filter((message) => {
     const text = normalizeMessageText(message?.text);
     const role = message?.role ?? "";
@@ -590,12 +659,15 @@ function dedupeMessageEvents(messages = []) {
  * - Accepts varied payload shapes and returns chronological flat events:
  *   { id, text, at (ISO), role, raw, status }
  */
-export function normalizeChatEntries(payload, { ticketId } = {}) {
+export function normalizeChatEntries(
+  payload: unknown,
+  { ticketId }: { ticketId?: IdValue | string } = {}
+): NormalizedChatMessage[] {
   const rawEntries = coerceArray(payload);
   if (!rawEntries.length) return [];
 
-  const events = [];
-  const metaOrder = {
+  const events: ChatEvent[] = [];
+  const metaOrder: Record<string, number> = {
     msg: 0,
     text: 0,
     message: 0,
@@ -605,6 +677,8 @@ export function normalizeChatEntries(payload, { ticketId } = {}) {
   };
 
   rawEntries.forEach((entry, idx) => {
+    const userRecord = entry.user as ApiUser | undefined;
+    const appUserRecord = entry.app_user as ApiUser | undefined;
     const entryBaseRaw =
       entry.at ??
       entry.created_at ??
@@ -625,8 +699,13 @@ export function normalizeChatEntries(payload, { ticketId } = {}) {
       entry.uuid ??
       `${ticketId ?? "ticket"}-${idx}`;
 
-    const subEvents = [];
-    const pushSub = (meta, textRaw, roleGuess, atOverride) => {
+    const subEvents: ChatSubEvent[] = [];
+    const pushSub = (
+      meta: string,
+      textRaw: unknown,
+      roleGuess: unknown,
+      atOverride: unknown
+    ): void => {
       const text = (textRaw ?? "").toString().trim();
       if (!text) return;
       const atMsRaw = parseDateToMs(atOverride);
@@ -650,10 +729,10 @@ export function normalizeChatEntries(payload, { ticketId } = {}) {
       entry.account_type ??
       entry.accountType ??
       entry.created_by_role ??
-      entry.user?.account_type ??
-      entry.user?.role ??
-      entry.app_user?.account_type ??
-      entry.app_user?.role;
+      userRecord?.account_type ??
+      userRecord?.role ??
+      appUserRecord?.account_type ??
+      appUserRecord?.role;
 
     if (entry.message != null) {
       pushSub(
@@ -706,7 +785,7 @@ export function normalizeChatEntries(payload, { ticketId } = {}) {
 
     if (!subEvents.length) return;
 
-    let lastAssignedMs = null;
+    let lastAssignedMs: number | null = null;
     subEvents.forEach((se, sIdx) => {
       const preferredMs = se.atMsRaw ?? baseMs + sIdx;
       let assigned = preferredMs;
@@ -715,7 +794,7 @@ export function normalizeChatEntries(payload, { ticketId } = {}) {
       lastAssignedMs = assigned;
 
       events.push({
-        idBase: baseId,
+        idBase: String(baseId),
         rawIndex: idx,
         meta: se.meta,
         metaOrder: metaOrder[se.meta] ?? 9,
@@ -726,7 +805,7 @@ export function normalizeChatEntries(payload, { ticketId } = {}) {
         ),
         atMs: assigned,
         raw: entry,
-        status: entry.status ?? "sent",
+        status: String(entry.status ?? "sent"),
       });
     });
   });
@@ -752,15 +831,18 @@ export function normalizeChatEntries(payload, { ticketId } = {}) {
   return dedupeMessageEvents(normalized);
 }
 
-export function digestMessages(list = []) {
+export function digestMessages(list: ChatMessage[] = []): string {
   if (!list.length) return "";
   return list.map((m) => `${m.id}-${m.text}-${m.role}-${m.at}`).join("|");
 }
 
-export function mergeChatMessages(fetchedMessages = [], currentMessages = []) {
+export function mergeChatMessages(
+  fetchedMessages: ChatMessage[] = [],
+  currentMessages: ChatMessage[] = []
+): ChatMessage[] {
   const fetched = Array.isArray(fetchedMessages) ? fetchedMessages : [];
   const current = Array.isArray(currentMessages) ? currentMessages : [];
-  const consumedFetched = new Set();
+  const consumedFetched = new Set<number>();
 
   const localMessagesToKeep = current.filter((message) => {
     if (!isLocalMessage(message)) return false;
@@ -789,7 +871,10 @@ export function mergeChatMessages(fetchedMessages = [], currentMessages = []) {
   });
 }
 
-export async function fetchTicketChats(ticketId, { token, signal } = {}) {
+export async function fetchTicketChats(
+  ticketId: IdValue | string | null | undefined,
+  { token, signal }: FetchTicketChatsOptions = {}
+): Promise<unknown[]> {
   if (!ticketId) return [];
   const endpoint = `/tickets/get/chats/${ticketId}/`;
   const headers = token
@@ -826,7 +911,7 @@ export async function postTicketMessage({
   useEmailEndpoint = false,
   fromTicket = false,
   allowEmailFallback = false,
-}) {
+}: PostTicketMessageInput): Promise<unknown> {
   if (!ticketId) throw new Error("ticketId is required");
 
   let resolvedAppUserId = appUserId;
@@ -843,7 +928,10 @@ export async function postTicketMessage({
     ? { ...DEFAULT_HEADERS, Authorization: `Bearer ${token}` }
     : DEFAULT_HEADERS;
 
-  const sendPayload = async (endpoint, payload) => {
+  const sendPayload = async (
+    endpoint: string,
+    payload: Record<string, unknown>
+  ): Promise<unknown> => {
     const base =
       typeof window !== "undefined"
         ? process.env.NEXT_PUBLIC_API_BASE?.replace(/\/$/, "")
@@ -858,7 +946,7 @@ export async function postTicketMessage({
       });
       if (!response.ok) {
         const text = await response.text().catch(() => "");
-        const error = new Error(
+        const error: any = new Error(
           `Failed to send message (${response.status}) ${
             text || response.statusText
           }`
@@ -883,8 +971,8 @@ export async function postTicketMessage({
     return array.findIndex((item) => String(item) === String(value)) === index;
   });
 
-  const attempts = [];
-  const addUserAttempts = (endpoint) => {
+  const attempts: MessagePostAttempt[] = [];
+  const addUserAttempts = (endpoint: string): void => {
     userIds.forEach((userId) => {
       attempts.push({
         endpoint,
@@ -931,13 +1019,14 @@ export async function postTicketMessage({
     });
   }
 
-  let lastError = null;
+  let lastError: unknown = null;
   for (const [index, attempt] of attempts.entries()) {
     try {
       return await sendPayload(attempt.endpoint, attempt.payload);
     } catch (error) {
       lastError = error;
-      const status = error?.response?.status ?? error?.status;
+      const err = error as { response?: { status?: number }; status?: number };
+      const status = err?.response?.status ?? err?.status;
       const hasMoreAttempts = index < attempts.length - 1;
       if (status >= 500 && hasMoreAttempts) continue;
       if (!errorLooksLikeInvalidUser(error) && status !== 400) {
@@ -951,10 +1040,10 @@ export async function postTicketMessage({
 
 // ---------------- pairing helpers ----------------
 
-export function cleanPairs(rawPairs = []) {
+export function cleanPairs(rawPairs: ChatPair[] = []): ChatPair[] {
   return (rawPairs || [])
     .map((p) => {
-      const out = {};
+      const out: ChatPair = {};
       if (p.message != null && String(p.message).trim() !== "")
         out.message = p.message;
       if (p.reply != null && String(p.reply).trim() !== "") out.reply = p.reply;
@@ -967,12 +1056,12 @@ export function cleanPairs(rawPairs = []) {
  * Agent pairing: agent block -> `reply`, following customer block -> `message`
  * Returns [{ reply, message }, ...]
  */
-export function pairForAgent(flatMessages = []) {
+export function pairForAgent(flatMessages: ChatMessage[] = []): ChatPair[] {
   if (!Array.isArray(flatMessages) || !flatMessages.length) return [];
-  const out = [];
+  const out: ChatPair[] = [];
   let i = 0;
   while (i < flatMessages.length) {
-    const replyParts = [];
+    const replyParts: string[] = [];
     while (
       i < flatMessages.length &&
       String(flatMessages[i].role) === "agent"
@@ -980,7 +1069,7 @@ export function pairForAgent(flatMessages = []) {
       replyParts.push(flatMessages[i].text ?? flatMessages[i].message ?? "");
       i++;
     }
-    const messageParts = [];
+    const messageParts: string[] = [];
     while (
       i < flatMessages.length &&
       String(flatMessages[i].role) !== "agent"
@@ -1000,12 +1089,12 @@ export function pairForAgent(flatMessages = []) {
  * Customer pairing: customer block -> `message`, following agent block -> `reply`
  * Returns [{ message, reply }, ...]
  */
-export function pairForCustomer(flatMessages = []) {
+export function pairForCustomer(flatMessages: ChatMessage[] = []): ChatPair[] {
   if (!Array.isArray(flatMessages) || !flatMessages.length) return [];
-  const out = [];
+  const out: ChatPair[] = [];
   let i = 0;
   while (i < flatMessages.length) {
-    const messageParts = [];
+    const messageParts: string[] = [];
     while (
       i < flatMessages.length &&
       String(flatMessages[i].role) === "customer"
@@ -1013,7 +1102,7 @@ export function pairForCustomer(flatMessages = []) {
       messageParts.push(flatMessages[i].text ?? flatMessages[i].message ?? "");
       i++;
     }
-    const replyParts = [];
+    const replyParts: string[] = [];
     while (
       i < flatMessages.length &&
       String(flatMessages[i].role) !== "customer"

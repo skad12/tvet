@@ -720,11 +720,17 @@ function isAgentAccount(user) {
   return accountType === "agent" || accountType === "agents";
 }
 
+type SuperAgentChatBoxProps = {
+  selected?: any;
+  userEmail?: string;
+  onResolved?: (ticketId: any) => void;
+};
+
 export default function SuperAgentChatBox({
   selected,
   userEmail: propUserEmail,
   onResolved,
-}) {
+}: SuperAgentChatBoxProps) {
   const { token, user } = useAuth();
   const userEmail = propUserEmail ?? user?.email ?? user?.username ?? "me";
   const { users: usersDirectory = [], loading: usersDirectoryLoading } =
