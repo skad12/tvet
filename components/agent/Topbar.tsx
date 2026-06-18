@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import api from "@/lib/axios";
 import { useAuth } from "@/context/AuthContext";
+import ThemeToggle from "@/components/ThemeToggle";
 
 type AgentTopbarProps = {
   userEmail?: string;
@@ -104,7 +105,7 @@ export default function AgentTopbar({ userEmail }: AgentTopbarProps) {
 
   return (
     <motion.div
-      className="sticky top-0 z-40 mb-4 rounded-3xl border border-white/70 bg-white/85 px-5 py-4 shadow-xl shadow-slate-950/5 backdrop-blur sm:mb-6 lg:mb-8"
+      className="sticky top-0 z-40 mb-4 rounded-3xl border border-border bg-card/85 text-card-foreground px-5 py-4 shadow-xl shadow-slate-950/5 backdrop-blur sm:mb-6 lg:mb-8"
       initial={{ opacity: 0, y: -6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
@@ -114,11 +115,11 @@ export default function AgentTopbar({ userEmail }: AgentTopbarProps) {
           <h2 className="text-lg sm:text-xl lg:text-2xl font-semibold">
             Hi {displayName} 👋
           </h2>
-          <div className="text-xs sm:text-sm text-slate-500 mt-1 truncate">
+          <div className="text-xs sm:text-sm text-muted mt-1 truncate">
             {displayEmail || "You are viewing your dashboard."}
           </div>
           <div className="mt-1 flex items-center gap-2">
-            <span className="uppercase text-[10px] sm:text-xs tracking-wide text-slate-500">
+            <span className="uppercase text-[10px] sm:text-xs tracking-wide text-muted">
               {String(accountType)}
             </span>
 
@@ -131,10 +132,11 @@ export default function AgentTopbar({ userEmail }: AgentTopbarProps) {
         </div>
 
         <div className="flex items-center gap-2 w-full sm:w-auto">
+          <ThemeToggle variant="ghost" />
           <button
             onClick={handleSignOut}
             disabled={signingOut}
-            className="w-full rounded-full border border-slate-300 bg-white/80 px-4 py-2 text-xs transition hover:bg-slate-50 disabled:opacity-60 sm:w-auto sm:text-sm"
+            className="w-full rounded-full border border-border bg-card/80 px-4 py-2 text-xs text-foreground transition hover:bg-surface-muted disabled:opacity-60 sm:w-auto sm:text-sm"
           >
             {signingOut ? "Logging out…" : "Logout"}
           </button>

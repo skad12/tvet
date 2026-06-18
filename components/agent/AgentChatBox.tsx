@@ -15,6 +15,8 @@ import {
 } from "@/lib/chatClient";
 import { GoAlertFill } from "react-icons/go";
 import { toast } from "sonner";
+import TypingIndicator from "@/components/chat/TypingIndicator";
+import { useTicketTyping } from "@/hooks/useTicketTyping";
 
 type AgentChatBoxProps = {
   selected?: any;
@@ -72,6 +74,14 @@ export default function ChatBox({
   const pollTimerRef = useRef(null);
   const controllerRef = useRef(null);
   const CURRENT_ROLE = "agent";
+  const { remoteTyping, remoteLabel } = useTicketTyping({
+    ticketId: selected?.id,
+    userId: appUserId ?? userEmail,
+    userName: user?.name ?? user?.username ?? userEmail,
+    role: CURRENT_ROLE,
+    text: msgText,
+    enabled: Boolean(selected?.id),
+  });
 
   const fetchChats = useCallback(
     async ({ showLoading = false } = {}) => {
@@ -146,6 +156,10 @@ export default function ChatBox({
   useEffect(() => {
     scrollToBottom();
   }, [messages.length]);
+
+  useEffect(() => {
+    if (remoteTyping) requestAnimationFrame(scrollToBottom);
+  }, [remoteTyping]);
 
   useEffect(() => {
     const selectedId = selected?.id ? String(selected.id) : null;
@@ -233,7 +247,6 @@ export default function ChatBox({
       digestRef.current = "";
       fetchChats();
       requestAnimationFrame(scrollToBottom);
-      toast.success("Message sent");
     } catch (err) {
       console.error("Failed to send message:", err);
       let snippet = null;
@@ -290,7 +303,6 @@ export default function ChatBox({
       digestRef.current = "";
       fetchChats();
       requestAnimationFrame(scrollToBottom);
-      toast.success("Message resent");
     } catch (err) {
       console.error("Retry failed:", err);
       let snippet = null;
@@ -313,29 +325,29 @@ export default function ChatBox({
     <motion.div
       layout
       /* fixed height: smaller on mobile, larger on desktop; cap with max-h so popup still fits */
-      className="lg:h-[500px] h-[400px] max-h-[85vh] bg-white rounded shadow p-3 sm:p-4 flex flex-col"
+      className="lg:h-[500px] h-[400px] max-h-[85vh] bg-card text-card-foreground rounded shadow p-3 sm:p-4 flex flex-col"
       data-chat-box
     >
       <div className="mb-2 sm:mb-3">
-        <h3 className="text-sm sm:text-base font-medium text-slate-800">
+        <h3 className="text-sm sm:text-base font-medium text-foreground">
           Conversation
         </h3>
-        <p className="text-[10px] sm:text-xs text-slate-500">
+        <p className="text-[10px] sm:text-xs text-muted">
           Selected ticket chat & replies
         </p>
       </div>
 
       {!selected ? (
-        <div className="flex-1 flex items-center justify-center p-4 text-xs sm:text-sm text-slate-500 text-center">
+        <div className="flex-1 flex items-center justify-center p-4 text-xs sm:text-sm text-muted text-center">
           No ticket selected. Select a ticket from the list.
         </div>
       ) : (
         <>
           <motion.div
             layout
-            className="border border-slate-300 rounded p-2 sm:p-3 mb-3 sm:mb-4"
+            className="border border-border rounded p-2 sm:p-3 mb-3 sm:mb-4"
           >
-            <div className="text-xs sm:text-sm font-semibold text-slate-800 mb-1 sm:mb-2 uppercase truncate">
+            <div className="text-xs sm:text-sm font-semibold text-foreground mb-1 sm:mb-2 uppercase truncate">
               {selected.subject ||
                 selected.category ||
                 selected.categoryTitle ||
@@ -349,7 +361,7 @@ export default function ChatBox({
                 </span>
               )}
             </div>
-            <div className="text-[10px] sm:text-xs text-slate-400 mt-1 flex items-center gap-2 sm:gap-3 flex-wrap">
+            <div className="text-[10px] sm:text-xs text-muted mt-1 flex items-center gap-2 sm:gap-3 flex-wrap">
               <span>
                 Ticket ID:{" "}
                 <span className="text-xs text-green-600">{selected.id}</span>
@@ -394,7 +406,7 @@ export default function ChatBox({
                       }
                     }}
                     disabled={escalating}
-                    className={`text-xs px-2 py-1 rounded border border-slate-300 bg-white text-slate-700 transition-colors hover:bg-slate-50 ${
+                    className={`text-xs px-2 py-1 rounded border border-border bg-card text-foreground transition-colors hover:bg-surface-muted ${
                       escalating ? "opacity-50 cursor-not-allowed" : ""
                     }`}
                     aria-label="Escalate ticket"
@@ -472,7 +484,7 @@ export default function ChatBox({
                 role="status"
                 aria-live="polite"
               >
-                <div className="flex items-start gap-3 p-3 rounded bg-white border border-slate-200">
+                <div className="flex items-start gap-3 p-3 rounded bg-card border border-border">
                   <div className="shrink-0">
                     <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-green-50 text-green-600 border border-green-100">
                       <svg
@@ -491,10 +503,10 @@ export default function ChatBox({
                     </div>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-slate-900">
+                    <p className="text-sm font-medium text-foreground">
                       Success
                     </p>
-                    <p className="text-sm text-slate-600">
+                    <p className="text-sm text-muted">
                       {escalationNotice || resolveNotice}
                     </p>
                   </div>
@@ -502,7 +514,7 @@ export default function ChatBox({
                     <button
                       onClick={() => setShowPopup(false)}
                       aria-label="Close"
-                      className="inline-flex p-1 rounded text-slate-400 hover:text-slate-600"
+                      className="inline-flex p-1 rounded text-muted hover:text-muted"
                     >
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -527,7 +539,7 @@ export default function ChatBox({
           {/* messages container: flex-1 so it scrolls, no fixed heights here */}
           <div
             ref={containerRef}
-            className="flex-1 overflow-y-auto mb-3 sm:mb-4 space-y-1 p-2 sm:p-4 bg-slate-50 rounded-lg border border-slate-200 min-h-0"
+            className="flex-1 overflow-y-auto mb-3 sm:mb-4 space-y-1 p-2 sm:p-4 bg-surface-muted rounded-lg border border-border min-h-0"
             style={{ paddingBottom: "env(safe-area-inset-bottom, 12px)" }}
           >
             <AnimatePresence initial={false}>
@@ -539,7 +551,7 @@ export default function ChatBox({
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                 >
-                  <div className="flex items-center gap-2 text-sm text-slate-500">
+                  <div className="flex items-center gap-2 text-sm text-muted">
                     <div className="w-4 h-4 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
                     <span>Loading messages…</span>
                   </div>
@@ -576,7 +588,7 @@ export default function ChatBox({
                       className={`p-3 rounded-lg max-w-[75%] shadow-sm ${
                         isSender
                           ? "bg-blue-600 text-white rounded-tr-none"
-                          : "bg-gray-200 text-gray-800 rounded-tl-none"
+                          : "bg-surface-muted text-foreground rounded-tl-none"
                       }`}
                     >
                       <div className="text-sm whitespace-pre-wrap wrap-break-word">
@@ -584,7 +596,7 @@ export default function ChatBox({
                       </div>
                       <div
                         className={`text-xs mt-1.5 flex items-center gap-2 ${
-                          isSender ? "text-blue-100" : "text-gray-600"
+                          isSender ? "text-blue-100" : "text-muted"
                         }`}
                       >
                         <span>{format(new Date(m.at), "h:mm a")}</span>
@@ -611,10 +623,14 @@ export default function ChatBox({
                   </motion.div>
                 );
               })}
+
+              {remoteTyping ? (
+                <TypingIndicator key="remote-typing" label={remoteLabel} />
+              ) : null}
             </AnimatePresence>
 
-            {messages.length === 0 && !loading && (
-              <div className="text-sm text-slate-400 text-center py-8">
+            {messages.length === 0 && !loading && !remoteTyping && (
+              <div className="text-sm text-muted text-center py-8">
                 No messages yet.
               </div>
             )}
@@ -627,7 +643,7 @@ export default function ChatBox({
             style={{ paddingBottom: "env(safe-area-inset-bottom, 8px)" }}
           >
             <input
-              className="flex-1 border border-slate-200 px-2 sm:px-3 py-1.5 sm:py-2 rounded text-sm active:shadow-sm"
+              className="flex-1 border border-border bg-input-bg px-2 sm:px-3 py-1.5 sm:py-2 rounded text-sm text-foreground active:shadow-sm"
               placeholder="Type a message..."
               value={msgText}
               onChange={(e) => setMsgText(e.target.value)}

@@ -235,7 +235,7 @@ export default function AgentDashboardPage() {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35 }}
-        className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgb(219_234_254/0.8),transparent_30%),linear-gradient(135deg,#f8fafc,#eef6ff_45%,#f8fafc)] py-3 sm:py-5"
+        className="min-h-screen app-shell py-3 sm:py-5"
       >
         <div className="mx-auto max-w-7xl px-3 sm:px-5">
           <Navbar userEmail={userEmail || undefined} showCreateTicket={false} />

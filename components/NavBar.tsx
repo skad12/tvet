@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import Image from "next/image";
 import logo from "@/public/images/tvet-logo.png";
 import TrackTicketModal from "@/components/TrackTicketModal";
+import ThemeToggle from "@/components/ThemeToggle";
 
 const MotionLink = motion.create(Link);
 
@@ -32,9 +33,9 @@ export default function NavBar({ variant = "solid" }) {
         className={`z-50 w-full transition-all duration-300 ${
           isTransparent
             ? scrolled
-              ? "fixed top-0 border-b border-slate-200 bg-white/95 text-slate-950 shadow-sm backdrop-blur"
+              ? "fixed top-0 border-b border-border bg-card/95 text-foreground shadow-sm backdrop-blur"
               : "absolute top-0 bg-transparent text-white"
-            : "sticky top-0 border-b border-slate-200 bg-white/90 text-slate-950 shadow-sm backdrop-blur"
+            : "sticky top-0 border-b border-border bg-card/90 text-foreground shadow-sm backdrop-blur"
         }`}
       >
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
@@ -52,14 +53,7 @@ export default function NavBar({ variant = "solid" }) {
           </Link>
 
           <div className="flex items-center gap-3">
-            {/* <MotionLink
-              href="#"
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.98 }}
-              className="px-4 py-2 rounded bg-blue-600 text-white text-xs md:text-sm lg:text-base"
-            >
-              Support
-            </MotionLink> */}
+            <ThemeToggle variant={isFloating ? "floating" : "default"} />
 
             <motion.button
               onClick={() => setShowTrackTicketModal(true)}
@@ -77,7 +71,7 @@ export default function NavBar({ variant = "solid" }) {
               className={`rounded-full border px-4 py-2 text-xs font-semibold transition md:text-sm lg:text-base ${
                 isFloating
                   ? "border-white/35 bg-white/10 text-white backdrop-blur hover:bg-white/20"
-                  : "border-slate-300 bg-white text-slate-800 shadow-sm hover:bg-slate-50"
+                  : "border-border bg-card text-foreground shadow-sm hover:bg-surface-muted"
               }`}
             >
               Login

@@ -2,7 +2,9 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import FloatingWidget from "@/components/FloatingWidget";
 import AppToaster from "@/components/AppToaster";
+import ThemeScript from "@/components/ThemeScript";
 import { AuthProvider } from "@/context/AuthContext";
+import { ThemeProvider } from "@/context/ThemeContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -21,14 +23,18 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <ThemeScript />
+      </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
       >
-        <AuthProvider>{children}</AuthProvider>
-        <AppToaster />
-        {/* Floating support widget */}
-        <FloatingWidget />
+        <ThemeProvider>
+          <AuthProvider>{children}</AuthProvider>
+          <AppToaster />
+          <FloatingWidget />
+        </ThemeProvider>
       </body>
     </html>
   );

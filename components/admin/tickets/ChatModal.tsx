@@ -429,7 +429,6 @@ export default function ChatModal({
         );
       }
       setText("");
-      toast.success("Message sent");
     } catch (err) {
       console.error("Failed to send message:", err);
       const message = err.message || "Failed to send message";

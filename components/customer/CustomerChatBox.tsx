@@ -13,6 +13,8 @@ import {
 } from "@/lib/chatClient";
 import { useUsersDirectory } from "@/hooks/useUsersDirectory";
 import { toast } from "sonner";
+import TypingIndicator from "@/components/chat/TypingIndicator";
+import { useTicketTyping } from "@/hooks/useTicketTyping";
 
 let api = null;
 try {
@@ -66,6 +68,14 @@ export default function ChatBox({
   const pollTimerRef = useRef(null);
   const controllerRef = useRef(null);
   const CURRENT_ROLE = "customer";
+  const { remoteTyping, remoteLabel } = useTicketTyping({
+    ticketId: selected?.id,
+    userId: appUserId ?? userEmail,
+    userName: user?.name ?? user?.username ?? userEmail,
+    role: CURRENT_ROLE,
+    text: msgText,
+    enabled: Boolean(selected?.id),
+  });
 
   const fetchChats = useCallback(
     async ({ showLoading = false } = {}) => {
@@ -141,6 +151,10 @@ export default function ChatBox({
     scrollToBottom();
   }, [messages.length]);
 
+  useEffect(() => {
+    if (remoteTyping) requestAnimationFrame(scrollToBottom);
+  }, [remoteTyping]);
+
   async function sendMessage(e) {
     if (e && e.preventDefault) e.preventDefault();
     setError(null);
@@ -188,7 +202,6 @@ export default function ChatBox({
       digestRef.current = "";
       await fetchChats();
       requestAnimationFrame(scrollToBottom);
-      toast.success("Message sent");
     } catch (err) {
       console.error("Failed to send message:", err);
       let snippet = null;
@@ -248,7 +261,6 @@ export default function ChatBox({
       digestRef.current = "";
       await fetchChats();
       requestAnimationFrame(scrollToBottom);
-      toast.success("Message resent");
     } catch (err) {
       console.error("Retry failed:", err);
       let snippet = null;
@@ -301,15 +313,15 @@ export default function ChatBox({
       layout
       data-chat-box
       /* fixed height: smaller on mobile, larger on desktop; cap with max-h so popup still fits */
-      className="lg:h-[500px] h-[400px] max-h-[85vh] bg-white rounded-lg shadow-sm p-4 md:p-6 flex flex-col"
+      className="lg:h-[500px] h-[400px] max-h-[85vh] bg-card text-card-foreground rounded-lg shadow-sm p-4 md:p-6 flex flex-col"
     >
       <div className="mb-3">
-        <h3 className="font-medium text-slate-800">Conversation</h3>
-        <p className="text-xs text-slate-500">Selected ticket chat & replies</p>
+        <h3 className="font-medium text-foreground">Conversation</h3>
+        <p className="text-xs text-muted">Selected ticket chat & replies</p>
       </div>
 
       {!selected ? (
-        <div className="flex-1 flex items-center justify-center p-6 text-sm text-slate-500 text-center">
+        <div className="flex-1 flex items-center justify-center p-6 text-sm text-muted text-center">
           <div>
             <div className="text-4xl mb-2">💬</div>
             <p className="font-medium">No ticket selected</p>
@@ -322,9 +334,9 @@ export default function ChatBox({
         <>
           <motion.div
             layout
-            className="border border-slate-200 rounded-lg p-3 mb-4 bg-slate-50"
+            className="border border-border rounded-lg p-3 mb-4 bg-surface-muted"
           >
-            <div className="text-sm font-semibold text-slate-800 mb-2 uppercase">
+            <div className="text-sm font-semibold text-foreground mb-2 uppercase">
               {selected.subject ||
                 selected.category ||
                 selected.categoryTitle ||
@@ -351,7 +363,7 @@ export default function ChatBox({
           {/* messages container (scrollable) */}
           <div
             ref={containerRef}
-            className="flex-1 overflow-y-auto mb-4 space-y-1 p-4 bg-slate-50 rounded-lg border border-slate-200 min-h-0"
+            className="flex-1 overflow-y-auto mb-4 space-y-1 p-4 bg-surface-muted rounded-lg border border-border min-h-0"
             /* ensure messages don't hide behind device safe area */
             style={{ paddingBottom: "env(safe-area-inset-bottom, 12px)" }}
           >
@@ -373,7 +385,7 @@ export default function ChatBox({
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                 >
-                  <div className="flex items-center gap-2 text-sm text-slate-500">
+                  <div className="flex items-center gap-2 text-sm text-muted">
                     <div className="w-4 h-4 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
                     <span>Loading messages…</span>
                   </div>
@@ -411,7 +423,7 @@ export default function ChatBox({
                       className={`p-3 rounded-lg max-w-[75%] shadow-sm ${
                         isCustomer
                           ? "bg-blue-600 text-white rounded-tr-none"
-                          : "bg-gray-200 text-gray-800 rounded-tl-none"
+                          : "bg-surface-muted text-foreground rounded-tl-none"
                       }`}
                     >
                       <div className="text-sm whitespace-pre-wrap wrap-break-word">
@@ -419,7 +431,7 @@ export default function ChatBox({
                       </div>
                       <div
                         className={`text-xs mt-1.5 flex items-center gap-2 ${
-                          isCustomer ? "text-blue-100" : "text-gray-600"
+                          isCustomer ? "text-blue-100" : "text-muted"
                         }`}
                       >
                         <span>{format(new Date(m.at), "h:mm a")}</span>
@@ -446,10 +458,14 @@ export default function ChatBox({
                   </motion.div>
                 );
               })}
+
+              {remoteTyping ? (
+                <TypingIndicator key="remote-typing" label={remoteLabel} />
+              ) : null}
             </AnimatePresence>
 
-            {messages.length === 0 && !loading && (
-              <div className="text-sm text-slate-400 text-center py-8">
+            {messages.length === 0 && !loading && !remoteTyping && (
+              <div className="text-sm text-muted text-center py-8">
                 No messages yet.
               </div>
             )}
@@ -462,7 +478,7 @@ export default function ChatBox({
             style={{ paddingBottom: "env(safe-area-inset-bottom, 8px)" }}
           >
             <input
-              className="flex-1 border border-slate-200 px-2 sm:px-3 py-1.5 sm:py-2 rounded text-sm active:shadow-sm"
+              className="flex-1 border border-border bg-input-bg px-2 sm:px-3 py-1.5 sm:py-2 rounded text-sm text-foreground active:shadow-sm"
               placeholder="Type a message..."
               value={msgText}
               onChange={(e) => setMsgText(e.target.value)}

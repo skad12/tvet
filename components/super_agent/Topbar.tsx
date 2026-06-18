@@ -6,6 +6,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import api from "@/lib/axios";
 import { useAuth } from "@/context/AuthContext"; // adjust path if needed
+import ThemeToggle from "@/components/ThemeToggle";
 // adjust path if you place CreateTicket elsewhere
 
 type NavbarProps = {
@@ -65,7 +66,7 @@ export default function Navbar({
   return (
     <>
       <motion.div
-        className="sticky top-0 z-40 mb-6 rounded-3xl border border-white/70 bg-white/85 px-5 py-4 shadow-xl shadow-slate-950/5 backdrop-blur md:mb-8"
+        className="sticky top-0 z-40 mb-6 rounded-3xl border border-border bg-card/85 text-card-foreground px-5 py-4 shadow-xl shadow-slate-950/5 backdrop-blur md:mb-8"
         initial={{ opacity: 0, y: -6 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
@@ -75,15 +76,15 @@ export default function Navbar({
             <h2 className="text-xl sm:text-2xl font-semibold truncate">
               Hi {displayName} 👋
             </h2>
-            <div className="text-xs sm:text-sm text-slate-500 mt-1 truncate">
+            <div className="text-xs sm:text-sm text-muted mt-1 truncate">
               {displayEmail || "You are viewing your dashboard."}
             </div>
-            <div className="mt-1 text-xs text-slate-500 flex items-center gap-2 flex-wrap">
+            <div className="mt-1 text-xs text-muted flex items-center gap-2 flex-wrap">
               {/* <span className="font-medium text-slate-600">
                 ID: {userId ? String(userId) : "—"}
               </span> */}
 
-              <span className="uppercase tracking-wide text-slate-500">
+              <span className="uppercase tracking-wide text-muted">
                 {String(accountType || "user")}
               </span>
 
@@ -97,6 +98,7 @@ export default function Navbar({
           </div>
 
           <div className="flex items-center gap-3 shrink-0 flex-wrap justify-end">
+            <ThemeToggle variant="ghost" />
             {/* <div className="text-right text-xs sm:text-sm">
             <div className="font-semibold text-slate-800">{displayName}</div>
             <div className="uppercase tracking-wide text-slate-500">
@@ -106,7 +108,7 @@ export default function Navbar({
 
             <button
               onClick={handleSignOut}
-              className="rounded-full border border-slate-300 bg-white/80 px-4 py-2 text-sm transition-colors hover:bg-slate-50 sm:text-base"
+              className="rounded-full border border-border bg-card/80 px-4 py-2 text-sm text-foreground transition-colors hover:bg-surface-muted sm:text-base"
               aria-label="Sign out"
               disabled={signingOut}
             >

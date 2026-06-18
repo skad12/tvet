@@ -197,7 +197,7 @@ export default function Home() {
             </motion.div>
           </div>
 
-          <div className="h-8 md:h-12 w-full bg-white rounded-t-full -mt-6"></div>
+          <div className="h-8 md:h-12 w-full bg-background rounded-t-full -mt-6"></div>
         </motion.header>
 
         {/* Main content */}
@@ -215,13 +215,13 @@ export default function Home() {
               {supportStats.map((stat) => (
                 <div
                   key={stat.label}
-                  className="relative overflow-hidden rounded-3xl border border-blue-100 bg-white/95 p-6 shadow-xl shadow-blue-950/10 backdrop-blur"
+                  className="relative overflow-hidden rounded-3xl border border-border bg-card/95 p-6 shadow-xl shadow-blue-950/10 backdrop-blur"
                 >
                   <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-blue-100" />
                   <p className="relative text-4xl font-extrabold text-blue-700">
                     {stat.value}
                   </p>
-                  <p className="relative mt-2 text-sm font-medium uppercase tracking-[0.18em] text-slate-500">
+                  <p className="relative mt-2 text-sm font-medium uppercase tracking-[0.18em] text-muted">
                     {stat.label}
                   </p>
                 </div>
@@ -233,16 +233,16 @@ export default function Home() {
               id="about"
               variants={fadeInUp}
               transition={{ duration: 0.5 }}
-              className="grid items-center gap-10 rounded-4xl border border-slate-200 bg-white p-6 shadow-sm md:grid-cols-[0.95fr_1.05fr] md:p-8"
+              className="grid items-center gap-10 rounded-4xl border border-border bg-card p-6 shadow-sm md:grid-cols-[0.95fr_1.05fr] md:p-8"
             >
               <div className="space-y-5">
                 <p className="text-xs font-semibold uppercase tracking-[0.22em] text-blue-700">
                   About the help desk
                 </p>
-                <h2 className="text-3xl font-bold tracking-tight text-slate-950 md:text-4xl">
+                <h2 className="text-3xl font-bold tracking-tight text-foreground md:text-4xl">
                   A smarter support front door for every TVET learner.
                 </h2>
-                <p className="text-base leading-relaxed text-slate-600">
+                <p className="text-base leading-relaxed text-muted">
                   TVET Support is dedicated to helping prospective and current
                   trainees with every step of their TVET journey — from
                   registration and documentation to finance queries and course
@@ -253,7 +253,7 @@ export default function Home() {
                     (item) => (
                       <div
                         key={item}
-                        className="rounded-2xl bg-slate-50 p-3 text-sm font-medium text-slate-700"
+                        className="rounded-2xl bg-surface-muted p-3 text-sm font-medium text-foreground"
                       >
                         <CheckCircle2 className="mb-2 h-5 w-5 text-blue-600" />
                         {item}
@@ -269,17 +269,17 @@ export default function Home() {
                     key={item.title}
                     variants={fadeInUp}
                     transition={{ delay: 0.1 }}
-                    className="group rounded-3xl border border-slate-200 bg-linear-to-br from-white to-blue-50/70 p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
+                    className="group rounded-3xl border border-border bg-card p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-lg dark:bg-linear-to-br dark:from-card dark:to-blue-950/20"
                   >
                     <div className="flex gap-4">
                       <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-lg shadow-blue-600/20">
                         <item.icon className="h-5 w-5" />
                       </span>
                       <div>
-                        <h3 className="font-semibold text-slate-950">
+                        <h3 className="font-semibold text-foreground">
                           {item.title}
                         </h3>
-                        <p className="mt-1 text-sm leading-relaxed text-slate-600">
+                        <p className="mt-1 text-sm leading-relaxed text-muted">
                           {item.body}
                         </p>
                       </div>
@@ -297,15 +297,15 @@ export default function Home() {
               {serviceCards.map((card) => (
                 <div
                   key={card.title}
-                  className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:border-blue-200 hover:shadow-xl hover:shadow-blue-950/10"
+                  className="rounded-[1.75rem] border border-border bg-card p-6 shadow-sm transition hover:-translate-y-1 hover:border-blue-200 hover:shadow-xl hover:shadow-blue-950/10"
                 >
                   <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-cyan-50 text-cyan-700">
                     <card.icon className="h-6 w-6" />
                   </span>
-                  <h3 className="mt-5 text-lg font-semibold text-slate-950">
+                  <h3 className="mt-5 text-lg font-semibold text-foreground">
                     {card.title}
                   </h3>
-                  <p className="mt-2 text-sm leading-relaxed text-slate-600">
+                  <p className="mt-2 text-sm leading-relaxed text-muted">
                     {card.body}
                   </p>
                 </div>
@@ -353,7 +353,7 @@ export default function Home() {
                 </div>
               </div>
 
-              <div className="rounded-3xl bg-white p-2 text-slate-950 shadow-xl">
+              <div className="rounded-3xl bg-card p-2 text-foreground shadow-xl">
                 <TicketForm />
               </div>
             </motion.section>

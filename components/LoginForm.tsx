@@ -232,7 +232,7 @@ export default function LoginForm({ demoCredentials = true }) {
       transition={{ duration: 0.45 }}
       className="mx-auto w-full max-w-md"
     >
-      <div className="rounded-4xl border border-slate-200 bg-white/95 px-6 py-10 shadow-2xl shadow-blue-950/10 backdrop-blur md:px-8">
+      <div className="rounded-4xl border border-border bg-card/95 px-6 py-10 text-card-foreground shadow-2xl shadow-blue-950/10 backdrop-blur md:px-8">
         <div className="mb-8 grid justify-center text-center">
           <Image
             src={logo}
@@ -245,10 +245,10 @@ export default function LoginForm({ demoCredentials = true }) {
           <p className="mt-4 text-xs font-semibold uppercase tracking-[0.22em] text-blue-700">
             Welcome back
           </p>
-          <h3 className="mt-2 text-3xl font-bold tracking-tight text-slate-950">
+          <h3 className="mt-2 text-3xl font-bold tracking-tight text-foreground">
             Login
           </h3>
-          <p className="mt-2 text-sm text-slate-500">
+          <p className="mt-2 text-sm text-muted">
             Access your TVET support dashboard.
           </p>
         </div>
@@ -256,7 +256,7 @@ export default function LoginForm({ demoCredentials = true }) {
         {/* username */}
         <label
           htmlFor="username"
-          className="mb-2 block text-sm font-medium text-slate-700"
+          className="mb-2 block text-sm font-medium text-foreground"
         >
           Username
         </label>
@@ -268,13 +268,13 @@ export default function LoginForm({ demoCredentials = true }) {
           onChange={(e) => setUsername(e.target.value)}
           placeholder="admin"
           required
-          className="mb-4 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none transition focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-100"
+          className="mb-4 w-full rounded-2xl border border-border bg-input-bg px-3 py-3 text-sm text-foreground outline-none transition focus:border-blue-300 focus:bg-card focus:ring-4 focus:ring-ring"
         />
 
         {/* password with toggle */}
         <label
           htmlFor="password"
-          className="mb-2 block text-sm font-medium text-slate-700"
+          className="mb-2 block text-sm font-medium text-foreground"
         >
           Password
         </label>
@@ -287,13 +287,13 @@ export default function LoginForm({ demoCredentials = true }) {
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Password"
             required
-            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 pr-12 text-sm outline-none transition focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-100"
+            className="w-full rounded-2xl border border-border bg-input-bg px-3 py-3 pr-12 text-sm text-foreground outline-none transition focus:border-blue-300 focus:bg-card focus:ring-4 focus:ring-ring"
           />
 
           <button
             type="button"
             onClick={() => setShow((s) => !s)}
-            className="absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
+            className="absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-muted transition hover:bg-surface-muted hover:text-foreground"
             aria-label={show ? "Hide password" : "Show password"}
           >
             {show ? (
