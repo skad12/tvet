@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import api from "../../lib/axios";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import { landing } from "@/components/ui/landingStyles";
 
 const FALLBACK_GENERAL = { id: "general", title: "General" };
 
@@ -178,11 +179,12 @@ export default function TicketForm() {
     FALLBACK_GENERAL;
 
   return (
-    <div className="relative mx-auto max-w-xl rounded-3xl bg-white p-6 shadow-none md:p-8">
-      <h3 className="mb-2 text-2xl font-bold tracking-tight text-slate-950">
+    <div className={`${landing.card} relative mx-auto max-w-xl p-6 md:p-8`}>
+      <p className={landing.eyebrow}>Support</p>
+      <h3 className={`${landing.title} mb-2`}>
         Get Started with Tvet Support
       </h3>
-      <p className="mb-5 text-sm leading-relaxed text-slate-500">
+      <p className={`${landing.subtitle} mb-5`}>
         Share the details your support team needs to open and route your ticket.
       </p>
 
@@ -195,13 +197,13 @@ export default function TicketForm() {
       <form onSubmit={submit} className="space-y-4">
         {/* Category is defaulted to "General" and shown as a pill */}
         <div>
-          <label className="block text-sm font-medium mb-2">
+          <label className={landing.label}>
             Category <span className="text-red-600">*</span>
           </label>
           <select
             value={categoryId}
             onChange={(e) => setCategoryId(e.target.value)}
-            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none transition focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-100"
+            className={landing.select}
             disabled={catLoading}
             required
           >
@@ -222,14 +224,14 @@ export default function TicketForm() {
           )}
         </div>
 
-        <label className="block text-sm font-medium">
+        <label className={landing.label}>
           Message <span className="text-red-600">*</span>
         </label>
         <textarea
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           placeholder="Describe your issue "
-          className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none transition focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-100"
+          className={landing.textarea}
           rows={4}
           required
         />
@@ -246,7 +248,7 @@ export default function TicketForm() {
           <option value="Urgent">Urgent</option>
         </select> */}
 
-        <label className="block text-sm font-medium">
+        <label className={landing.label}>
           Email Address <span className="text-red-600">*</span>
         </label>
         <input
@@ -254,7 +256,7 @@ export default function TicketForm() {
           onChange={(e) => setEmail(e.target.value)}
           type="email"
           placeholder="Email Address"
-          className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none transition focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-100"
+          className={landing.input}
           required
         />
 
@@ -262,7 +264,7 @@ export default function TicketForm() {
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           type="submit"
-          className="w-full rounded-2xl bg-blue-600 py-3 font-semibold text-white shadow-lg shadow-blue-600/20 transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+          className={`${landing.btnPrimary} w-full`}
           disabled={loading || catLoading}
         >
           {loading ? "Submitting..." : "Submit"}

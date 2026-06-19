@@ -4,6 +4,7 @@
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import { landing } from "@/components/ui/landingStyles";
 import api from "@/lib/axios";
 
 type AssignAgentModalProps = {
@@ -111,25 +112,28 @@ export default function AssignAgentModal({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          className={`${landing.modalOverlay} flex items-center justify-center p-4`}
         >
-          <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+          <div className={landing.modalBackdrop} onClick={onClose} />
 
           <motion.div
             initial={{ y: 8, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 8, opacity: 0 }}
             transition={{ type: "spring", stiffness: 300 }}
-            className="relative bg-white rounded-lg shadow-lg w-full max-w-xl p-4 border border-slate-200"
+            className={`${landing.modal} w-full max-w-xl p-4 sm:p-6`}
           >
             <div className="flex items-center justify-between mb-3">
-              <h4 className="text-sm font-semibold">Assign agent</h4>
-              <button onClick={onClose} className="text-xs text-slate-500">
+              <div>
+                <p className={landing.eyebrow}>Routing</p>
+                <h4 className={landing.sectionTitle}>Assign agent</h4>
+              </div>
+              <button onClick={onClose} className={landing.btnGhost}>
                 Close
               </button>
             </div>
 
-            <div className="text-xs text-slate-600 mb-3">
+            <div className={`${landing.sectionDesc} mb-3`}>
               Select an available agent to assign this ticket to.
             </div>
 
@@ -146,7 +150,7 @@ export default function AssignAgentModal({
                 {agents.map((a) => (
                   <li
                     key={a.id}
-                    className="flex items-center justify-between p-2 border rounded"
+                    className={`${landing.ticketHeader} flex items-center justify-between p-2`}
                   >
                     <div>
                       <div className="text-sm font-medium">
@@ -161,7 +165,7 @@ export default function AssignAgentModal({
                       <button
                         onClick={() => handleAssign(a)}
                         disabled={assignLoading}
-                        className="text-xs px-2 py-1 rounded bg-blue-600 text-white"
+                        className={`${landing.btnPrimary} text-xs px-3 py-1.5`}
                       >
                         {assignLoading ? "Assigning…" : "Assign"}
                       </button>

@@ -373,6 +373,7 @@
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
+import { landing } from "@/components/ui/landingStyles";
 import api from "@/lib/axios"; // adjust path if needed
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
@@ -649,47 +650,49 @@ export default function CreateTicket({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-16 px-4">
-      {/* overlay */}
+    <div className={`${landing.modalOverlay} flex items-start justify-center pt-16 px-4`}>
       <motion.div
         initial={{ opacity: 0 }}
-        animate={{ opacity: 0.5 }}
+        animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black"
+        className={landing.modalBackdrop}
+        onClick={onClose}
       />
 
-      {/* panel (top aligned) */}
       <motion.div
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -8 }}
-        className="relative w-full max-w-2xl bg-white rounded-lg shadow-lg overflow-hidden z-50"
+        className={`${landing.modal} relative w-full max-w-2xl overflow-hidden`}
         role="dialog"
         aria-modal="true"
         ref={modalRef}
       >
-        <div className="flex items-center justify-between p-4 border-b border-slate-300">
-          <h3 className="text-lg font-semibold">Create Support Ticket</h3>
+        <div className="flex items-center justify-between border-b border-border p-4 sm:p-6">
+          <div>
+            <p className={landing.eyebrow}>New request</p>
+            <h3 className={landing.title}>Create Support Ticket</h3>
+          </div>
           <button
             onClick={onClose}
             aria-label="Close"
-            className="text-slate-500 hover:text-slate-800"
+            className={landing.btnGhost}
           >
             ✕
           </button>
         </div>
 
-        <form onSubmit={submit} className="p-6 space-y-4">
+        <form onSubmit={submit} className="space-y-4 p-6 sm:p-8">
           {catError && <div className="text-sm text-red-600">{catError}</div>}
 
           <div>
-            <label className="block text-sm font-medium">
+            <label className={landing.label}>
               Category <span className="text-red-600">*</span>
             </label>
             <select
               value={categoryId}
               onChange={(e) => setCategoryId(e.target.value)}
-              className="w-full border border-slate-300 rounded px-3 py-2"
+              className={landing.select}
               disabled={catLoading}
               required
             >
@@ -710,7 +713,7 @@ export default function CreateTicket({
 
           {/* Subject */}
           <div>
-            <label className="block text-sm font-medium">
+            <label className={landing.label}>
               Subject <span className="text-red-600">*</span>
             </label>
             <input
@@ -718,7 +721,7 @@ export default function CreateTicket({
               onChange={(e) => setSubject(e.target.value)}
               type="text"
               placeholder=""
-              className="w-full border border-slate-300 rounded px-3 py-2"
+              className={landing.input}
               required
             />
           </div>
@@ -739,14 +742,14 @@ export default function CreateTicket({
           </div> */}
 
           <div>
-            <label className="block text-sm font-medium">
+            <label className={landing.label}>
               Message <span className="text-red-600">*</span>
             </label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Describe the issue "
-              className="w-full border border-slate-300 rounded px-3 py-2"
+              className={landing.textarea}
               rows={4}
               required
             />
@@ -757,11 +760,11 @@ export default function CreateTicket({
             {reporterEmail || "Signed-in customer"}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-3 pt-2">
             <button
               type="submit"
               disabled={loading || catLoading}
-              className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-60"
+              className={landing.btnPrimary}
             >
               {loading ? "Submitting..." : "Submit Ticket"}
             </button>
@@ -769,7 +772,7 @@ export default function CreateTicket({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 border border-slate-300 rounded"
+              className={landing.btnSecondary}
             >
               Cancel
             </button>

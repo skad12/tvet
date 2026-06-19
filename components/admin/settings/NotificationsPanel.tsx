@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { motion } from "framer-motion";
+import { landing } from "@/components/ui/landingStyles";
 
 export default function NotificationsPanel() {
   const initial = {
@@ -12,16 +12,16 @@ export default function NotificationsPanel() {
   };
   const [prefs, setPrefs] = useState(initial);
   const [saving, setSaving] = useState(false);
-  const [msg, setMsg] = useState(null);
+  const [msg, setMsg] = useState<{ type: string; text: string } | null>(null);
 
-  const toggle = (k) => setPrefs((s) => ({ ...s, [k]: !s[k] }));
+  const toggle = (k: keyof typeof initial) =>
+    setPrefs((s) => ({ ...s, [k]: !s[k] }));
 
-  const save = async (e) => {
+  const save = async (e?: React.FormEvent) => {
     e?.preventDefault();
     setSaving(true);
     setMsg(null);
     try {
-      // simulate
       await new Promise((r) => setTimeout(r, 600));
       setMsg({ type: "success", text: "Notification preferences saved." });
     } catch {
@@ -31,41 +31,45 @@ export default function NotificationsPanel() {
     }
   };
 
-  const Row = ({ title, desc, keyName }) => (
-    <div className="flex items-center justify-between py-3 border-b last:border-b-0">
+  const Row = ({
+    title,
+    desc,
+    keyName,
+  }: {
+    title: string;
+    desc: string;
+    keyName: keyof typeof initial;
+  }) => (
+    <div className="flex items-center justify-between gap-4 border-b border-border py-4 last:border-b-0">
       <div>
-        <div className="font-medium text-slate-800">{title}</div>
-        <div className="text-sm text-slate-500 mt-1">{desc}</div>
+        <div className="font-medium text-foreground">{title}</div>
+        <div className="mt-1 text-sm text-muted">{desc}</div>
       </div>
-      <div>
-        <label className="relative inline-flex items-center cursor-pointer">
-          <input
-            type="checkbox"
-            checked={prefs[keyName]}
-            onChange={() => toggle(keyName)}
-            className="sr-only peer"
-          />
-          <div className="w-11 h-6 bg-slate-200 rounded-full peer-checked:bg-blue-600 peer-focus:ring-2 peer-focus:ring-blue-200 transition" />
-          <span
-            className={`dot absolute left-1 top-0.5 w-5 h-5 bg-white rounded-full shadow transform transition peer-checked:translate-x-5`}
-          />
-        </label>
-      </div>
+      <label className="relative inline-flex cursor-pointer items-center">
+        <input
+          type="checkbox"
+          checked={prefs[keyName]}
+          onChange={() => toggle(keyName)}
+          className="peer sr-only"
+        />
+        <div className="h-6 w-11 rounded-full bg-surface-muted transition peer-checked:bg-blue-600 peer-focus:ring-4 peer-focus:ring-ring" />
+        <span className="absolute left-1 top-0.5 h-5 w-5 rounded-full bg-card shadow transition peer-checked:translate-x-5" />
+      </label>
     </div>
   );
 
   return (
-    <form onSubmit={save} className="space-y-4">
+    <form onSubmit={save} className="space-y-6">
       <div>
-        <h3 className="text-xl font-semibold text-slate-800">
+        <h3 className="text-xl font-semibold text-foreground">
           Notification Preferences
         </h3>
-        <p className="text-sm text-slate-500 mt-1">
+        <p className={landing.subtitle}>
           Choose what notifications you want to receive
         </p>
       </div>
 
-      <div className="mt-4 space-y-0 rounded-md overflow-hidden bg-white">
+      <div className="rounded-2xl border border-border bg-surface-muted/50 px-4">
         <Row
           keyName="newTicketAlerts"
           title="New Ticket Alerts"
@@ -88,23 +92,19 @@ export default function NotificationsPanel() {
         />
       </div>
 
-      <div className="flex items-center justify-between">
-        <div>
-          {msg && (
-            <div
-              className={`text-sm ${
-                msg.type === "success" ? "text-green-700" : "text-red-700"
-              }`}
-            >
-              {msg.text}
-            </div>
-          )}
-        </div>
-        <button
-          type="submit"
-          disabled={saving}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg disabled:opacity-60"
-        >
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        {msg ? (
+          <div
+            className={`text-sm ${
+              msg.type === "success" ? "text-emerald-700" : "text-red-700"
+            }`}
+          >
+            {msg.text}
+          </div>
+        ) : (
+          <div />
+        )}
+        <button type="submit" disabled={saving} className={landing.btnPrimary}>
           {saving ? "Saving..." : "Save preferences"}
         </button>
       </div>

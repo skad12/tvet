@@ -67,6 +67,100 @@ body {
     linear-gradient(135deg, #0b1120, #111827 45%, #0b1120);
 }
 
+@layer components {
+  .landing-card {
+    @apply rounded-3xl border border-border bg-card/95 shadow-xl shadow-blue-950/10 backdrop-blur;
+  }
+
+  .landing-panel {
+    @apply rounded-4xl border border-border bg-card shadow-sm;
+  }
+
+  .landing-eyebrow {
+    @apply text-xs font-semibold uppercase tracking-[0.22em] text-blue-700;
+  }
+
+  .landing-label {
+    @apply mb-2 block text-sm font-medium text-foreground;
+  }
+
+  .landing-input {
+    @apply w-full rounded-2xl border border-border bg-input-bg px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-blue-300 focus:bg-card focus:ring-4 focus:ring-ring;
+  }
+
+  .landing-textarea {
+    @apply w-full rounded-2xl border border-border bg-input-bg px-3 py-2.5 text-sm text-foreground outline-none transition resize-none focus:border-blue-300 focus:bg-card focus:ring-4 focus:ring-ring;
+  }
+
+  .landing-select {
+    @apply w-full rounded-2xl border border-border bg-input-bg px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-blue-300 focus:bg-card focus:ring-4 focus:ring-ring;
+  }
+
+  .landing-btn-primary {
+    @apply inline-flex items-center justify-center rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-blue-600/20 transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .landing-btn-secondary {
+    @apply inline-flex items-center justify-center rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold text-foreground shadow-sm transition hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .landing-btn-ghost {
+    @apply inline-flex items-center justify-center rounded-full border border-border bg-card/80 px-3 py-1.5 text-xs sm:text-sm font-medium text-foreground transition hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .landing-tab-active {
+    @apply inline-flex items-center gap-1.5 rounded-full bg-blue-600 px-3 py-1.5 text-xs sm:text-sm font-semibold text-white shadow-lg shadow-blue-600/20;
+  }
+
+  .landing-tab-inactive {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-border bg-card/80 px-3 py-1.5 text-xs sm:text-sm font-medium text-muted transition hover:bg-surface-muted hover:text-foreground;
+  }
+
+  .landing-chat-box {
+    @apply flex h-[400px] max-h-[85vh] flex-col rounded-3xl border border-border bg-card/95 p-4 text-card-foreground shadow-xl shadow-blue-950/10 backdrop-blur sm:p-5 lg:h-[500px];
+  }
+
+  .landing-chat-list {
+    @apply overflow-hidden rounded-3xl border border-border bg-card/95 shadow-xl shadow-blue-950/10 backdrop-blur;
+  }
+
+  .landing-chat-list-header {
+    @apply sticky top-0 z-30 border-b border-border bg-card/95 backdrop-blur;
+  }
+
+  .landing-message-area {
+    @apply min-h-0 flex-1 space-y-1 overflow-y-auto rounded-2xl border border-border bg-surface-muted/80 p-3 sm:p-4;
+  }
+
+  .landing-ticket-header {
+    @apply mb-3 rounded-2xl border border-border bg-surface-muted/60 p-3 sm:mb-4 sm:p-4;
+  }
+
+  .landing-ticket-card {
+    @apply flex cursor-pointer items-center justify-between rounded-2xl border border-border bg-card p-3 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md sm:p-4;
+  }
+
+  .landing-ticket-card-selected {
+    @apply border-blue-200 bg-blue-50/50 ring-2 ring-blue-200 dark:bg-blue-950/20;
+  }
+
+  .landing-modal-overlay {
+    @apply fixed inset-0 z-50 flex items-center justify-center p-4;
+  }
+
+  .landing-modal-backdrop {
+    @apply absolute inset-0 bg-slate-950/60 backdrop-blur-sm;
+  }
+
+  .landing-modal {
+    @apply relative w-full max-w-xl rounded-3xl border border-border bg-card p-5 shadow-2xl shadow-blue-950/10 backdrop-blur sm:p-6;
+  }
+
+  .landing-toast {
+    @apply rounded-2xl border border-border bg-card p-4 shadow-xl shadow-blue-950/10;
+  }
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;

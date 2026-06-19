@@ -4,6 +4,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { landing } from "@/components/ui/landingStyles";
 import api from "@/lib/axios"; // ensure this exists and has baseURL set
 import { useUserStore } from "@/stores/useUserStore";
 
@@ -153,23 +154,20 @@ export default function TrackTicketModal({ show = false, onClose = () => {} }) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[60] flex items-end md:items-center justify-center p-0 md:p-4"
+          className={`${landing.modalOverlay} z-[60] flex items-end justify-center p-0 md:items-center md:p-4`}
         >
-          {/* Backdrop */}
-          <div className="absolute inset-0 bg-black/40" onClick={handleClose} />
+          <div className={landing.modalBackdrop} onClick={handleClose} />
 
-          {/* Modal Content */}
           <motion.div
             initial={{ y: "100%", opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: "100%", opacity: 0 }}
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            className="relative bg-white rounded-t-3xl md:rounded-lg shadow-lg w-full md:max-w-md p-6 md:p-8 border-t md:border border-slate-200 max-h-[90vh] overflow-y-auto"
+            className={`${landing.modal} relative max-h-[90vh] w-full overflow-y-auto rounded-t-3xl p-6 md:max-w-md md:rounded-3xl md:p-8`}
           >
-            {/* Close button */}
             <button
               onClick={handleClose}
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors"
+              className={`${landing.btnGhost} absolute right-4 top-4`}
               aria-label="Close"
             >
               <svg
@@ -195,19 +193,17 @@ export default function TrackTicketModal({ show = false, onClose = () => {} }) {
                 exit={{ opacity: 0, x: 20 }}
                 transition={{ duration: 0.3 }}
               >
-                <h2 className="text-2xl font-bold text-slate-800 mb-2">
+                <p className={landing.eyebrow}>Guest access</p>
+                <h2 className={`${landing.title} mb-2`}>
                   Track Your Ticket
                 </h2>
-                <p className="text-sm text-slate-600 mb-6">
+                <p className={`${landing.subtitle} mb-6`}>
                   Enter your email to receive a verification code
                 </p>
 
                 <form onSubmit={handleSendEmail} className="space-y-4">
                   <div>
-                    <label
-                      htmlFor="email"
-                      className="block text-sm font-medium text-slate-700 mb-2"
-                    >
+                    <label htmlFor="email" className={landing.label}>
                       Email Address
                     </label>
                     <input
@@ -216,7 +212,7 @@ export default function TrackTicketModal({ show = false, onClose = () => {} }) {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="your.email@example.com"
-                      className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className={landing.input}
                       disabled={loading}
                       required
                     />
@@ -237,7 +233,7 @@ export default function TrackTicketModal({ show = false, onClose = () => {} }) {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className={`${landing.btnPrimary} w-full`}
                   >
                     {loading ? "Sending..." : "Send Verification Code"}
                   </button>
@@ -278,19 +274,16 @@ export default function TrackTicketModal({ show = false, onClose = () => {} }) {
                   Back
                 </button>
 
-                <h2 className="text-2xl font-bold text-slate-800 mb-2">
+                <h2 className={`${landing.title} mb-2`}>
                   Enter Verification Code
                 </h2>
-                <p className="text-sm text-slate-600 mb-6">
+                <p className={`${landing.subtitle} mb-6`}>
                   We sent a code to <span className="font-medium">{email}</span>
                 </p>
 
                 <form onSubmit={handleVerifyOtp} className="space-y-4">
                   <div>
-                    <label
-                      htmlFor="otp"
-                      className="block text-sm font-medium text-slate-700 mb-2"
-                    >
+                    <label htmlFor="otp" className={landing.label}>
                       Verification Code
                     </label>
                     <input
@@ -299,7 +292,7 @@ export default function TrackTicketModal({ show = false, onClose = () => {} }) {
                       value={otp}
                       onChange={(e) => setOtp(e.target.value)}
                       placeholder="Enter 6-digit code"
-                      className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center text-lg tracking-widest"
+                      className={`${landing.input} text-center text-lg tracking-widest`}
                       maxLength={6}
                       disabled={loading}
                       required
@@ -315,7 +308,7 @@ export default function TrackTicketModal({ show = false, onClose = () => {} }) {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className={`${landing.btnPrimary} w-full`}
                   >
                     {loading ? "Verifying..." : "Verify & Continue"}
                   </button>

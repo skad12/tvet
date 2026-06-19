@@ -487,6 +487,7 @@ import { GoAlertFill } from "react-icons/go";
 import { calculateResolutionTime } from "@/lib/resolutionTime";
 import Skeleton, { ChatListSkeleton } from "@/components/ui/Skeleton";
 import { toast } from "sonner";
+import { landing, tabClass, ticketCardClass } from "@/components/ui/landingStyles";
 
 let api = null;
 try {
@@ -767,19 +768,20 @@ function formatMaybeDate(val: any, display?: any) {
   }, [newTicketNotice]);
 
   return (
-    <motion.div layout className="bg-white rounded shadow-sm p-0">
+    <motion.div layout className={landing.chatList}>
       <div className="h-[400px] sm:h-[500px] md:h-[420px] overflow-auto">
-        <div className="sticky top-0 z-30 bg-white border-b border-slate-200">
+        <div className={landing.chatListHeader}>
           <div className="flex items-center justify-between p-3 sm:p-4">
-            <h3 className="text-base sm:text-lg font-medium text-slate-800">
-              Escalated Tickets
-            </h3>
+            <div>
+              <p className={landing.eyebrow}>Queue</p>
+              <h3 className={landing.sectionTitle}>Escalated Tickets</h3>
+            </div>
             <div className="flex items-center gap-2">
               {onRefresh && (
                 <button
                   onClick={onRefresh}
                   disabled={refreshing || loading}
-                  className="inline-flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className={landing.btnGhost}
                   aria-label="Refresh tickets"
                 >
                   <svg
@@ -794,7 +796,7 @@ function formatMaybeDate(val: any, display?: any) {
                   <span className="hidden sm:inline">{refreshing ? "Refreshing..." : "Refresh"}</span>
                 </button>
               )}
-              <div className="text-xs sm:text-sm text-slate-500">
+              <div className="text-xs sm:text-sm text-muted">
                 {loading ? "…" : `${owned.length} ticket${owned.length === 1 ? "" : "s"}`}
               </div>
             </div>
@@ -822,11 +824,7 @@ function formatMaybeDate(val: any, display?: any) {
                     role="tab"
                     aria-selected={active}
                     onClick={() => setActiveTab(t.id)}
-                    className={`inline-flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium transition ${
-                      active
-                        ? "bg-slate-900 text-white shadow"
-                        : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50"
-                    }`}
+                    className={tabClass(active)}
                   >
                     <span>{t.label}</span>
                     <span className="inline-flex items-center justify-center px-1.5 sm:px-2 py-0.5 text-[10px] sm:text-xs rounded-full bg-slate-100 text-slate-700">
@@ -845,7 +843,7 @@ function formatMaybeDate(val: any, display?: any) {
           ) : error ? (
             <div className="p-3 sm:p-4 text-xs sm:text-sm text-red-600">{error}</div>
           ) : filtered.length === 0 ? (
-            <div className="p-4 sm:p-6 text-xs sm:text-sm text-slate-500 text-center">No escalated tickets found.</div>
+            <div className="p-4 sm:p-6 text-xs sm:text-sm text-muted text-center">No escalated tickets found.</div>
           ) : (
             <ul className="space-y-2 sm:space-y-3">
               {filtered.map((t, idx) => {
@@ -861,12 +859,12 @@ function formatMaybeDate(val: any, display?: any) {
                 const pillClass = statusKey === "resolved" ? "bg-emerald-50 text-emerald-700 border border-emerald-100" : statusKey === "escalated" ? "bg-red-50 text-red-700 border border-red-100" : statusKey === "waiting" ? "bg-amber-50 text-amber-700 border border-amber-100" : statusKey === "pending" ? "bg-amber-50 text-amber-700 border border-amber-100" : "bg-slate-50 text-slate-700 border border-slate-100";
 
                 return (
-                  <motion.li key={t.id ?? `${idx}-${email}`} initial="hidden" animate="visible" variants={listItem} className={`bg-white rounded-lg p-3 sm:p-4 border border-slate-200 flex items-center justify-between shadow-sm cursor-pointer ${selected?.id === t.id ? "ring-2 ring-blue-200" : "hover:bg-slate-50"}`} onClick={() => setSelected?.(t)}>
+                  <motion.li key={t.id ?? `${idx}-${email}`} initial="hidden" animate="visible" variants={listItem} className={ticketCardClass(selected?.id === t.id)} onClick={() => setSelected?.(t)}>
                     <div className="min-w-0 flex-1">
-                      <div className="font-medium text-xs sm:text-sm text-slate-800 truncate flex items-center gap-1.5">{subject}</div>
-                      <div className="text-[10px] sm:text-xs text-slate-500 mt-0.5 sm:mt-1 truncate">{email || t.name || "From Widget"}</div>
+                      <div className="font-medium text-xs sm:text-sm text-foreground truncate flex items-center gap-1.5">{subject}</div>
+                      <div className="text-[10px] sm:text-xs text-muted mt-0.5 sm:mt-1 truncate">{email || t.name || "From Widget"}</div>
 
-                      <div className="text-[10px] sm:text-xs text-slate-500 mt-1 truncate">
+                      <div className="text-[10px] sm:text-xs text-muted mt-1 truncate">
                         Assigned to:{" "}
                         {t.assigned_to_name === null || t.assigned_to_name === undefined || String(t.assigned_to_name).trim() === "" || String(t.assigned_to_name).toLowerCase() === "null"
                           ? "Unassigned"
@@ -881,7 +879,7 @@ function formatMaybeDate(val: any, display?: any) {
 
                       {t.raw?.escalated === true && <span className="inline-flex items-center gap-1 text-[10px] sm:text-xs font-semibold px-2 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-100"><GoAlertFill />Escalated</span>}
 
-                      <div className="text-[10px] sm:text-xs text-slate-400 mt-1 sm:mt-2">{formatMaybeDate(time)}</div>
+                      <div className="text-[10px] sm:text-xs text-muted mt-1 sm:mt-2">{formatMaybeDate(time)}</div>
                       {resolutionTime && <div className="text-[10px] sm:text-xs text-emerald-600 mt-1 font-medium">Resolved in {resolutionTime}</div>}
                     </div>
                   </motion.li>

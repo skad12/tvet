@@ -1152,6 +1152,7 @@ import { GoAlertFill } from "react-icons/go";
 import { calculateResolutionTime } from "@/lib/resolutionTime";
 import Skeleton, { ChatListSkeleton } from "@/components/ui/Skeleton";
 import { toast } from "sonner";
+import { landing, tabClass, ticketCardClass } from "@/components/ui/landingStyles";
 
 let api = null;
 try {
@@ -1541,12 +1542,15 @@ function formatMaybeDate(val: any, display?: any) {
         "Unassigned";
 
   return (
-    <motion.div layout className="bg-white rounded-lg shadow-sm p-0">
+    <motion.div layout className={landing.chatList}>
       <div className="h-[calc(100vh-300px)] md:h-[600px] lg:h-[520px] overflow-auto">
-        <div className="sticky top-0 z-30 bg-white border-b border-slate-200">
+        <div className={landing.chatListHeader}>
           <div className="flex items-center justify-between p-4">
-            <h3 className="text-lg font-medium text-slate-800">Your Tickets</h3>
-            <div className="text-sm text-slate-500">
+            <div>
+              <p className={landing.eyebrow}>Inbox</p>
+              <h3 className={landing.sectionTitle}>Your Tickets</h3>
+            </div>
+            <div className="text-sm text-muted">
               {loading
                 ? "…"
                 : `${owned.length} ticket${owned.length === 1 ? "" : "s"}`}
@@ -1567,11 +1571,7 @@ function formatMaybeDate(val: any, display?: any) {
                     role="tab"
                     aria-selected={active}
                     onClick={() => setActiveTab(t.id)}
-                    className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition ${
-                      active
-                        ? "bg-slate-900 text-white shadow"
-                        : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50"
-                    }`}
+                    className={tabClass(active)}
                   >
                     <span>{t.label}</span>
                     <span className="inline-flex items-center justify-center px-2 py-0.5 text-xs rounded-full bg-slate-100 text-slate-700">
@@ -1590,7 +1590,7 @@ function formatMaybeDate(val: any, display?: any) {
           ) : error ? (
             <div className="p-4 text-sm text-red-600">{error}</div>
           ) : filtered.length === 0 ? (
-            <div className="p-6 text-sm text-slate-500 text-center">
+            <div className="p-6 text-sm text-muted text-center">
               <p className="font-medium">No tickets found</p>
               <p className="text-xs mt-1">Create a new ticket to get started</p>
             </div>
@@ -1650,11 +1650,7 @@ function formatMaybeDate(val: any, display?: any) {
                     initial="hidden"
                     animate="visible"
                     variants={listItem}
-                    className={`bg-white rounded-lg p-4 border border-slate-200 flex items-center justify-between shadow-sm cursor-pointer transition-colors ${
-                      selected?.id === t.id
-                        ? "ring-2 ring-blue-500 bg-blue-50"
-                        : "hover:bg-slate-50"
-                    }`}
+                    className={ticketCardClass(selected?.id === t.id)}
                     onClick={() => {
                       setSelected?.(t);
                       if (
@@ -1675,10 +1671,10 @@ function formatMaybeDate(val: any, display?: any) {
                     }}
                   >
                     <div className="min-w-0">
-                      <div className="font-medium text-slate-800 truncate">
+                      <div className="font-medium text-foreground truncate">
                         {subject}
                       </div>
-                      <div className="text-xs text-slate-500 mt-1 truncate">
+                      <div className="text-xs text-muted mt-1 truncate">
                         {email || t.name || "From Widget"}
                       </div>
                     </div>
@@ -1696,7 +1692,7 @@ function formatMaybeDate(val: any, display?: any) {
                             Escalated
                           </span>
                         )}
-                      <div className="text-xs text-slate-400 mt-2">
+                      <div className="text-xs text-muted mt-2">
                         {formatMaybeDate(time)}
                       </div>
                       {resolutionTime && (

@@ -12,6 +12,7 @@ import {
 } from "@/lib/chatClient";
 import { useUsersDirectory } from "@/hooks/useUsersDirectory";
 import { toast } from "sonner";
+import { landing } from "@/components/ui/landingStyles";
 
 let api = null;
 try {
@@ -296,11 +297,12 @@ export default function ChatBox({
       layout
       data-chat-box
       /* fixed height: smaller on mobile, larger on desktop; cap with max-h so popup still fits */
-      className="lg:h-[500px] h-[400px] max-h-[85vh] bg-card text-card-foreground rounded-lg shadow-sm p-4 md:p-6 flex flex-col"
+      className={landing.chatBox}
     >
       <div className="mb-3">
-        <h3 className="font-medium text-foreground">Conversation</h3>
-        <p className="text-xs text-muted">Selected ticket chat & replies</p>
+        <p className={landing.eyebrow}>Support thread</p>
+        <h3 className={landing.sectionTitle}>Conversation</h3>
+        <p className={landing.sectionDesc}>Selected ticket chat & replies</p>
       </div>
 
       {!selected ? (
@@ -317,7 +319,7 @@ export default function ChatBox({
         <>
           <motion.div
             layout
-            className="border border-border rounded-lg p-3 mb-4 bg-surface-muted"
+            className={`${landing.ticketHeader} mb-4`}
           >
             <div className="text-sm font-semibold text-foreground mb-2 uppercase">
               {selected.subject ||
@@ -346,7 +348,7 @@ export default function ChatBox({
           {/* messages container (scrollable) */}
           <div
             ref={containerRef}
-            className="flex-1 overflow-y-auto mb-4 space-y-1 p-4 bg-surface-muted rounded-lg border border-border min-h-0"
+            className={`${landing.messageArea} mb-4`}
             /* ensure messages don't hide behind device safe area */
             style={{ paddingBottom: "env(safe-area-inset-bottom, 12px)" }}
           >
@@ -457,7 +459,7 @@ export default function ChatBox({
             style={{ paddingBottom: "env(safe-area-inset-bottom, 8px)" }}
           >
             <input
-              className="flex-1 border border-border bg-input-bg px-2 sm:px-3 py-1.5 sm:py-2 rounded text-sm text-foreground active:shadow-sm"
+              className={`${landing.input} flex-1`}
               placeholder="Type a message..."
               value={msgText}
               onChange={(e) => setMsgText(e.target.value)}
@@ -467,7 +469,7 @@ export default function ChatBox({
               whileTap={{ scale: 0.98 }}
               type="submit"
               disabled={sending}
-              className="bg-blue-600 text-white px-2 sm:px-3 py-1.5 sm:py-2 rounded text-xs sm:text-sm font-medium whitespace-nowrap"
+              className={`${landing.btnPrimary} whitespace-nowrap px-3 sm:px-4`}
             >
               {sending ? "Sending..." : "Send"}
             </motion.button>

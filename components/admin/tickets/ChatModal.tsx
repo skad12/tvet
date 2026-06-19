@@ -15,6 +15,7 @@ import {
 } from "@/lib/chatClient";
 import { format, isValid } from "date-fns";
 import { toast } from "sonner";
+import { landing } from "@/components/ui/landingStyles";
 
 function normalizeAgentName(agent) {
   if (agent === null || agent === undefined) return null;
@@ -555,7 +556,7 @@ export default function ChatModal({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center"
+          className={`${landing.modalOverlay} flex items-center justify-center`}
           aria-modal="true"
           role="dialog"
         >
@@ -565,7 +566,7 @@ export default function ChatModal({
             animate={{ opacity: 0.5 }}
             exit={{ opacity: 0 }}
             onClick={safeClose}
-            className="absolute inset-0 bg-black/40"
+            className={landing.modalBackdrop}
           />
 
           {/* modal container */}
@@ -574,11 +575,11 @@ export default function ChatModal({
             animate={{ y: 0, opacity: 1, scale: 1 }}
             exit={{ y: 8, opacity: 0, scale: 0.98 }}
             transition={{ duration: 0.22 }}
-            className="relative w-full max-w-5xl h-[80vh] bg-white rounded-lg border border-slate-200 shadow-xl flex"
+            className={`${landing.modal} relative flex h-[80vh] w-full max-w-5xl overflow-hidden p-0`}
           >
             {/* Left: conversation */}
             <div className="flex-1 flex flex-col">
-              <header className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+              <header className="flex items-center justify-between border-b border-border px-6 py-4">
                 <div className="flex items-center gap-4">
                   <button
                     onClick={() => {
@@ -644,7 +645,7 @@ export default function ChatModal({
                     <button
                       onClick={() => setShowAssignMenu(!showAssignMenu)}
                       disabled={assigning || !ticketId}
-                      className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className={`${landing.btnPrimary} flex items-center gap-2 px-3 py-1.5 text-xs disabled:cursor-not-allowed disabled:opacity-50`}
                       aria-label="Assign ticket"
                     >
                       <FiUserPlus className="w-4 h-4" />
@@ -784,7 +785,7 @@ export default function ChatModal({
 
               {/* messages */}
               <div
-                className="flex-1 overflow-y-auto p-6 space-y-1 bg-slate-50"
+                className={`${landing.messageArea} flex-1 p-6`}
                 style={{ maxHeight: "calc(80vh - 200px)", minHeight: "400px" }}
               >
                 <motion.div
@@ -864,7 +865,7 @@ export default function ChatModal({
               {/* input */}
               <form
                 onSubmit={handleSend}
-                className="px-4 py-3 border-t border-slate-200 flex items-center gap-3"
+                className="border-t border-border px-4 py-3 flex items-center gap-3"
               >
                 <button
                   type="button"
@@ -883,7 +884,7 @@ export default function ChatModal({
                 </button>
 
                 <input
-                  className="flex-1 border border-slate-300 rounded-full px-4 py-2 outline-none focus:ring-2 focus:ring-blue-200"
+                  className={`${landing.input} flex-1 rounded-full`}
                   placeholder="Type your message..."
                   value={text}
                   onChange={(e) => setText(e.target.value)}
@@ -894,7 +895,7 @@ export default function ChatModal({
                 <button
                   type="submit"
                   disabled={sending}
-                  className="bg-blue-600 text-white p-2 rounded-full w-10 h-10 flex items-center justify-center"
+                  className={`${landing.btnPrimary} flex h-10 w-10 items-center justify-center rounded-full p-2`}
                   aria-label="Send message"
                 >
                   {sending ? (
