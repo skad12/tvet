@@ -8,13 +8,10 @@ import {
   DEFAULT_CHAT_POLL_MS,
   digestMessages,
   fetchTicketChats,
-  mergeChatMessages,
   normalizeChatEntries,
 } from "@/lib/chatClient";
 import { useUsersDirectory } from "@/hooks/useUsersDirectory";
 import { toast } from "sonner";
-import TypingIndicator from "@/components/chat/TypingIndicator";
-import { useTicketTyping } from "@/hooks/useTicketTyping";
 
 let api = null;
 try {
@@ -68,14 +65,6 @@ export default function ChatBox({
   const pollTimerRef = useRef(null);
   const controllerRef = useRef(null);
   const CURRENT_ROLE = "customer";
-  const { remoteTyping, remoteLabel } = useTicketTyping({
-    ticketId: selected?.id,
-    userId: appUserId ?? userEmail,
-    userName: user?.name ?? user?.username ?? userEmail,
-    role: CURRENT_ROLE,
-    text: msgText,
-    enabled: Boolean(selected?.id),
-  });
 
   const fetchChats = useCallback(
     async ({ showLoading = false } = {}) => {
@@ -96,14 +85,12 @@ export default function ChatBox({
         const mapped = normalizeChatEntries(data, {
           ticketId: selected.id,
         });
-        setMessages((prev) => {
-          const merged = mergeChatMessages(mapped, prev);
-          const digest = digestMessages(merged);
-          if (digest === digestRef.current) return prev;
+        const digest = digestMessages(mapped);
+        if (digest !== digestRef.current) {
           digestRef.current = digest;
+          setMessages(mapped);
           requestAnimationFrame(scrollToBottom);
-          return merged;
-        });
+        }
         setError(null);
       } catch (err) {
         const isAbort =
@@ -150,10 +137,6 @@ export default function ChatBox({
   useEffect(() => {
     scrollToBottom();
   }, [messages.length]);
-
-  useEffect(() => {
-    if (remoteTyping) requestAnimationFrame(scrollToBottom);
-  }, [remoteTyping]);
 
   async function sendMessage(e) {
     if (e && e.preventDefault) e.preventDefault();
@@ -458,13 +441,9 @@ export default function ChatBox({
                   </motion.div>
                 );
               })}
-
-              {remoteTyping ? (
-                <TypingIndicator key="remote-typing" label={remoteLabel} />
-              ) : null}
             </AnimatePresence>
 
-            {messages.length === 0 && !loading && !remoteTyping && (
+            {messages.length === 0 && !loading && (
               <div className="text-sm text-muted text-center py-8">
                 No messages yet.
               </div>

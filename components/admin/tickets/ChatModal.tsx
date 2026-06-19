@@ -10,7 +10,6 @@ import {
   DEFAULT_CHAT_POLL_MS,
   digestMessages,
   fetchTicketChats,
-  mergeChatMessages,
   normalizeChatEntries,
   postTicketMessage,
 } from "@/lib/chatClient";
@@ -350,13 +349,11 @@ export default function ChatModal({
         });
         if (!mounted) return;
         const mapped = normalizeChatEntries(data, { ticketId });
-        setMessages((prev) => {
-          const merged = mergeChatMessages(mapped, prev);
-          const digest = digestMessages(merged);
-          if (digest === digestRef.current) return prev;
+        const digest = digestMessages(mapped);
+        if (digest !== digestRef.current) {
           digestRef.current = digest;
-          return merged;
-        });
+          setMessages(mapped);
+        }
         setError(null);
       } catch (err) {
         const isCanceled =

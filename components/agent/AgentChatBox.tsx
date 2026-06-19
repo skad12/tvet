@@ -9,14 +9,11 @@ import {
   DEFAULT_CHAT_POLL_MS,
   digestMessages,
   fetchTicketChats,
-  mergeChatMessages,
   normalizeChatEntries,
-  postTicketMessage,
+  postAgentTicketMessage,
 } from "@/lib/chatClient";
 import { GoAlertFill } from "react-icons/go";
 import { toast } from "sonner";
-import TypingIndicator from "@/components/chat/TypingIndicator";
-import { useTicketTyping } from "@/hooks/useTicketTyping";
 
 type AgentChatBoxProps = {
   selected?: any;
@@ -74,14 +71,6 @@ export default function ChatBox({
   const pollTimerRef = useRef(null);
   const controllerRef = useRef(null);
   const CURRENT_ROLE = "agent";
-  const { remoteTyping, remoteLabel } = useTicketTyping({
-    ticketId: selected?.id,
-    userId: appUserId ?? userEmail,
-    userName: user?.name ?? user?.username ?? userEmail,
-    role: CURRENT_ROLE,
-    text: msgText,
-    enabled: Boolean(selected?.id),
-  });
 
   const fetchChats = useCallback(
     async ({ showLoading = false } = {}) => {
@@ -99,14 +88,12 @@ export default function ChatBox({
         const mapped = normalizeChatEntries(data, {
           ticketId: selected.id,
         });
-        setMessages((prev) => {
-          const merged = mergeChatMessages(mapped, prev);
-          const digest = digestMessages(merged);
-          if (digest === digestRef.current) return prev;
+        const digest = digestMessages(mapped);
+        if (digest !== digestRef.current) {
           digestRef.current = digest;
+          setMessages(mapped);
           requestAnimationFrame(scrollToBottom);
-          return merged;
-        });
+        }
         setError(null);
       } catch (err) {
         const isCanceled =
@@ -156,10 +143,6 @@ export default function ChatBox({
   useEffect(() => {
     scrollToBottom();
   }, [messages.length]);
-
-  useEffect(() => {
-    if (remoteTyping) requestAnimationFrame(scrollToBottom);
-  }, [remoteTyping]);
 
   useEffect(() => {
     const selectedId = selected?.id ? String(selected.id) : null;
@@ -231,15 +214,13 @@ export default function ChatBox({
     setSending(true);
 
     try {
-      await postTicketMessage({
+      await postAgentTicketMessage({
         ticketId: ticket_id,
         message: text,
         appUserId: appUserId ?? "",
         email: userEmail,
         username: user?.username,
         token,
-        fromTicket:
-          selected?.from_ticket ?? selected?.raw?.from_ticket ?? false,
       });
       setMessages((prev) =>
         prev.map((m) => (m.id === tempId ? { ...m, status: "sent" } : m))
@@ -285,15 +266,13 @@ export default function ChatBox({
     setServerResponseSnippet(null);
 
     try {
-      await postTicketMessage({
+      await postAgentTicketMessage({
         ticketId: selected.id,
         message: msg.text,
         appUserId: appUserId ?? "",
         email: userEmail,
         username: user?.username,
         token,
-        fromTicket:
-          selected?.from_ticket ?? selected?.raw?.from_ticket ?? false,
       });
       setMessages((prev) =>
         prev.map((m) =>
@@ -623,13 +602,9 @@ export default function ChatBox({
                   </motion.div>
                 );
               })}
-
-              {remoteTyping ? (
-                <TypingIndicator key="remote-typing" label={remoteLabel} />
-              ) : null}
             </AnimatePresence>
 
-            {messages.length === 0 && !loading && !remoteTyping && (
+            {messages.length === 0 && !loading && (
               <div className="text-sm text-muted text-center py-8">
                 No messages yet.
               </div>

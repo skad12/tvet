@@ -3,7 +3,7 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useUsersDirectory } from "@/hooks/useUsersDirectory";
 import { GoAlertFill } from "react-icons/go";
@@ -13,13 +13,10 @@ import {
   DEFAULT_CHAT_POLL_MS,
   digestMessages,
   fetchTicketChats,
-  mergeChatMessages,
   normalizeChatEntries,
-  postTicketMessage,
+  postAgentTicketMessage,
 } from "@/lib/chatClient";
 import { toast } from "sonner";
-import TypingIndicator from "@/components/chat/TypingIndicator";
-import { useTicketTyping } from "@/hooks/useTicketTyping";
 
 function getUserId(user) {
   return (
@@ -60,8 +57,7 @@ export default function SuperAgentChatBox({
 }: SuperAgentChatBoxProps) {
   const { token, user } = useAuth();
   const userEmail = propUserEmail ?? user?.email ?? user?.username ?? "me";
-  const { users: usersDirectory = [], loading: usersDirectoryLoading } =
-    useUsersDirectory({ enabled: true });
+  const { users: usersDirectory = [] } = useUsersDirectory({ enabled: true });
 
   const appUserId =
     user?.app_user_id ??
@@ -71,53 +67,6 @@ export default function SuperAgentChatBox({
     user?.uid ??
     user?.pk ??
     null;
-
-  const assignedAgent = useMemo(() => {
-    if (!selected) return null;
-
-    const assignedRaw =
-      selected?.assigned_to ??
-      selected?.assigned_to_id ??
-      selected?.agent_id ??
-      selected?.agentId ??
-      selected?.raw?.assigned_to ??
-      selected?.raw?.assigned_to_id ??
-      selected?.raw?.agent_id ??
-      selected?.raw?.agentId ??
-      null;
-
-    const assignedId =
-      typeof assignedRaw === "object" ? getUserId(assignedRaw) : assignedRaw;
-
-    if (assignedId) {
-      const byId = usersDirectory.find(
-        (candidate) =>
-          isAgentAccount(candidate) &&
-          String(getUserId(candidate)) === String(assignedId)
-      );
-      if (byId) return byId;
-    }
-
-    const assignedName = normalizeIdentity(
-      selected?.assigned_to_name ??
-        selected?.raw?.assigned_to_name ??
-        selected?.raw?.assigned_to?.name ??
-        selected?.raw?.assigned_to?.username ??
-        selected?.raw?.assignee_name
-    );
-    if (!assignedName) return null;
-
-    return (
-      usersDirectory.find((candidate) => {
-        if (!isAgentAccount(candidate)) return false;
-        return [
-          candidate?.name,
-          candidate?.username,
-          candidate?.email,
-        ].some((value) => normalizeIdentity(value) === assignedName);
-      }) ?? null
-    );
-  }, [selected, usersDirectory]);
 
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -166,23 +115,13 @@ export default function SuperAgentChatBox({
   const digestRef = useRef("");
   const pollTimerRef = useRef(null);
   const controllerRef = useRef(null);
-  const CURRENT_ROLE = "super_agent";
-  const { remoteTyping, remoteLabel } = useTicketTyping({
-    ticketId: selected?.id,
-    userId: appUserId ?? userEmail,
-    userName: user?.name ?? user?.username ?? userEmail,
-    role: CURRENT_ROLE,
-    text: msgText,
-    enabled: Boolean(selected?.id),
-  });
-  const activeMessageAgent = localAssignedAgent ?? assignedAgent;
-  const messageAppUserId = getUserId(activeMessageAgent) ?? null;
+  const CURRENT_ROLE = "agent";
 
   function getAgentName(agent) {
     return agent?.name ?? agent?.username ?? agent?.email ?? "Agent";
   }
 
-  function getFallbackAgents() {
+  function getAssignableAgents() {
     return usersDirectory
       .filter((candidate) => isAgentAccount(candidate) && getUserId(candidate))
       .sort((a, b) => {
@@ -193,38 +132,56 @@ export default function SuperAgentChatBox({
       });
   }
 
-  async function ensureMessageAgent() {
-    if (activeMessageAgent && messageAppUserId) return activeMessageAgent;
+  async function resolveAgentMessageSender() {
+    if (localAssignedAgent && isAgentAccount(localAssignedAgent)) {
+      return localAssignedAgent;
+    }
+
+    const assignedRaw =
+      selected?.assigned_to ??
+      selected?.assigned_to_id ??
+      selected?.agent_id ??
+      selected?.agentId ??
+      selected?.raw?.assigned_to ??
+      selected?.raw?.assigned_to_id ??
+      selected?.raw?.agent_id ??
+      selected?.raw?.agentId ??
+      null;
+
+    const assignedId =
+      typeof assignedRaw === "object" ? getUserId(assignedRaw) : assignedRaw;
+
+    if (assignedId) {
+      const assigned = usersDirectory.find(
+        (candidate) =>
+          isAgentAccount(candidate) &&
+          String(getUserId(candidate)) === String(assignedId)
+      );
+      if (assigned) return assigned;
+    }
+
     if (!selected?.id) return null;
 
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
-    let lastAssignError = null;
-
-    for (const fallbackAgent of getFallbackAgents()) {
-      const fallbackAgentId = getUserId(fallbackAgent);
+    for (const agent of getAssignableAgents()) {
+      const agentId = getUserId(agent);
       try {
         await api.post(
           "/assign-ticket/to-user/",
           {
             ticket_id: selected.id,
-            assigned_to_id: fallbackAgentId,
+            assigned_to_id: agentId,
           },
           { headers }
         );
-
-        setLocalAssignedAgent(fallbackAgent);
-        setLocalAssignedName(getAgentName(fallbackAgent));
-        setAssignNotice(
-          `Assigned to ${getAgentName(fallbackAgent)} successfully.`
-        );
-        toast.success(`Assigned to ${getAgentName(fallbackAgent)} successfully`);
-        return fallbackAgent;
+        setLocalAssignedAgent(agent);
+        setLocalAssignedName(getAgentName(agent));
+        return agent;
       } catch (err) {
-        lastAssignError = err;
+        console.warn("Auto-assign before send failed:", err);
       }
     }
 
-    if (lastAssignError) throw lastAssignError;
     return null;
   }
 
@@ -244,17 +201,15 @@ export default function SuperAgentChatBox({
         const mapped = normalizeChatEntries(data, {
           ticketId: selected.id,
         });
-        setMessages((prev) => {
-          const merged = mergeChatMessages(mapped, prev);
-          const digest = digestMessages(merged);
-          if (digest === digestRef.current) return prev;
+        const digest = digestMessages(mapped);
+        if (digest !== digestRef.current) {
           digestRef.current = digest;
+          setMessages(mapped);
           if (selected?.id) {
-            messagesCacheRef.current.set(selected.id, merged);
+            messagesCacheRef.current.set(selected.id, mapped);
           }
           requestAnimationFrame(scrollToBottom);
-          return merged;
-        });
+        }
         setError(null);
       } catch (err) {
         const isCanceled =
@@ -329,10 +284,6 @@ export default function SuperAgentChatBox({
     setIsResolved(resolved);
   }, [selected?.id, selected?.ticket_status, selected?.raw?.ticket_status]);
 
-  useEffect(() => {
-    if (remoteTyping) requestAnimationFrame(scrollToBottom);
-  }, [remoteTyping]);
-
   async function sendMessage(e) {
     if (e && e.preventDefault) e.preventDefault();
     setError(null);
@@ -341,33 +292,8 @@ export default function SuperAgentChatBox({
     const text = (msgText || "").trim();
     if (!text || !selected?.id) return;
 
-    setSending(true);
-
-    let messageAgent = null;
-    try {
-      messageAgent = await ensureMessageAgent();
-    } catch (err) {
-      console.error("Failed to assign ticket before sending:", err);
-      const message =
-        err?.response?.data?.message ??
-          err?.message ??
-          "Failed to assign this ticket before sending.";
-      setError(message);
-      toast.error(message);
-      setSending(false);
-      return;
-    }
-
-    const senderAppUserId = getUserId(messageAgent);
-    if (!senderAppUserId) {
-      const message =
-        usersDirectoryLoading
-          ? "Loading assigned agent details. Please try again in a moment."
-          : "Assign an agent to this ticket before sending a reply.";
-      setError(message);
-      toast.error(message);
-      setSending(false);
-      return;
+    if (!appUserId) {
+      console.warn("[ChatBox] app_user_id missing; backend may require it.");
     }
 
     const ticket_id = selected.id;
@@ -378,7 +304,7 @@ export default function SuperAgentChatBox({
       text,
       at: new Date().toISOString(),
       role: CURRENT_ROLE,
-      from: senderAppUserId ?? userEmail,
+      from: appUserId ?? userEmail,
       status: "pending",
     };
     setMessages((prev) => {
@@ -389,17 +315,58 @@ export default function SuperAgentChatBox({
       return updatedMessages;
     });
     setMsgText("");
+    setSending(true);
+
+    let messageAgent = null;
+    try {
+      messageAgent = await resolveAgentMessageSender();
+    } catch (err) {
+      console.error("Failed to resolve agent sender:", err);
+      const message =
+        err?.response?.data?.message ??
+        err?.message ??
+        "Could not prepare agent connection for this reply.";
+      setError(message);
+      toast.error(message);
+      setMessages((prev) => {
+        const failedMessages = prev.map((m) =>
+          m.id === tempId ? { ...m, status: "failed" } : m
+        );
+        if (ticket_id) {
+          messagesCacheRef.current.set(ticket_id, failedMessages);
+        }
+        return failedMessages;
+      });
+      setSending(false);
+      return;
+    }
+
+    const senderAppUserId = getUserId(messageAgent);
+    if (!senderAppUserId) {
+      const message = "No available agent account to send this reply.";
+      setError(message);
+      toast.error(message);
+      setMessages((prev) => {
+        const failedMessages = prev.map((m) =>
+          m.id === tempId ? { ...m, status: "failed" } : m
+        );
+        if (ticket_id) {
+          messagesCacheRef.current.set(ticket_id, failedMessages);
+        }
+        return failedMessages;
+      });
+      setSending(false);
+      return;
+    }
 
     try {
-      await postTicketMessage({
+      await postAgentTicketMessage({
         ticketId: ticket_id,
         message: text,
-        appUserId: senderAppUserId ?? "",
-        email: messageAgent?.email ?? "",
-        username: messageAgent?.username,
+        appUserId: senderAppUserId,
+        email: messageAgent?.email ?? userEmail,
+        username: messageAgent?.username ?? user?.username,
         token,
-        fromTicket:
-          selected?.from_ticket ?? selected?.raw?.from_ticket ?? false,
       });
       setMessages((prev) => {
         const sentMessages = prev.map((m) =>
@@ -450,30 +417,6 @@ export default function SuperAgentChatBox({
 
   async function retryMessage(msg) {
     if (!msg || msg.status !== "failed") return;
-    let messageAgent = null;
-    try {
-      messageAgent = await ensureMessageAgent();
-    } catch (err) {
-      console.error("Failed to assign ticket before retrying:", err);
-      const message =
-        err?.response?.data?.message ??
-          err?.message ??
-          "Failed to assign this ticket before retrying.";
-      setError(message);
-      toast.error(message);
-      return;
-    }
-
-    const senderAppUserId = getUserId(messageAgent);
-    if (!senderAppUserId) {
-      const message =
-        usersDirectoryLoading
-          ? "Loading assigned agent details. Please try again in a moment."
-          : "Assign an agent to this ticket before retrying.";
-      setError(message);
-      toast.error(message);
-      return;
-    }
     setMessages((prev) => {
       const pendingMessages = prev.map((m) =>
         m.id === msg.id ? { ...m, status: "pending" } : m
@@ -486,16 +429,36 @@ export default function SuperAgentChatBox({
     setError(null);
     setServerResponseSnippet(null);
 
+    let messageAgent = null;
     try {
-      await postTicketMessage({
+      messageAgent = await resolveAgentMessageSender();
+    } catch (err) {
+      console.error("Failed to resolve agent sender:", err);
+      const message =
+        err?.response?.data?.message ??
+        err?.message ??
+        "Could not prepare agent connection for this reply.";
+      setError(message);
+      toast.error(message);
+      return;
+    }
+
+    const senderAppUserId = getUserId(messageAgent);
+    if (!senderAppUserId) {
+      const message = "No available agent account to send this reply.";
+      setError(message);
+      toast.error(message);
+      return;
+    }
+
+    try {
+      await postAgentTicketMessage({
         ticketId: selected.id,
         message: msg.text,
-        appUserId: senderAppUserId ?? "",
-        email: messageAgent?.email ?? "",
-        username: messageAgent?.username,
+        appUserId: senderAppUserId,
+        email: messageAgent?.email ?? userEmail,
+        username: messageAgent?.username ?? user?.username,
         token,
-        fromTicket:
-          selected?.from_ticket ?? selected?.raw?.from_ticket ?? false,
       });
       setMessages((prev) => {
         const retrySentMessages = prev.map((m) =>
@@ -753,21 +716,16 @@ export default function SuperAgentChatBox({
               ) : null}
 
               {messages.map((m, idx) => {
-                const isSender =
-                  m.role === "super_agent" ||
-                  m.role === CURRENT_ROLE ||
-                  m.role === "agent";
+                const isSender = m.role === "agent" || m.role === CURRENT_ROLE;
                 const prevMessage = idx > 0 ? messages[idx - 1] : null;
                 const isSameSender =
                   prevMessage &&
                   ((isSender &&
-                    (prevMessage.role === "super_agent" ||
-                      prevMessage.role === CURRENT_ROLE ||
-                      prevMessage.role === "agent")) ||
+                    (prevMessage.role === "agent" ||
+                      prevMessage.role === CURRENT_ROLE)) ||
                     (!isSender &&
-                      prevMessage.role !== "super_agent" &&
-                      prevMessage.role !== CURRENT_ROLE &&
-                      prevMessage.role !== "agent"));
+                      prevMessage.role !== "agent" &&
+                      prevMessage.role !== CURRENT_ROLE));
                 return (
                   <motion.div
                     key={m.id}
@@ -822,13 +780,9 @@ export default function SuperAgentChatBox({
                   </motion.div>
                 );
               })}
-
-              {remoteTyping ? (
-                <TypingIndicator key="remote-typing" label={remoteLabel} />
-              ) : null}
             </AnimatePresence>
 
-            {messages.length === 0 && !loading && !remoteTyping && (
+            {messages.length === 0 && !loading && (
               <div className="text-sm text-muted text-center py-8">
                 No messages yet.
               </div>
