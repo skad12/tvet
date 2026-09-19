@@ -18,6 +18,7 @@ import {
 } from "@/lib/chatClient";
 import { toast } from "sonner";
 import { landing } from "@/components/ui/landingStyles";
+import { formatMessageTime } from "@/lib/formatMessageTime";
 
 function getUserId(user) {
   return (
@@ -754,7 +755,7 @@ export default function SuperAgentChatBox({
                           isSender ? "text-blue-100" : "text-muted"
                         }`}
                       >
-                        <span>{format(new Date(m.at), "h:mm a")}</span>
+                        <span>{formatMessageTime(m.at)}</span>
                         {m.status === "pending" && (
                           <span className="text-xs text-amber-600">
                             • Sending…

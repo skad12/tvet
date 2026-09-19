@@ -15,6 +15,7 @@ import {
 import { GoAlertFill } from "react-icons/go";
 import { toast } from "sonner";
 import { landing } from "@/components/ui/landingStyles";
+import { formatMessageTime } from "@/lib/formatMessageTime";
 
 type AgentChatBoxProps = {
   selected?: any;
@@ -578,7 +579,7 @@ export default function ChatBox({
                           isSender ? "text-blue-100" : "text-muted"
                         }`}
                       >
-                        <span>{format(new Date(m.at), "h:mm a")}</span>
+                        <span>{formatMessageTime(m.at)}</span>
                         {m.status === "pending" && (
                           <span className="text-xs text-amber-600">
                             • Sending…

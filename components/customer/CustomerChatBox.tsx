@@ -13,6 +13,7 @@ import {
 import { useUsersDirectory } from "@/hooks/useUsersDirectory";
 import { toast } from "sonner";
 import { landing } from "@/components/ui/landingStyles";
+import { formatMessageTime } from "@/lib/formatMessageTime";
 
 let api = null;
 try {
@@ -419,7 +420,7 @@ export default function ChatBox({
                           isCustomer ? "text-blue-100" : "text-muted"
                         }`}
                       >
-                        <span>{format(new Date(m.at), "h:mm a")}</span>
+                        <span>{formatMessageTime(m.at)}</span>
                         {m.status === "pending" && (
                           <span className="text-xs text-amber-400">
                             • Sending…

@@ -16,6 +16,7 @@ import {
 import { format, isValid } from "date-fns";
 import { toast } from "sonner";
 import { landing } from "@/components/ui/landingStyles";
+import { formatMessageTime } from "@/lib/formatMessageTime";
 
 function normalizeAgentName(agent) {
   if (agent === null || agent === undefined) return null;
@@ -848,7 +849,7 @@ export default function ChatModal({
                             isSender ? "text-blue-100" : "text-gray-600"
                           }`}
                         >
-                          <span>{new Date(m.at).toLocaleString()}</span>
+                          <span>{formatMessageTime(m.at)}</span>
                           {m.status === "failed" && (
                             <span className="text-red-600">• Failed</span>
                           )}
