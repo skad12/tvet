@@ -1032,6 +1032,36 @@ export default function ChatModal({
               </div>
 
               <div className="text-sm text-slate-600 space-y-4">
+                {/* What the widget collected before the conversation started:
+                    who they are, how to reach them, and what it is about. */}
+                <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                  <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Submitted details
+                  </div>
+                  <dl className="mt-3 space-y-2">
+                    {[
+                      ["Name", ticket?.raw?.name ?? ticket?.name],
+                      ["Email", ticket?.raw?.email ?? ticket?.email],
+                      ["Phone", ticket?.raw?.phone],
+                      ["Application / Reg. ID", ticket?.raw?.app_id],
+                      ["Enquiry type", ticket?.raw?.role],
+                      ["Category", ticket?.raw?.category],
+                    ].map(([label, value]) => (
+                      <div key={String(label)} className="flex gap-2">
+                        <dt className="w-32 shrink-0 text-xs text-slate-500">
+                          {label}
+                        </dt>
+                        <dd
+                          className="min-w-0 flex-1 break-words text-xs font-medium text-slate-800"
+                          title={value ? String(value) : undefined}
+                        >
+                          {value ? String(value) : "—"}
+                        </dd>
+                      </div>
+                    ))}
+                  </dl>
+                </div>
+
                 <div>
                   <div className="text-xs text-slate-500 flex items-center justify-between">
                     <span>Ticket Status</span>
