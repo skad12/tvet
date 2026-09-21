@@ -549,6 +549,45 @@ export default function ChatModal({
   // compute time here (inside component so ticket is defined)
   const time = ticket?.created_at ?? ticket?.raw?.created_at ?? "";
 
+  // Ticket.name carries different things depending on where the ticket came
+  // from. The widget stores the person's name in it; the ticket form stores the
+  // chosen category's title (see api.views.create_ticket), and older widget
+  // rows are literally called "From Widget". Only the first is a person, so the
+  // others are not shown under a "Name" label — and the category the form put
+  // in `subject` is surfaced as the category it is.
+  const submittedDetails = useMemo(() => {
+    const raw = (ticket?.raw ?? {}) as Record<string, unknown>;
+    const str = (v: unknown) =>
+      typeof v === "string" && v.trim() ? v.trim() : null;
+
+    const rawName = str(raw.name) ?? str(ticket?.name);
+    const subject = str(raw.subject);
+    const category = str(raw.category);
+
+    // A ticket raised through the form sets from_ticket and copies the category
+    // title into both name and subject, so a name equal to either is that title
+    // rather than a person. "From Widget" is the old placeholder.
+    const isFormTicket = raw.from_ticket === true;
+    const nameIsCategory =
+      Boolean(rawName) && (rawName === subject || rawName === category);
+    const personName =
+      rawName &&
+      !isFormTicket &&
+      !nameIsCategory &&
+      rawName.toLowerCase() !== "from widget"
+        ? rawName
+        : null;
+
+    return [
+      ["Name", personName],
+      ["Email", str(raw.email) ?? str(ticket?.email)],
+      ["Phone", str(raw.phone)],
+      ["Application / Reg. ID", str(raw.app_id)],
+      ["Enquiry type", str(raw.role)],
+      ["Category", category ?? subject],
+    ] as const;
+  }, [ticket]);
+
   return (
     <AnimatePresence>
       {open && (
@@ -1039,14 +1078,7 @@ export default function ChatModal({
                     Submitted details
                   </div>
                   <dl className="mt-3 space-y-2">
-                    {[
-                      ["Name", ticket?.raw?.name ?? ticket?.name],
-                      ["Email", ticket?.raw?.email ?? ticket?.email],
-                      ["Phone", ticket?.raw?.phone],
-                      ["Application / Reg. ID", ticket?.raw?.app_id],
-                      ["Enquiry type", ticket?.raw?.role],
-                      ["Category", ticket?.raw?.category],
-                    ].map(([label, value]) => (
+                    {submittedDetails.map(([label, value]) => (
                       <div key={String(label)} className="flex gap-2">
                         <dt className="w-32 shrink-0 text-xs text-slate-500">
                           {label}
