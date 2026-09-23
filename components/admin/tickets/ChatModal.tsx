@@ -634,8 +634,10 @@ export default function ChatModal({
           >
             {/* Left: conversation */}
             <div className="flex-1 min-w-0 flex flex-col">
-              <header className="flex items-center justify-between border-b border-border px-6 py-4">
-                <div className="flex items-center gap-4">
+              <header className="flex items-center justify-between gap-4 border-b border-border px-6 py-4">
+                {/* min-w-0 lets this side shrink; without it a long email has
+                    nowhere to go and runs into the actions on the right. */}
+                <div className="flex min-w-0 flex-1 items-center gap-4">
                   <button
                     onClick={() => {
                       try {
@@ -644,7 +646,7 @@ export default function ChatModal({
                         console.warn("onOpenUser threw:", err);
                       }
                     }}
-                    className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center font-medium text-slate-700"
+                    className="w-10 h-10 shrink-0 rounded-full bg-slate-100 flex items-center justify-center font-medium text-slate-700"
                     title="View user details"
                     aria-label="View user details"
                   >
@@ -653,11 +655,14 @@ export default function ChatModal({
                       .toUpperCase()}
                   </button>
 
-                  <div>
-                    <div className="font-medium text-slate-800">
+                  <div className="min-w-0">
+                    <div
+                      className="truncate font-medium text-slate-800"
+                      title={String(ticket?.email ?? ticket?.name ?? "")}
+                    >
                       {ticket?.email ?? ticket?.name ?? "Unknown"}
                     </div>
-                    <div className="text-xs text-slate-500 flex items-center gap-2">
+                    <div className="text-xs text-slate-500 flex flex-wrap items-center gap-2">
                       <span>{ticket?.categoryTitle ?? ""}</span>
 
                       <span
@@ -681,7 +686,7 @@ export default function ChatModal({
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex shrink-0 items-center gap-3">
                   {assignedAgent && (
                     <button
                       onClick={() => setShowAssignMenu(!showAssignMenu)}
@@ -1060,15 +1065,18 @@ export default function ChatModal({
             </AnimatePresence>
 
             {/* Right: user details (compact) */}
-            <aside className="w-full shrink-0 border-l border-slate-200 p-6 overflow-auto lg:w-[28rem] xl:w-[34rem]">
+            <aside className="w-full shrink-0 border-l border-slate-200 p-6 overflow-auto lg:w-[16.75rem] xl:w-[20.5rem]">
               <div className="flex items-center gap-4 mb-4">
-                <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center font-medium text-slate-700">
+                <div className="w-14 h-14 shrink-0 rounded-full bg-slate-100 flex items-center justify-center font-medium text-slate-700">
                   {String(ticket?.email ?? ticket?.name ?? "U")
                     .slice(0, 2)
                     .toUpperCase()}
                 </div>
-                <div>
-                  <div className="font-semibold text-slate-800">
+                <div className="min-w-0">
+                  <div
+                    className="truncate font-semibold text-slate-800"
+                    title={String(ticket?.email ?? ticket?.name ?? "")}
+                  >
                     {ticket?.email?.split?.("@")?.[0] ?? ticket?.name ?? "User"}
                   </div>
                   <div className="text-xs text-slate-500">
