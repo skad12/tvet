@@ -6,6 +6,7 @@ import ChatModal from "@/components/admin/tickets/ChatModal";
 import UserModal from "@/components/admin/tickets/UserModal";
 import api from "@/lib/axios";
 import TicketsList from "@/components/admin/tickets/TicketsList";
+import { readCache, writeCache, cacheKeys } from "@/lib/offlineCache";
 
 export default function TicketPage() {
   const [tickets, setTickets] = useState([]);
@@ -38,9 +39,21 @@ export default function TicketPage() {
         // Data is already an array of categories with id and title
         const arr = Array.isArray(data) ? data : [];
         setCategories(arr);
+        if (arr.length) writeCache(cacheKeys.categories(), arr);
       } catch (err) {
-        if (mounted) setCatError("Failed to load categories");
         console.error("Failed to load categories:", err);
+        // Categories barely change, so a saved copy is as good as a live one
+        // for filtering while the server is away.
+        const cached = readCache(cacheKeys.categories());
+        const cachedList = Array.isArray(cached?.value) ? cached.value : [];
+        if (mounted) {
+          if (cachedList.length) {
+            setCategories(cachedList);
+            setCatError(null);
+          } else {
+            setCatError("Failed to load categories");
+          }
+        }
       } finally {
         if (mounted) setCatLoading(false);
       }

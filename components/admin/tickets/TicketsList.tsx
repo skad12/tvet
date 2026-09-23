@@ -7,6 +7,12 @@ import api from "@/lib/axios";
 import { calculateResolutionTime } from "@/lib/resolutionTime";
 import Skeleton, { ChatListSkeleton } from "@/components/ui/Skeleton";
 import { toast } from "sonner";
+import {
+  readCache,
+  writeCache,
+  describeAge,
+  cacheKeys,
+} from "@/lib/offlineCache";
 
 export default function TicketsList({
   categoryId,
@@ -25,6 +31,12 @@ export default function TicketsList({
   const [start, setStart] = useState(0);
   const [stop, setStop] = useState(pageSize - 1);
   const [hasMore, setHasMore] = useState(false);
+
+  // When the API is unreachable we keep showing the last tickets we saw.
+  // staleSince is when that copy was saved; null means the list is live.
+  const [staleSince, setStaleSince] = useState(null);
+  // Bumped to re-run the loader when the server looks like it is back.
+  const [retryTick, setRetryTick] = useState(0);
 
   // Ref for infinite scroll observer
   const observerTarget = useRef(null);
@@ -86,6 +98,13 @@ export default function TicketsList({
           const res3 = await api
             .get("/tickets/", { signal: ac.signal })
             .catch(() => null);
+
+          // Both the paged endpoint and the full list failed, so the server is
+          // not answering. Rethrow instead of letting a null response read as
+          // an empty-but-successful result, which would blank the list and
+          // overwrite the cached copy we want to fall back to.
+          if (!res3) throw getErr;
+
           const all = res3?.data ?? [];
           const arr = Array.isArray(all)
             ? all
@@ -187,9 +206,18 @@ export default function TicketsList({
         });
 
         // if start == 0 -> replace list, else append
-        setTickets((prev) =>
-          start === 0 ? normalized : [...prev, ...normalized]
-        );
+        setTickets((prev) => {
+          const merged = start === 0 ? normalized : [...prev, ...normalized];
+          // Keep a copy so a later outage still has something to show. An empty
+          // result is never cached: it is far more likely to be a half-failed
+          // request than a genuinely empty queue, and it would destroy the
+          // fallback we are keeping.
+          if (merged.length) {
+            writeCache(cacheKeys.adminTickets(categoryId), merged);
+          }
+          return merged;
+        });
+        setStaleSince(null);
       } catch (err) {
         const isCanceled =
           err?.name === "AbortError" ||
@@ -199,9 +227,22 @@ export default function TicketsList({
         if (isCanceled) return;
         console.error("Failed to load tickets:", err);
         const message = err?.message ?? "Failed to load tickets";
-        setError(message);
-        toast.error(message);
-        setTickets([]);
+
+        // The server is unreachable. Show the last tickets we managed to load
+        // rather than an empty screen, and leave hasMore alone so that paging
+        // can carry on once it answers again.
+        const cached = readCache(cacheKeys.adminTickets(categoryId));
+        const cachedList = Array.isArray(cached?.value) ? cached.value : [];
+
+        if (cachedList.length) {
+          setTickets((prev) => (prev.length ? prev : cachedList));
+          setStaleSince(cached.savedAt);
+          setError(null);
+        } else {
+          setError(message);
+          toast.error(message);
+          setTickets([]);
+        }
       } finally {
         if (mounted) {
           setLoading(false);
@@ -215,7 +256,29 @@ export default function TicketsList({
       mounted = false;
       ac.abort();
     };
-  }, [categoryId, start, stop, pageSize]);
+  }, [categoryId, start, stop, pageSize, retryTick]);
+
+  // While we are showing a saved copy, keep an eye out for the server coming
+  // back: on the browser's own online event, when the tab is focused again,
+  // and on a slow poll so a server that recovers quietly is still noticed.
+  useEffect(() => {
+    if (!staleSince) return undefined;
+
+    const retry = () => setRetryTick((n) => n + 1);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") retry();
+    };
+
+    window.addEventListener("online", retry);
+    document.addEventListener("visibilitychange", onVisible);
+    const timer = window.setInterval(retry, 30000);
+
+    return () => {
+      window.removeEventListener("online", retry);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.clearInterval(timer);
+    };
+  }, [staleSince]);
 
   // Apply status filter to displayed tickets (client-side filtering after load)
   const displayedTickets = React.useMemo(() => {
@@ -307,6 +370,20 @@ export default function TicketsList({
                 displayedTickets.length === 1 ? "" : "s"
               }`}
         </p>
+
+        {staleSince && (
+          <div
+            role="status"
+            className="mt-3 flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800"
+          >
+            <span aria-hidden="true">⚠</span>
+            <span>
+              Can&apos;t reach the server. Showing tickets saved{" "}
+              {describeAge(staleSince)}; this will refresh on its own once the
+              connection is back.
+            </span>
+          </div>
+        )}
       </div>
 
       <div className="max-h-[600px] overflow-y-auto">

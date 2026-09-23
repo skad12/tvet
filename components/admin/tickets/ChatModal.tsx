@@ -17,6 +17,7 @@ import { format, isValid } from "date-fns";
 import { toast } from "sonner";
 import { landing } from "@/components/ui/landingStyles";
 import { formatMessageTime } from "@/lib/formatMessageTime";
+import { readCache, writeCache, cacheKeys } from "@/lib/offlineCache";
 
 function normalizeAgentName(agent) {
   if (agent === null || agent === undefined) return null;
@@ -356,6 +357,8 @@ export default function ChatModal({
           digestRef.current = digest;
           setMessages(mapped);
         }
+        // Keep the conversation so it still renders if the server drops out.
+        writeCache(cacheKeys.ticketChats(ticketId), mapped);
         setError(null);
       } catch (err) {
         const isCanceled =
@@ -366,8 +369,20 @@ export default function ChatModal({
         if (isCanceled) return;
         console.error("Failed to load chats:", err);
         const message = err.message || "Failed to load messages";
-        setError(message);
-        if (initial) toast.error(message);
+
+        // Show the last copy of this conversation rather than an error, and
+        // stay silent about it if something is already on screen — the poller
+        // will pick the live version back up on its own.
+        const cached = readCache(cacheKeys.ticketChats(ticketId));
+        const cachedMessages = Array.isArray(cached?.value) ? cached.value : [];
+
+        if (cachedMessages.length) {
+          setMessages((prev) => (prev.length ? prev : cachedMessages));
+          setError(null);
+        } else {
+          setError(message);
+          if (initial) toast.error(message);
+        }
       } finally {
         if (mounted) setLoading(false);
       }
@@ -1077,14 +1092,17 @@ export default function ChatModal({
                   <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                     Submitted details
                   </div>
-                  <dl className="mt-3 space-y-2">
+                  {/* Label above value rather than beside it: emails and
+                      category titles are long and were being squeezed into a
+                      narrow column. */}
+                  <dl className="mt-3 space-y-3">
                     {submittedDetails.map(([label, value]) => (
-                      <div key={String(label)} className="flex gap-2">
-                        <dt className="w-32 shrink-0 text-xs text-slate-500">
+                      <div key={String(label)}>
+                        <dt className="text-[11px] uppercase tracking-wide text-slate-500">
                           {label}
                         </dt>
                         <dd
-                          className="min-w-0 flex-1 break-words text-xs font-medium text-slate-800"
+                          className="mt-0.5 break-words text-sm font-medium text-slate-800"
                           title={value ? String(value) : undefined}
                         >
                           {value ? String(value) : "—"}

@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { FiBell, FiSettings, FiUserCheck, FiCheckCircle } from "react-icons/fi";
 import { AiOutlineRobot } from "react-icons/ai";
 import ThemeToggle from "@/components/ThemeToggle";
+import { readCache, writeCache } from "@/lib/offlineCache";
 
 export default function Topbar({ onSidebarOpen }) {
   const [data, setData] = useState(null);
@@ -62,6 +63,9 @@ export default function Topbar({ onSidebarOpen }) {
         const res = await api.get("/get-analytics/");
         if (!mounted) return;
         setData(res.data);
+        // This is the path that actually succeeds, so it is the one that has
+        // to seed the cache the offline fallback below reads.
+        if (res.data) writeCache("admin_analytics", res.data);
         setError(null);
       } catch (err) {
         console.warn(
@@ -77,13 +81,22 @@ export default function Topbar({ onSidebarOpen }) {
           }
           const json = await proxied.json();
           setData(json);
+          writeCache("admin_analytics", json);
           setError(null);
         } catch (proxyErr) {
           console.error("Proxy request failed:", proxyErr);
+          // Show the last figures we had rather than an error in the header;
+          // they are a summary, and a slightly old one still reads true.
+          const cached = readCache("admin_analytics");
           if (mounted) {
-            const message = "Failed to load analytics";
-            setError(message);
-            toast.error(message);
+            if (cached?.value) {
+              setData(cached.value);
+              setError(null);
+            } else {
+              const message = "Failed to load analytics";
+              setError(message);
+              toast.error(message);
+            }
           }
         }
       } finally {

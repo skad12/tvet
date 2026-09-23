@@ -9,6 +9,7 @@ import api from "@/lib/axios";
 import Navbar from "@/components/agent/Topbar";
 import ChatBox from "@/components/agent/AgentChatBox";
 import ChatList from "@/components/agent/AgentChatList";
+import { readCache, writeCache, cacheKeys } from "@/lib/offlineCache";
 
 export default function AgentDashboardPage() {
   const [tickets, setTickets] = useState([]);
@@ -176,6 +177,9 @@ export default function AgentDashboardPage() {
       );
 
       setTickets(allTickets);
+      // Keep a copy so an outage still has tickets to show.
+      writeCache(cacheKeys.agentTickets(currentUserId), allTickets);
+      setTicketsError(null);
       // Preserve current selection when possible
       setSelected((prevSelected) => {
         if (prevSelected) {
@@ -194,9 +198,20 @@ export default function AgentDashboardPage() {
       });
     } catch (err) {
       console.error("Failed to load tickets", err);
-      setTickets([]);
-      setSelected(null);
-      setTicketsError(err?.message ?? "Failed to load tickets");
+
+      // Server unreachable: keep showing the tickets we last had rather than
+      // clearing the agent's queue out from under them.
+      const cached = readCache(cacheKeys.agentTickets(currentUserId));
+      const cachedList = Array.isArray(cached?.value) ? cached.value : [];
+
+      if (cachedList.length) {
+        setTickets((prev) => (prev.length ? prev : cachedList));
+        setTicketsError(null);
+      } else {
+        setTickets([]);
+        setSelected(null);
+        setTicketsError(err?.message ?? "Failed to load tickets");
+      }
     } finally {
       if (showLoading) setLoadingTickets(false);
     }
