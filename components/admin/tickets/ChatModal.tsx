@@ -630,10 +630,10 @@ export default function ChatModal({
             animate={{ y: 0, opacity: 1, scale: 1 }}
             exit={{ y: 8, opacity: 0, scale: 0.98 }}
             transition={{ duration: 0.22 }}
-            className={`${landing.modal} relative flex h-[80vh] w-full max-w-5xl overflow-hidden p-0`}
+            className={`${landing.modal} relative flex h-[80vh] w-full max-w-6xl overflow-hidden p-0`}
           >
             {/* Left: conversation */}
-            <div className="flex-1 flex flex-col">
+            <div className="flex-1 min-w-0 flex flex-col">
               <header className="flex items-center justify-between border-b border-border px-6 py-4">
                 <div className="flex items-center gap-4">
                   <button
@@ -1060,7 +1060,7 @@ export default function ChatModal({
             </AnimatePresence>
 
             {/* Right: user details (compact) */}
-            <aside className="w-full border-l border-slate-200 p-6 overflow-auto">
+            <aside className="w-full shrink-0 border-l border-slate-200 p-6 overflow-auto lg:w-[28rem] xl:w-[34rem]">
               <div className="flex items-center gap-4 mb-4">
                 <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center font-medium text-slate-700">
                   {String(ticket?.email ?? ticket?.name ?? "U")
@@ -1072,15 +1072,25 @@ export default function ChatModal({
                     {ticket?.email?.split?.("@")?.[0] ?? ticket?.name ?? "User"}
                   </div>
                   <div className="text-xs text-slate-500">
-                    Customer ID:{" "}
-                    {String(
-                      ticket?.raw?.customer_id ??
-                        ticket?.raw?.user_id ??
-                        ticket?.raw?.userId ??
-                        ticket?.raw?.reporter_id ??
-                        ticket?.id ??
-                        "—"
-                    )}
+                    Trainee ID:{" "}
+                    {(() => {
+                      const raw = String(
+                        ticket?.raw?.customer_id ??
+                          ticket?.raw?.user_id ??
+                          ticket?.raw?.userId ??
+                          ticket?.raw?.reporter_id ??
+                          ticket?.id ??
+                          "—"
+                      );
+                      // A full UUID crowds the header out; the first block is
+                      // plenty to recognise a ticket by. The whole value stays
+                      // available on hover and to anything copying the title.
+                      return (
+                        <span title={raw} className="font-mono">
+                          {raw.length > 8 ? `${raw.slice(0, 8)}…` : raw}
+                        </span>
+                      );
+                    })()}
                   </div>
                 </div>
               </div>
