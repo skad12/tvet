@@ -630,14 +630,15 @@ export default function ChatModal({
             animate={{ y: 0, opacity: 1, scale: 1 }}
             exit={{ y: 8, opacity: 0, scale: 0.98 }}
             transition={{ duration: 0.22 }}
-            className={`${landing.modal} relative flex h-[80vh] w-full max-w-6xl overflow-hidden p-0`}
+            className={`${landing.modal} relative flex h-[85dvh] w-full max-w-6xl flex-col overflow-hidden p-0 lg:h-[80vh] lg:flex-row`}
           >
-            {/* Left: conversation */}
-            <div className="flex-1 min-w-0 flex flex-col">
-              <header className="flex items-center justify-between gap-4 border-b border-border px-6 py-4">
+            {/* Left: conversation. Below lg the panes stack, so this one needs
+                min-h-0 to shrink and keep the input on screen. */}
+            <div className="flex-1 min-w-0 min-h-0 flex flex-col">
+              <header className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-3 sm:gap-4 sm:px-6 sm:py-4">
                 {/* min-w-0 lets this side shrink; without it a long email has
                     nowhere to go and runs into the actions on the right. */}
-                <div className="flex min-w-0 flex-1 items-center gap-4">
+                <div className="flex min-w-0 basis-full grow items-center gap-4 sm:basis-0">
                   <button
                     onClick={() => {
                       try {
@@ -686,7 +687,7 @@ export default function ChatModal({
                   </div>
                 </div>
 
-                <div className="flex shrink-0 items-center gap-3">
+                <div className="flex flex-wrap items-center gap-2 sm:shrink-0 sm:gap-3">
                   {assignedAgent && (
                     <button
                       onClick={() => setShowAssignMenu(!showAssignMenu)}
@@ -829,7 +830,7 @@ export default function ChatModal({
                     </button>
                   )}
 
-                  <span className=" bg-green-200 px-2 py-1 rounded-full text-xs text-slate-500">
+                  <span className="hidden bg-green-200 px-2 py-1 rounded-full text-xs text-slate-500 sm:inline">
                     AI Assisted
                   </span>
                   <button
@@ -845,8 +846,7 @@ export default function ChatModal({
 
               {/* messages */}
               <div
-                className={`${landing.messageArea} flex-1 p-6`}
-                style={{ maxHeight: "calc(80vh - 200px)", minHeight: "400px" }}
+                className={`${landing.messageArea} flex-1 p-3 sm:p-6`}
               >
                 <motion.div
                   initial={{ opacity: 0, y: 6 }}
@@ -925,11 +925,11 @@ export default function ChatModal({
               {/* input */}
               <form
                 onSubmit={handleSend}
-                className="border-t border-border px-4 py-3 flex items-center gap-3"
+                className="border-t border-border px-3 py-3 flex shrink-0 items-center gap-2 sm:px-4 sm:gap-3"
               >
                 <button
                   type="button"
-                  className="p-2 rounded-md text-slate-500 hover:bg-slate-100"
+                  className="hidden p-2 rounded-md text-slate-500 hover:bg-slate-100 sm:block"
                   title="Attach file"
                 >
                   <FiPaperclip />
@@ -937,7 +937,7 @@ export default function ChatModal({
 
                 <button
                   type="button"
-                  className="p-2 rounded-md text-slate-500 hover:bg-slate-100"
+                  className="hidden p-2 rounded-md text-slate-500 hover:bg-slate-100 sm:block"
                   title="Emoji"
                 >
                   <FiSmile />
@@ -1065,7 +1065,9 @@ export default function ChatModal({
             </AnimatePresence>
 
             {/* Right: user details (compact) */}
-            <aside className="w-full shrink-0 border-l border-slate-200 p-6 overflow-auto lg:w-[16.75rem] xl:w-[20.5rem]">
+            {/* Below lg this sits under the chat, capped so it cannot take the
+                space the conversation needs; at lg it becomes the side pane. */}
+            <aside className="max-h-[35%] w-full shrink-0 overflow-auto border-t border-slate-200 p-4 sm:p-6 lg:max-h-none lg:w-[16.75rem] lg:border-l lg:border-t-0 xl:w-[20.5rem]">
               <div className="flex items-center gap-4 mb-4">
                 <div className="w-14 h-14 shrink-0 rounded-full bg-slate-100 flex items-center justify-center font-medium text-slate-700">
                   {String(ticket?.email ?? ticket?.name ?? "U")

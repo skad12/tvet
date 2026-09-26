@@ -2,7 +2,11 @@
 
 import React, { useState } from "react";
 
-const CHATBOT_URL = "https://tvet-support.previewapp.cc/chat-widget/x/";
+// Set NEXT_PUBLIC_WIDGET_URL to point the widget at another backend, e.g. a
+// local Django server during development.
+const CHATBOT_URL =
+  process.env.NEXT_PUBLIC_WIDGET_URL ||
+  "https://tvet-support.previewapp.cc/chat-widget/x/";
 
 export default function FloatingWidget() {
   const [open, setOpen] = useState(false);
