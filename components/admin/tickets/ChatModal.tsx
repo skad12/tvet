@@ -16,6 +16,7 @@ import {
 import { format, isValid } from "date-fns";
 import { toast } from "sonner";
 import { landing } from "@/components/ui/landingStyles";
+import EscalateMenu, { type EscalationCategory } from "@/components/tickets/EscalateMenu";
 import { formatMessageTime } from "@/lib/formatMessageTime";
 import { readCache, writeCache, cacheKeys } from "@/lib/offlineCache";
 
@@ -513,12 +514,8 @@ export default function ChatModal({
     }
   };
 
-  // Escalate handler (added)
-  const handleEscalate = async (e) => {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
+  // Escalate to the category picked from EscalateMenu.
+  const handleEscalate = async (category: EscalationCategory) => {
     if (!ticketId || escalating || escalated || isResolved) return;
 
     setEscalating(true);
@@ -528,11 +525,12 @@ export default function ChatModal({
       await api.post("/tickets/escalate-ticket/", {
         ticket_id: ticketId,
         agent_id: currentUserId ?? null,
+        category_id: category.id,
       });
 
       setEscalated(true);
-      setEscalationNotice("Ticket escalated successfully.");
-      toast.success("Ticket escalated successfully");
+      setEscalationNotice(`Ticket escalated to ${category.title}.`);
+      toast.success(`Ticket escalated to ${category.title}`);
 
       requestAnimationFrame(() => {
         setShowPopup(true);
@@ -548,13 +546,15 @@ export default function ChatModal({
         }
       } catch (e) {}
 
-      setNotificationMessage("Ticket escalated");
+      setNotificationMessage(`Ticket escalated to ${category.title}`);
       setShowNotification(true);
       setTimeout(() => setShowNotification(false), 3000);
     } catch (err) {
       console.error("Failed to escalate ticket:", err);
-      setEscalationNotice(err?.message ?? "Failed to escalate ticket");
-      toast.error(err?.message ?? "Failed to escalate ticket");
+      const message =
+        err?.response?.data?.error ?? err?.message ?? "Failed to escalate ticket";
+      setEscalationNotice(message);
+      toast.error(message);
       setEscalated(false);
     } finally {
       setEscalating(false);
@@ -792,10 +792,18 @@ export default function ChatModal({
                     )}
                   </div>
 
-                  {/* Escalate button */}
+                  {/* Escalate: pick the category; once escalated or resolved
+                      it is a plain disabled label. */}
+                  {!escalated && !isResolved ? (
+                    <EscalateMenu
+                      onSelect={handleEscalate}
+                      escalating={escalating}
+                      align="right"
+                      buttonClassName="text-xs px-2 py-1 rounded border transition-colors border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+                    />
+                  ) : (
                   <button
-                    onClick={handleEscalate}
-                    disabled={escalating || escalated || isResolved}
+                    disabled
                     className={`text-xs px-2 py-1 rounded border transition-colors ${
                       escalated
                         ? "border-purple-300 bg-purple-50 text-purple-700 cursor-not-allowed"
@@ -803,12 +811,9 @@ export default function ChatModal({
                     } ${escalating ? "opacity-50 cursor-not-allowed" : ""}`}
                     aria-label="Escalate ticket"
                   >
-                    {escalating
-                      ? "Escalating…"
-                      : escalated
-                      ? "Escalated"
-                      : "Escalate"}
+                    {escalated ? "Escalated" : "Escalate"}
                   </button>
+                  )}
 
                   {/* Resolve button */}
                   {!isResolved && (

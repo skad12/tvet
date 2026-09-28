@@ -177,11 +177,6 @@ export default function TicketPage() {
               open={true}
               onClose={closeChat}
               onOpenUser={openUserDetails}
-              onMessageAdded={(newMsg, ticket) => {
-                api
-                  .post(`/tickets/${ticket.id}/messages`, newMsg)
-                  .catch(console.error);
-              }}
             />
           )}
         </AnimatePresence>

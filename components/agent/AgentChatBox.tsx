@@ -15,6 +15,7 @@ import {
 import { GoAlertFill } from "react-icons/go";
 import { toast } from "sonner";
 import { landing } from "@/components/ui/landingStyles";
+import EscalateMenu, { type EscalationCategory } from "@/components/tickets/EscalateMenu";
 import { formatMessageTime } from "@/lib/formatMessageTime";
 
 type AgentChatBoxProps = {
@@ -59,53 +60,10 @@ export default function ChatBox({
     Set<string>
   >(() => new Set());
 
-  // Escalate menu: the agent picks the category the ticket goes to.
-  const [showEscalateMenu, setShowEscalateMenu] = useState(false);
-  const [categories, setCategories] = useState<{ id: string; title: string }[]>([]);
-  const [loadingCategories, setLoadingCategories] = useState(false);
-  const escalateMenuRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    if (!showEscalateMenu) return;
-    const close = (e: MouseEvent | TouchEvent) => {
-      if (!escalateMenuRef.current?.contains(e.target as Node)) setShowEscalateMenu(false);
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setShowEscalateMenu(false);
-    };
-    document.addEventListener("mousedown", close);
-    document.addEventListener("touchstart", close);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", close);
-      document.removeEventListener("touchstart", close);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [showEscalateMenu]);
-
-  async function openEscalateMenu() {
-    setShowEscalateMenu((open) => !open);
-    if (categories.length || loadingCategories) return;
-    setLoadingCategories(true);
-    try {
-      const res = await api.get("/get-all-category/");
-      const list = Array.isArray(res?.data) ? res.data : [];
-      setCategories(
-        list
-          .filter((c) => c?.id != null && c?.title)
-          .map((c) => ({ id: String(c.id), title: String(c.title) }))
-      );
-    } catch (e) {
-      toast.error("Could not load categories");
-    } finally {
-      setLoadingCategories(false);
-    }
-  }
-
-  async function escalateTo(category: { id: string; title: string }) {
+  // The agent picks the category from EscalateMenu.
+  async function escalateTo(category: EscalationCategory) {
     if (!selected?.id || escalating) return;
 
-    setShowEscalateMenu(false);
     setEscalateError(null);
     setEscalating(true);
 
@@ -428,66 +386,11 @@ export default function ChatBox({
               </span>
               <div className="flex items-center gap-2">
                 {!isResolved && !escalated && (
-                  <div className="relative" ref={escalateMenuRef}>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        if (!selected?.id || escalating) return;
-                        openEscalateMenu();
-                      }}
-                      disabled={escalating}
-                      className={`${landing.btnGhost} inline-flex items-center gap-1 ${
-                        escalating ? "opacity-50 cursor-not-allowed" : ""
-                      }`}
-                      aria-label="Escalate ticket"
-                      aria-haspopup="menu"
-                      aria-expanded={showEscalateMenu}
-                    >
-                      {escalating ? "Escalating…" : "Escalate"}
-                      <svg className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
-                        <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.06l3.71-3.83a.75.75 0 111.08 1.04l-4.25 4.39a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z" clipRule="evenodd" />
-                      </svg>
-                    </button>
-
-                    {showEscalateMenu && (
-                      <div
-                        role="menu"
-                        aria-label="Escalate to category"
-                        className="absolute left-0 top-full z-50 mt-2 max-h-60 w-60 overflow-y-auto rounded-lg border border-slate-200 bg-white p-1 shadow-lg"
-                      >
-                        <div className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                          Escalate to
-                        </div>
-                        {loadingCategories ? (
-                          <div className="px-2 py-3 text-center text-xs text-slate-500">
-                            Loading categories…
-                          </div>
-                        ) : categories.length === 0 ? (
-                          <div className="px-2 py-3 text-center text-xs text-slate-500">
-                            No categories set up yet
-                          </div>
-                        ) : (
-                          categories.map((category) => (
-                            <button
-                              key={category.id}
-                              type="button"
-                              role="menuitem"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                escalateTo(category);
-                              }}
-                              className="block w-full rounded-md px-2 py-2 text-left text-xs text-slate-700 hover:bg-slate-100 sm:text-sm"
-                            >
-                              {category.title}
-                            </button>
-                          ))
-                        )}
-                      </div>
-                    )}
-                  </div>
+                  <EscalateMenu
+                    onSelect={escalateTo}
+                    escalating={escalating}
+                    buttonClassName={landing.btnGhost}
+                  />
                 )}
 
                 {!isResolved && (
