@@ -488,6 +488,7 @@ import { calculateResolutionTime } from "@/lib/resolutionTime";
 import Skeleton, { ChatListSkeleton } from "@/components/ui/Skeleton";
 import { toast } from "sonner";
 import { landing, tabClass, ticketCardClass } from "@/components/ui/landingStyles";
+import { NEW_MESSAGE_BADGE_CLASS, needsReply, sortByActivity } from "@/lib/ticketActivity";
 
 let api = null;
 try {
@@ -716,7 +717,7 @@ function formatMaybeDate(val: any, display?: any) {
     return map;
   }, [owned]);
 
-  const filtered = useMemo(() => {
+  const filteredUnsorted = useMemo(() => {
     let list = owned;
     if (!activeTab || activeTab === "all") return list;
     return list.filter((t) => {
@@ -730,6 +731,10 @@ function formatMaybeDate(val: any, display?: any) {
       return s === activeTab;
     });
   }, [owned, activeTab]);
+
+  // Whatever was written to last comes first, so a trainee's reply surfaces
+  // without anyone having to hunt for it.
+  const filtered = useMemo(() => sortByActivity(filteredUnsorted), [filteredUnsorted]);
 
   const listItem = {
     hidden: { opacity: 0, y: 8 },
@@ -852,7 +857,8 @@ function formatMaybeDate(val: any, display?: any) {
                 const email = t.email ?? "";
                 const statusKey = (t.status ?? "pending").toLowerCase();
                 const statusLabel = t.statusDisplay || "Pending";
-                const time = t.created_at ?? "";
+                const time = t.raw?.last_message_at ?? t.created_at ?? "";
+                const awaiting = needsReply(t);
                 const resolvedAt = t.raw?.resolved_at ?? null;
                 const resolutionTime = calculateResolutionTime(t.created_at, resolvedAt, t.status || t.ticket_status);
                 const isRecentlyAdded = t.id && recentlyAdded[t.id] && now - recentlyAdded[t.id] < 60000;
@@ -871,11 +877,19 @@ function formatMaybeDate(val: any, display?: any) {
                           : t.assigned_to_name}
                       </div>
 
+                      {t.raw?.escalated_category && (
+                        <div className="text-[10px] sm:text-xs text-muted mt-1 truncate">
+                          Escalated to: {t.raw.escalated_category}
+                        </div>
+                      )}
+
                       {isRecentlyAdded && <div className="text-[10px] uppercase tracking-wide font-semibold text-emerald-600">New</div>}
                     </div>
 
                     <div className="text-right shrink-0 flex flex-col items-end ml-2 sm:ml-4 gap-1">
                       <span className={`inline-flex items-center justify-center px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-medium ${pillClass}`}>{statusLabel}</span>
+
+                      {awaiting && <span className={NEW_MESSAGE_BADGE_CLASS}>● New message</span>}
 
                       {t.raw?.escalated === true && <span className="inline-flex items-center gap-1 text-[10px] sm:text-xs font-semibold px-2 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-100"><GoAlertFill />Escalated</span>}
 

@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { format, isValid } from "date-fns";
 import api from "@/lib/axios";
 import { calculateResolutionTime } from "@/lib/resolutionTime";
+import { NEW_MESSAGE_BADGE_CLASS, needsReply, sortByActivity } from "@/lib/ticketActivity";
 import Skeleton, { ChatListSkeleton } from "@/components/ui/Skeleton";
 import { toast } from "sonner";
 import {
@@ -13,6 +14,65 @@ import {
   describeAge,
   cacheKeys,
 } from "@/lib/offlineCache";
+
+// Helper: normalize a status string to canonical values for comparisons
+function normalizeStatusValue(statusVal) {
+  // if (!statusVal && statusVal !== false) return "active";
+  // If statusVal is boolean (e.g., status: false), convert to string
+  const raw = String(statusVal).toLowerCase().trim();
+  if (raw === "resolved" || raw === "closed" || raw === "completed")
+    return "resolved";
+  if (raw === "pending" || raw === "waiting" || raw === "in_progress")
+    return "pending";
+  // if (raw === "active" || raw === "open" || raw === "new")
+  //   return "active";
+  return raw;
+}
+
+// Normalize tickets to expected shape and capture both raw label and normalized value
+function normalizeAdminTicket(t) {
+  // ONLY use ticket_status (string) field - this is the source of truth
+  // Do NOT use the boolean 'status' field as it causes confusion
+  const statusRaw = t?.ticket_status ?? t?.state ?? null;
+
+  // statusLabel is for human display (keeps casing from API when possible)
+  const statusLabel =
+    statusRaw === null || statusRaw === undefined
+      ? "Active"
+      : typeof statusRaw === "string"
+      ? statusRaw
+      : String(statusRaw);
+
+  return {
+    id: t?.id ?? t?.ticket_id ?? null,
+    name: t?.name ?? t?.subject ?? t?.title ?? "From Widget",
+    chats: Array.isArray(t?.chats) ? t.chats : t?.messages ?? [],
+    email: t?.email ?? t?.user_email ?? "",
+    subject: t?.subject ?? t?.title ?? "",
+    // normalized status for logic (e.g., filtering)
+    status: normalizeStatusValue(statusLabel),
+    // human-friendly status label to show in the UI (e.g. "Pending")
+    status_label: statusLabel,
+    escalated: t?.escalated === true || t?.priority === "high",
+    created_at: t?.created_at ?? t?.created_on ?? t?.createdAt ?? null,
+    created_at_display: t?.created_at_display ?? null,
+    pub_date: t?.pub_date ?? null,
+    raw: t,
+  };
+}
+
+// Keep the first copy of each ticket: after a reorder, a later page can repeat
+// one already shown.
+function uniqueById(list) {
+  const seen = new Set();
+  return list.filter((t) => {
+    const key = t?.id == null ? null : String(t.id);
+    if (key === null) return true;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
 
 export default function TicketsList({
   categoryId,
@@ -65,7 +125,8 @@ export default function TicketsList({
         let usingFallback = false;
         let totalCount = null;
 
-        const genericPagedUrl = `/tickets/${start}/${stop}/`;
+        // start/stop are inclusive here; the backend's stop is exclusive.
+        const genericPagedUrl = `/tickets/${start}/${stop + 1}/`;
 
         if (categoryId !== null && categoryId !== undefined) {
           // no-op; category included in query later
@@ -159,55 +220,11 @@ export default function TicketsList({
           }
         }
 
-        // Helper: normalize a status string to canonical values for comparisons
-        function normalizeStatusValue(statusVal) {
-          // if (!statusVal && statusVal !== false) return "active";
-          // If statusVal is boolean (e.g., status: false), convert to string
-          const raw = String(statusVal).toLowerCase().trim();
-          if (raw === "resolved" || raw === "closed" || raw === "completed")
-            return "resolved";
-          if (raw === "pending" || raw === "waiting" || raw === "in_progress")
-            return "pending";
-          // if (raw === "active" || raw === "open" || raw === "new")
-          //   return "active";
-          return raw;
-        }
-
-        // Normalize tickets to expected shape and capture both raw label and normalized value
-        const normalized = arr.map((t) => {
-          // ONLY use ticket_status (string) field - this is the source of truth
-          // Do NOT use the boolean 'status' field as it causes confusion
-          const statusRaw = t?.ticket_status ?? t?.state ?? null;
-
-          // statusLabel is for human display (keeps casing from API when possible)
-          const statusLabel =
-            statusRaw === null || statusRaw === undefined
-              ? "Active"
-              : typeof statusRaw === "string"
-              ? statusRaw
-              : String(statusRaw);
-
-          return {
-            id: t?.id ?? t?.ticket_id ?? null,
-            name: t?.name ?? t?.subject ?? t?.title ?? "From Widget",
-            chats: Array.isArray(t?.chats) ? t.chats : t?.messages ?? [],
-            email: t?.email ?? t?.user_email ?? "",
-            subject: t?.subject ?? t?.title ?? "",
-            // normalized status for logic (e.g., filtering)
-            status: normalizeStatusValue(statusLabel),
-            // human-friendly status label to show in the UI (e.g. "Pending")
-            status_label: statusLabel,
-            escalated: t?.escalated === true || t?.priority === "high",
-            created_at: t?.created_at ?? t?.created_on ?? t?.createdAt ?? null,
-            created_at_display: t?.created_at_display ?? null,
-            pub_date: t?.pub_date ?? null,
-            raw: t,
-          };
-        });
+        const normalized = arr.map(normalizeAdminTicket);
 
         // if start == 0 -> replace list, else append
         setTickets((prev) => {
-          const merged = start === 0 ? normalized : [...prev, ...normalized];
+          const merged = uniqueById(start === 0 ? normalized : [...prev, ...normalized]);
           // Keep a copy so a later outage still has something to show. An empty
           // result is never cached: it is far more likely to be a half-failed
           // request than a genuinely empty queue, and it would destroy the
@@ -280,9 +297,38 @@ export default function TicketsList({
     };
   }, [staleSince]);
 
+  // Re-read the rows already on screen every 15 seconds, so a ticket a
+  // trainee has just written to moves up and gets its badge without a reload.
+  useEffect(() => {
+    if (staleSince) return undefined;
+
+    const refresh = async () => {
+      if (document.visibilityState !== "visible") return;
+      const count = Math.max(stop + 1, pageSize);
+      try {
+        let list;
+        if (categoryId !== null && categoryId !== undefined) {
+          const res = await api.get(`/filter-ticket/by-category-id/${categoryId}/`);
+          const raw = res?.data ?? [];
+          list = (Array.isArray(raw) ? raw : raw?.tickets ?? raw?.results ?? []).slice(0, count);
+        } else {
+          const res = await api.get(`/tickets/0/${count}/`);
+          list = Array.isArray(res?.data) ? res.data : [];
+        }
+        if (list.length) setTickets(uniqueById(list.map(normalizeAdminTicket)));
+      } catch {
+        // The main loader handles outages; a missed refresh just waits for the next.
+      }
+    };
+
+    const timer = window.setInterval(refresh, 15000);
+    return () => window.clearInterval(timer);
+  }, [categoryId, stop, pageSize, staleSince]);
+
   // Apply status filter to displayed tickets (client-side filtering after load)
   const displayedTickets = React.useMemo(() => {
-    if (!statusFilter || statusFilter === "all") return tickets;
+    const byActivity = sortByActivity(tickets);
+    if (!statusFilter || statusFilter === "all") return byActivity;
 
     function normalizeStatusForFilter(status) {
       if (!status) return "pending";
@@ -296,7 +342,7 @@ export default function TicketsList({
     }
 
     const wanted = statusFilter.toLowerCase();
-    return tickets.filter((t) => {
+    return byActivity.filter((t) => {
       const ticketStatusNormalized = normalizeStatusForFilter(t.status);
       return ticketStatusNormalized === wanted;
     });
@@ -409,7 +455,9 @@ export default function TicketsList({
                 {displayedTickets.map((ticket, idx) => {
                   const isSelected = selectedTicketId === ticket.id;
                   // Use title attribute to show full raw timestamp on hover
-                  const titleAttr = ticket.created_at ?? "";
+                  const lastActivity = ticket.raw?.last_message_at ?? ticket.created_at;
+                  const titleAttr = lastActivity ?? "";
+                  const awaiting = needsReply(ticket);
                   // Ensure unique key by combining id with index
                   const uniqueKey = ticket.id
                     ? `${ticket.id}-${idx}`
@@ -467,8 +515,13 @@ export default function TicketsList({
                             className="text-xs text-slate-400 mt-1"
                             title={titleAttr}
                           >
-                            {formatMaybeDate(ticket.created_at)}
+                            {formatMaybeDate(lastActivity)}
                           </p>
+                          {ticket.raw?.escalated_category && (
+                            <p className="text-xs text-slate-500 mt-1 truncate">
+                              Escalated to: {ticket.raw.escalated_category}
+                            </p>
+                          )}
                           {resolutionTime && (
                             <p className="text-xs text-emerald-600 mt-1 font-medium">
                               Resolved in {resolutionTime}
@@ -476,7 +529,10 @@ export default function TicketsList({
                           )}
                         </div>
 
-                        <div className="shrink-0 flex items-center">
+                        <div className="shrink-0 flex flex-wrap items-center justify-end gap-2">
+                          {awaiting && (
+                            <span className={NEW_MESSAGE_BADGE_CLASS}>● New message</span>
+                          )}
                           <span
                             className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
                               ticket.status === "resolved"
