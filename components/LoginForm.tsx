@@ -258,15 +258,18 @@ export default function LoginForm({ demoCredentials = true }) {
           htmlFor="username"
           className="mb-2 block text-sm font-medium text-foreground"
         >
-          Username
+          Email
         </label>
+        {/* type="text", not "email": accounts made before emails became the
+            username still sign in with their old username. */}
         <input
           id="username"
           name="username"
           type="text"
+          autoComplete="username"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
-          placeholder="admin"
+          placeholder="you@example.com"
           required
           className="mb-4 w-full rounded-2xl border border-border bg-input-bg px-3 py-3 text-sm text-foreground outline-none transition focus:border-blue-300 focus:bg-card focus:ring-4 focus:ring-ring"
         />

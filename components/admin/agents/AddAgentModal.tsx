@@ -9,6 +9,7 @@ import { IoClose } from "react-icons/io5";
 import { toast } from "sonner";
 
 import api from "@/lib/axios";
+import { apiErrorMessage } from "@/lib/apiError";
 
 const AddAgentSchema = z
   .object({
@@ -72,8 +73,9 @@ export default function AddAgentModal({ isOpen, onClose, onSuccess }) {
     try {
       const payload = {
         name: values.name,
-        username: values.username || values.email.split("@")[0],
-        email: values.email,
+        // The email is the username, so staff sign in with their address.
+        username: values.email.trim().toLowerCase(),
+        email: values.email.trim().toLowerCase(),
         password: values.password,
         account_type: values.accountType,
         phone_number: values.phone?.trim() || "",
@@ -88,12 +90,9 @@ export default function AddAgentModal({ isOpen, onClose, onSuccess }) {
       onClose();
     } catch (err) {
       console.error("Failed to create agent:", err);
-      const msg =
-        err?.response?.data?.message ||
-        err?.response?.data?.detail ||
-        "Failed to create agent";
-      setError(String(msg));
-      toast.error(String(msg));
+      const msg = apiErrorMessage(err, "Failed to create agent");
+      setError(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }

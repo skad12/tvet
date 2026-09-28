@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import logo from "@/public/images/tvet-logo.png";
 import api from "@/lib/axios"; // if missing, the code falls back to fetch
 import { useUserStore } from "@/stores/useUserStore";
+import { apiErrorMessage } from "@/lib/apiError";
 
 // ----- validation schema -----
 const RegisterSchema = z
@@ -73,10 +74,11 @@ export default function RegisterForm({
 
     const payload = {
       name: values.name.trim(),
-      username: values.username?.trim() || undefined,
+      // The email is the username.
+      username: values.email.trim().toLowerCase(),
       phone_number: values.phone?.trim() || "",
       account_type: values.accountType,
-      email: values.email.trim(),
+      email: values.email.trim().toLowerCase(),
       password: values.password,
     };
 
@@ -103,8 +105,7 @@ export default function RegisterForm({
       const ok =
         res && (res.status === 201 || res.status === 200 || res.data?.ok);
       if (!ok) {
-        const msg =
-          res?.data?.message ?? res?.data?.detail ?? "Registration failed";
+        const msg = apiErrorMessage({ response: res }, "Registration failed");
         setServerError(String(msg));
         toast.error(String(msg));
         setLoading(false);
@@ -125,7 +126,7 @@ export default function RegisterForm({
         email: payload.email,
         phone_number: payload.phone_number,
         account_type: payload.account_type,
-        username: payload.username ?? payload.email.split("@")[0],
+        username: payload.username,
       };
       const resolvedUser = fallbackUser;
       const resolvedRole =
@@ -161,11 +162,7 @@ export default function RegisterForm({
       setTimeout(() => router.push(redirectAfter), 800);
     } catch (err) {
       console.error("Sign up error", err);
-      const msg =
-        err?.response?.data?.message ||
-        err?.response?.data ||
-        err?.message ||
-        "Unknown server error";
+      const msg = apiErrorMessage(err, err?.message || "Unknown server error");
       setServerError(String(msg));
       toast.error(String(msg));
     } finally {
@@ -208,18 +205,6 @@ export default function RegisterForm({
                 {errors.name.message}
               </div>
             )}
-          </div>
-
-          <div>
-            <label className="text-sm block mb-1">Username (optional)</label>
-            <input
-              {...register("username")}
-              className="w-full border border-slate-300 px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-300"
-              placeholder="username"
-            />
-            <div className="text-xs text-slate-400 mt-1">
-              If blank, a username is derived from your email.
-            </div>
           </div>
 
           <div>
