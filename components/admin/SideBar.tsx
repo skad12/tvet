@@ -8,6 +8,7 @@ import {
   Ticket,
   Users,
   Tags,
+  HelpCircle,
   Settings,
   ChevronLeft,
   ChevronRight,
@@ -26,6 +27,7 @@ const navItems = [
   },
   { name: "Tickets", href: "/admin/dashboard/tickets", icon: Ticket },
   { name: "Agents", href: "/admin/dashboard/agents", icon: Users },
+  { name: "FAQs", href: "/admin/dashboard/faqs", icon: HelpCircle },
 
   { name: "Settings", href: "/admin/dashboard/settings", icon: Settings },
   // Keep Logout here — will be rendered as a button
