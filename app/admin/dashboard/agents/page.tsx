@@ -8,6 +8,7 @@ import { FiPlus } from "react-icons/fi";
 import { toast } from "sonner";
 
 import api from "@/lib/axios";
+import { apiErrorMessage } from "@/lib/apiError";
 
 function normalizeAccountType(raw) {
   if (!raw) return "";
@@ -73,6 +74,7 @@ export default function AgentsPage() {
 
           return {
             id: user.id ?? user._id ?? `agent-${idx}`,
+            name: user.name && user.name !== "null" ? user.name : "",
             username,
             email: user.email ?? "",
             phone: user.phone_number ?? user.phone ?? user.telephone ?? "—",
@@ -89,55 +91,23 @@ export default function AgentsPage() {
           isSuperAgentType(u.accountType)
         );
 
-        // fallback — if there are no explicit account types, keep everyone in agents
-        if (agentsOnly.length === 0 && superAgentsOnly.length === 0) {
-          setAgents({ agents: normalized, superAgents: [], all: normalized });
-        } else {
-          setAgents({
-            agents: agentsOnly,
-            superAgents: superAgentsOnly,
-            all: normalized,
-          });
-        }
+        // Only agents and super agents handle tickets, so they are the only
+        // ones offered for assignment. `all` used to be every user, so
+        // customers and admins showed up in the category picker too.
+        setAgents({
+          agents: agentsOnly,
+          superAgents: superAgentsOnly,
+          all: [...agentsOnly, ...superAgentsOnly],
+        });
       } catch (err) {
         console.error("Failed to load agents", err);
         if (mounted) {
-          const message = "Failed to load agents — showing demo data";
+          // Show the failure rather than stand-in agents: made-up entries
+          // could be picked and "assigned", and hid that nothing had loaded.
+          const message = apiErrorMessage(err, "Couldn't load agents.");
           setError(message);
           toast.error(message);
-          const demoAgents = [
-            {
-              id: "a-1",
-              username: "adebayo",
-              email: "adebayo@tvet.edu.ng",
-              phone: "+234 801 234 5678",
-              accountType: "agent",
-              status: "available",
-            },
-            {
-              id: "a-2",
-              username: "ngozi",
-              email: "ngozi@tvet.edu.ng",
-              phone: "+234 802 345 6789",
-              accountType: "agent",
-              status: "available",
-            },
-            {
-              id: "s-1",
-              username: "ibrahim",
-              email: "ibrahim@tvet.edu.ng",
-              phone: "+234 803 456 7890",
-              accountType: "super_agent",
-              status: "engaged",
-            },
-          ];
-          setAgents({
-            agents: demoAgents.filter((a) => a.accountType === "agent"),
-            superAgents: demoAgents.filter(
-              (a) => a.accountType === "super_agent"
-            ),
-            all: demoAgents,
-          });
+          setAgents({ agents: [], superAgents: [], all: [] });
         }
       } finally {
         if (mounted) setLoading(false);
@@ -226,8 +196,16 @@ export default function AgentsPage() {
             />
 
             {error && (
-              <div className="mb-4 rounded-2xl border border-amber-100 bg-amber-50 p-3 text-sm text-amber-700">
-                {error}
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                <span>{error}</span>
+                <button
+                  type="button"
+                  onClick={() => setRefreshKey((k) => k + 1)}
+                  disabled={loading}
+                  className="rounded-full border border-red-300 bg-white px-3 py-1 text-xs font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50"
+                >
+                  {loading ? "Retrying…" : "Try again"}
+                </button>
               </div>
             )}
 

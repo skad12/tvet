@@ -2537,7 +2537,9 @@ export default function AgentCategoriesList({
                 <option value="">Select an agent...</option>
                 {(allAgents || []).map((agent) => (
                   <option key={agent.id} value={agent.id}>
-                    {agent.username} ({agent.email})
+                    {agent.name || agent.username}
+                    {agent.email && agent.email !== (agent.name || agent.username) ? ` (${agent.email})` : ""}
+                    {agent.accountType === "super_agent" ? " · Super agent" : ""}
                   </option>
                 ))}
               </select>
