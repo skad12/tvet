@@ -7,9 +7,11 @@ import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 
 // react-icons
-import { FiBell, FiSettings, FiUserCheck, FiCheckCircle } from "react-icons/fi";
-import { AiOutlineRobot } from "react-icons/ai";
+import Link from "next/link";
+import { FiSettings, FiUserCheck, FiCheckCircle, FiInbox } from "react-icons/fi";
 import ThemeToggle from "@/components/ThemeToggle";
+import TrackTicket from "@/components/tickets/TrackTicket";
+import usePresence from "@/components/account/usePresence";
 import { readCache, writeCache } from "@/lib/offlineCache";
 
 export default function Topbar({ onSidebarOpen }) {
@@ -17,6 +19,7 @@ export default function Topbar({ onSidebarOpen }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const { user } = useAuth();
+  usePresence();
 
   const userId = useMemo(() => {
     if (!user) return null;
@@ -105,14 +108,21 @@ export default function Topbar({ onSidebarOpen }) {
     };
 
     fetchAnalytics();
+    // Live figures: re-read every minute while the tab is open.
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === "visible") fetchAnalytics();
+    }, 60000);
     return () => {
       mounted = false;
+      window.clearInterval(timer);
     };
   }, []);
 
-  const active = loading ? "—" : data?.active_agents ?? 0;
-  const aiHandling = loading ? "—" : data?.tickets_handled_by_ai ?? 0;
+  const online = loading ? "—" : data?.active_agents ?? 0;
+  const open = loading ? "—" : data?.open_tickets ?? "—";
   const resolvedToday = loading ? "—" : data?.resolved_today ?? 0;
+
+  const pill = "flex items-center gap-2 rounded-2xl border px-3 py-2 text-sm transition hover:-translate-y-0.5 hover:shadow-sm";
 
   return (
     <motion.header
@@ -145,55 +155,41 @@ export default function Topbar({ onSidebarOpen }) {
           </button>
         </div>
 
-        {/* left stats */}
-        <div className="hidden md:flex items-center gap-4">
-          <div className="flex items-center gap-2 rounded-2xl border border-blue-100 bg-blue-50 px-3 py-2 text-sm text-blue-700">
+        {/* left: live figures, each opening the page behind it */}
+        <div className="hidden lg:flex items-center gap-3">
+          <Link href="/admin/dashboard/agents" title="Agents and super agents available right now" className={`${pill} border-blue-100 bg-blue-50 text-blue-700`}>
             <FiUserCheck className="w-4 h-4" aria-hidden />
-            <span>Active</span>
-            <span className="font-bold ml-2">{active}</span>
-          </div>
-
-          <div className="flex items-center gap-2 rounded-2xl border border-emerald-100 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
-            <AiOutlineRobot className="w-4 h-4" aria-hidden />
-            <span>Handled by AI</span>
-            <span className="font-bold ml-2">{aiHandling}</span>
-          </div>
-
-          <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-surface-muted px-3 py-2 text-sm text-foreground dark:border-border">
+            <span>Online</span>
+            <span className="font-bold">{online}</span>
+          </Link>
+          <Link href="/admin/dashboard/tickets?status=pending" title="Tickets still waiting to be resolved" className={`${pill} border-amber-100 bg-amber-50 text-amber-800`}>
+            <FiInbox className="w-4 h-4" aria-hidden />
+            <span>Open</span>
+            <span className="font-bold">{open}</span>
+          </Link>
+          <Link href="/admin/dashboard/tickets?status=resolved" title="Tickets resolved since midnight" className={`${pill} border-emerald-100 bg-emerald-50 text-emerald-700`}>
             <FiCheckCircle className="w-4 h-4" aria-hidden />
-            <span>Total Resolved</span>
-            <span className="font-bold ml-2">{resolvedToday}</span>
-          </div>
+            <span>Resolved today</span>
+            <span className="font-bold">{resolvedToday}</span>
+          </Link>
         </div>
 
         {/* right controls */}
-        <div className="flex items-center gap-3">
-          <input
-            placeholder="Search..."
-            className="hidden w-64 rounded-full border border-border bg-input-bg px-4 py-2 text-sm text-foreground shadow-inner focus:outline-none focus:ring-2 focus:ring-ring sm:inline-block"
-          />
+        <div className="flex min-w-0 flex-1 items-center justify-end gap-3">
+          <div className="hidden w-full max-w-xs sm:block">
+            <TrackTicket role="admin" compact />
+          </div>
 
           <ThemeToggle variant="ghost" />
 
-          {/* Notification bell */}
-          <button
-            type="button"
-            aria-label="Notifications"
-            title="Notifications"
-            className="rounded-full p-2 text-muted transition hover:bg-surface-muted hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-          >
-            <FiBell className="w-5 h-5" />
-          </button>
-
-          {/* Settings button */}
-          <button
-            type="button"
+          <Link
+            href="/admin/dashboard/settings"
             aria-label="Settings"
             title="Settings"
             className="rounded-full p-2 text-foreground transition hover:bg-surface-muted focus:outline-none focus:ring-2 focus:ring-ring"
           >
             <FiSettings className="w-5 h-5" />
-          </button>
+          </Link>
 
           <div className="hidden sm:flex flex-col text-right text-xs text-muted">
             <span className="text-sm font-semibold text-foreground">

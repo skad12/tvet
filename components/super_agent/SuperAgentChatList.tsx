@@ -480,6 +480,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import ClientPager, { usePaged } from "@/components/tickets/ClientPager";
 import { motion } from "framer-motion";
 import { format, isValid } from "date-fns";
 import { useAuth } from "@/context/AuthContext";
@@ -489,6 +490,8 @@ import Skeleton, { ChatListSkeleton } from "@/components/ui/Skeleton";
 import { toast } from "sonner";
 import { landing, tabClass, ticketCardClass } from "@/components/ui/landingStyles";
 import { NEW_MESSAGE_BADGE_CLASS, needsReply, sortByActivity } from "@/lib/ticketActivity";
+import SlaBadge from "@/components/tickets/SlaBadge";
+import TicketRef from "@/components/tickets/TicketRef";
 
 let api = null;
 try {
@@ -504,6 +507,7 @@ export default function SuperAgentChatList({
   loading: loadingProp = false,
   onRefresh = null,
   refreshing = false,
+  autoSelect = true,
 }) {
   const { user, token } = useAuth?.() ?? {};
 
@@ -595,6 +599,7 @@ function formatMaybeDate(val: any, display?: any) {
       const canAutoSelect =
         typeof window === "undefined" ? true : window.innerWidth >= 1024;
       if (
+        autoSelect &&
         normalized.length > 0 &&
         !didAutoSelectRef.current &&
         !selectedId &&
@@ -620,7 +625,7 @@ function formatMaybeDate(val: any, display?: any) {
         let data;
         if (api && typeof api.get === "function") {
           const headers = token ? { Authorization: `Bearer ${token}` } : {};
-          const res = await api.get("/get-all-escalated-tickets/", {
+          const res = await api.get("/super-agent/tickets/", {
             headers,
             signal: ac.signal,
           });
@@ -631,8 +636,8 @@ function formatMaybeDate(val: any, display?: any) {
               ? process.env.NEXT_PUBLIC_API_BASE
               : undefined;
           const endpoint = base
-            ? `${base.replace(/\/$/, "")}/get-all-escalated-tickets/`
-            : "/get-all-escalated-tickets/";
+            ? `${base.replace(/\/$/, "")}/super-agent/tickets/`
+            : "/super-agent/tickets/";
 
           const res = await fetch(endpoint, {
             method: "GET",
@@ -667,6 +672,7 @@ function formatMaybeDate(val: any, display?: any) {
         const canAutoSelect2 =
           typeof window === "undefined" ? true : window.innerWidth >= 1024;
         if (
+          autoSelect &&
           normalized.length > 0 &&
           !didAutoSelectRef.current &&
           !selectedId &&
@@ -699,7 +705,7 @@ function formatMaybeDate(val: any, display?: any) {
       mounted = false;
       ac.abort();
     };
-  }, [ticketsProp, token, selectedId, setSelected]);
+  }, [ticketsProp, token, selectedId, setSelected, autoSelect]);
 
   const owned = useMemo(
     () => (Array.isArray(tickets) ? tickets : []),
@@ -735,6 +741,7 @@ function formatMaybeDate(val: any, display?: any) {
   // Whatever was written to last comes first, so a trainee's reply surfaces
   // without anyone having to hunt for it.
   const filtered = useMemo(() => sortByActivity(filteredUnsorted), [filteredUnsorted]);
+  const paged = usePaged(filtered, 10);
 
   const listItem = {
     hidden: { opacity: 0, y: 8 },
@@ -848,10 +855,11 @@ function formatMaybeDate(val: any, display?: any) {
           ) : error ? (
             <div className="p-3 sm:p-4 text-xs sm:text-sm text-red-600">{error}</div>
           ) : filtered.length === 0 ? (
-            <div className="p-4 sm:p-6 text-xs sm:text-sm text-muted text-center">No escalated tickets found.</div>
+            <div className="p-4 sm:p-6 text-xs sm:text-sm text-muted text-center">No escalated tickets in your categories.</div>
           ) : (
+            <>
             <ul className="space-y-2 sm:space-y-3">
-              {filtered.map((t, idx) => {
+              {paged.items.map((t, idx) => {
                 const now = Date.now();
                 const subject = t.displaySubject ?? "No subject";
                 const email = t.email ?? "";
@@ -867,7 +875,7 @@ function formatMaybeDate(val: any, display?: any) {
                 return (
                   <motion.li key={t.id ?? `${idx}-${email}`} initial="hidden" animate="visible" variants={listItem} className={ticketCardClass(selected?.id === t.id)} onClick={() => setSelected?.(t)}>
                     <div className="min-w-0 flex-1">
-                      <div className="font-medium text-xs sm:text-sm text-foreground truncate flex items-center gap-1.5">{subject}</div>
+                      <div className="font-medium text-xs sm:text-sm text-foreground flex min-w-0 items-center gap-1.5"><TicketRef ticket={t} className="-ml-1 text-[10px] text-muted sm:text-xs" /><span className="truncate">{subject}</span></div>
                       <div className="text-[10px] sm:text-xs text-muted mt-0.5 sm:mt-1 truncate">{email || t.name || "From Widget"}</div>
 
                       <div className="text-[10px] sm:text-xs text-muted mt-1 truncate">
@@ -891,6 +899,8 @@ function formatMaybeDate(val: any, display?: any) {
 
                       {awaiting && <span className={NEW_MESSAGE_BADGE_CLASS}>● New message</span>}
 
+                      <SlaBadge ticket={t} />
+
                       {t.raw?.escalated === true && <span className="inline-flex items-center gap-1 text-[10px] sm:text-xs font-semibold px-2 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-100"><GoAlertFill />Escalated</span>}
 
                       <div className="text-[10px] sm:text-xs text-muted mt-1 sm:mt-2">{formatMaybeDate(time)}</div>
@@ -900,6 +910,8 @@ function formatMaybeDate(val: any, display?: any) {
                 );
               })}
             </ul>
+            <ClientPager {...paged} />
+            </>
           )}
         </div>
       </div>

@@ -611,6 +611,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import ClientPager, { usePaged } from "@/components/tickets/ClientPager";
 import { motion } from "framer-motion";
 import { format, isValid } from "date-fns";
 import { useAuth } from "@/context/AuthContext";
@@ -621,6 +622,8 @@ import type { ApiTicket, IdValue, NormalizedTicket } from "@/types/domain";
 import { toast } from "sonner";
 import { landing, tabClass, ticketCardClass } from "@/components/ui/landingStyles";
 import { NEW_MESSAGE_BADGE_CLASS, needsReply, sortByActivity } from "@/lib/ticketActivity";
+import SlaBadge from "@/components/tickets/SlaBadge";
+import TicketRef from "@/components/tickets/TicketRef";
 
 type AgentChatListProps = {
   tickets?: ApiTicket[] | ApiTicket | NormalizedTicket[] | NormalizedTicket | null;
@@ -655,7 +658,8 @@ export default function ChatList({
   onRefresh = null,
   refreshing = false,
   skipUserFilter = false,
-}: AgentChatListProps) {
+  autoSelect = true,
+}: AgentChatListProps & { autoSelect?: boolean }) {
   const { user, token } = useAuth?.() ?? {};
 
   const authUserId =
@@ -828,7 +832,7 @@ export default function ChatList({
 
       // ===== DESKTOP-ONLY auto-select =====
       const canAutoSelect = typeof window === "undefined" ? true : window.innerWidth >= 1024;
-      if (filteredByUser.length > 0 && !didAutoSelectRef.current && !selected && canAutoSelect) {
+      if (autoSelect && filteredByUser.length > 0 && !didAutoSelectRef.current && !selected && canAutoSelect) {
         setSelected?.(filteredByUser[0]);
         didAutoSelectRef.current = true;
       }
@@ -918,7 +922,7 @@ export default function ChatList({
 
         // ===== DESKTOP-ONLY auto-select after load =====
         const canAutoSelect2 = typeof window === "undefined" ? true : window.innerWidth >= 1024;
-        if (filteredByUser.length > 0 && !didAutoSelectRef.current && !selected && canAutoSelect2) {
+        if (autoSelect && filteredByUser.length > 0 && !didAutoSelectRef.current && !selected && canAutoSelect2) {
           setSelected?.(filteredByUser[0]);
           didAutoSelectRef.current = true;
         }
@@ -957,6 +961,7 @@ export default function ChatList({
     selected,
     setSelected,
     skipUserFilter,
+    autoSelect,
   ]);
 
   const owned = useMemo(
@@ -998,6 +1003,7 @@ export default function ChatList({
   // Whatever was written to last comes first, so a trainee's reply surfaces
   // without anyone having to hunt for it.
   const filtered = useMemo(() => sortByActivity(filteredUnsorted), [filteredUnsorted]);
+  const paged = usePaged(filtered, 10);
 
   const listItem = {
     hidden: { opacity: 0, y: 8 },
@@ -1108,8 +1114,9 @@ export default function ChatList({
           ) : filtered.length === 0 ? (
             <div className="p-4 sm:p-6 text-xs sm:text-sm text-muted text-center">No tickets found for this user.</div>
           ) : (
+            <>
             <ul className="space-y-2 sm:space-y-3">
-              {filtered.map((t, idx) => {
+              {paged.items.map((t, idx) => {
                 const now = Date.now();
                 const subject = t.displaySubject ?? "No subject";
                 const email = t.email ?? "";
@@ -1130,7 +1137,7 @@ export default function ChatList({
                 return (
                   <motion.li key={t.id ?? `${idx}-${email}`} initial="hidden" animate="visible" variants={listItem} className={ticketCardClass(selected?.id === t.id)} onClick={() => setSelected?.(t)}>
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5 truncate text-xs font-medium text-foreground sm:text-sm">{subject}</div>
+                      <div className="flex min-w-0 items-center gap-1.5 text-xs font-medium text-foreground sm:text-sm"><TicketRef ticket={t} className="-ml-1 text-[10px] text-muted sm:text-xs" /><span className="truncate">{subject}</span></div>
                       <div className="mt-0.5 truncate text-[10px] text-muted sm:mt-1 sm:text-xs">{email || t.name || "From Widget"}</div>
                       {isRecentlyAdded && <div className="text-[10px] uppercase tracking-wide font-semibold text-emerald-600">New</div>}
                     </div>
@@ -1139,6 +1146,8 @@ export default function ChatList({
                       <span className={`inline-flex items-center justify-center px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-medium ${pillClass}`}>{statusLabel}</span>
 
                       {awaiting && <span className={NEW_MESSAGE_BADGE_CLASS}>● New message</span>}
+
+                      <SlaBadge ticket={t} />
 
                       {isEscalated && <span className="inline-flex items-center gap-1 text-[10px] sm:text-xs font-semibold px-2 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-100"><GoAlertFill />Escalated</span>}
 
@@ -1149,6 +1158,8 @@ export default function ChatList({
                 );
               })}
             </ul>
+            <ClientPager {...paged} />
+            </>
           )}
         </div>
       </div>

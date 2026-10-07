@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { FiEdit2, FiPlus, FiSearch, FiTrash2, FiX } from "react-icons/fi";
+import { createPortal } from "react-dom";
+import { FiEdit2, FiHelpCircle, FiPlus, FiSearch, FiTrash2, FiX } from "react-icons/fi";
 import { toast } from "sonner";
 
 import api from "@/lib/axios";
@@ -14,19 +15,16 @@ type Draft = { id?: string; category: string; question: string; answer: string }
 const EMPTY_DRAFT: Draft = { category: "", question: "", answer: "" };
 
 /**
- * Admin management of the FAQs the support AI answers from. Filing an FAQ
- * under one of the widget's topics matters: the AI weighs FAQs in the topic a
- * trainee picked first.
+ * Admin management of the FAQs the support AI answers from: a question and its
+ * answer. An existing FAQ keeps whatever category it was filed under; new
+ * ones are filed as general.
  */
 export default function FaqManager() {
   const [faqs, setFaqs] = useState<Faq[]>([]);
-  const [topics, setTopics] = useState<string[]>([]);
-  const [otherCategories, setOtherCategories] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const [search, setSearch] = useState("");
-  const [topicFilter, setTopicFilter] = useState("all");
 
   const [draft, setDraft] = useState<Draft | null>(null);
   const [saving, setSaving] = useState(false);
@@ -37,13 +35,8 @@ export default function FaqManager() {
     setLoading(true);
     setLoadError(null);
     try {
-      const [faqRes, catRes] = await Promise.all([
-        api.get("/get-all-faqs/"),
-        api.get("/faqs/categories/").catch(() => null),
-      ]);
+      const faqRes = await api.get("/get-all-faqs/");
       setFaqs(Array.isArray(faqRes?.data) ? faqRes.data.filter((f) => f?.id) : []);
-      setTopics(catRes?.data?.topics ?? []);
-      setOtherCategories(catRes?.data?.other ?? []);
     } catch (err) {
       setLoadError(apiErrorMessage(err, "Could not load FAQs"));
     } finally {
@@ -55,19 +48,13 @@ export default function FaqManager() {
     load();
   }, [load]);
 
-  const categoryOptions = useMemo(
-    () => Array.from(new Set([...topics, ...otherCategories, "general"])),
-    [topics, otherCategories]
-  );
-
   const shown = useMemo(() => {
     const q = search.trim().toLowerCase();
     return faqs.filter((f) => {
-      if (topicFilter !== "all" && f.category !== topicFilter) return false;
       if (!q) return true;
-      return [f.question, f.answer, f.category].some((v) => (v ?? "").toLowerCase().includes(q));
+      return [f.question, f.answer].some((v) => (v ?? "").toLowerCase().includes(q));
     });
-  }, [faqs, search, topicFilter]);
+  }, [faqs, search]);
 
   function openEditor(faq?: Faq) {
     setFormError(null);
@@ -101,9 +88,6 @@ export default function FaqManager() {
         setFaqs((list) => [saved, ...list]);
         toast.success("FAQ added");
       }
-      if (body.category && !categoryOptions.includes(body.category)) {
-        setOtherCategories((c) => [...c, body.category]);
-      }
       setDraft(null);
     } catch (err) {
       setFormError(apiErrorMessage(err, "Could not save the FAQ"));
@@ -129,23 +113,29 @@ export default function FaqManager() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className={landing.eyebrow}>Knowledge base</p>
-          <h1 className={landing.title}>FAQs</h1>
-          <p className={landing.subtitle}>
-            The support AI answers trainees from these. File each one under the topic trainees pick in
-            the chat, and it is weighed first for them.
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="min-w-0">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-600">Knowledge base</p>
+          <h1 className="mt-1 inline-flex items-center gap-2 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+            <FiHelpCircle className="h-7 w-7 text-blue-600" aria-hidden /> FAQs
+          </h1>
+          <p className="mt-1 max-w-2xl text-sm text-muted">
+            The questions trainees ask, with the answers the support AI gives from them.
           </p>
         </div>
-        <button type="button" onClick={() => openEditor()} className={`${landing.btnPrimary} inline-flex items-center gap-2`}>
+        <button
+          type="button"
+          onClick={() => openEditor()}
+          className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-3.5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
+        >
           <FiPlus /> Add FAQ
         </button>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="relative min-w-0 flex-1 basis-60">
+      <section className="rounded-2xl border border-border bg-card shadow-sm">
+      <div className="flex flex-wrap items-center gap-2 border-b border-border p-4">
+        <div className="relative min-w-0 flex-1">
           <FiSearch className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="search"
@@ -156,22 +146,10 @@ export default function FaqManager() {
             className={`${landing.input} pl-9`}
           />
         </div>
-        <select
-          value={topicFilter}
-          onChange={(e) => setTopicFilter(e.target.value)}
-          aria-label="Filter by topic"
-          className={`${landing.select} w-full sm:w-auto`}
-        >
-          <option value="all">All topics</option>
-          {categoryOptions.map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
-          ))}
-        </select>
       </div>
 
-      <p className="text-xs text-muted">
+      <div className="p-4">
+      <p className="mb-3 text-xs text-muted">
         {loading ? "Loading…" : `${shown.length} of ${faqs.length} FAQ${faqs.length === 1 ? "" : "s"}`}
       </p>
 
@@ -191,23 +169,17 @@ export default function FaqManager() {
       ) : (
         <ul className="space-y-3">
           {shown.map((faq) => (
-            <li key={faq.id} className={`${landing.card} p-4`}>
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="min-w-0 flex-1">
-                  <span className={`${landing.badge} mb-2 border border-blue-100 bg-blue-50 text-blue-700`}>
-                    {faq.category || "general"}
-                  </span>
-                  <h3 className="font-semibold text-foreground">{faq.question}</h3>
-                  <p className="mt-1 whitespace-pre-wrap text-sm text-muted">{faq.answer}</p>
-                </div>
-                <div className="flex shrink-0 gap-2">
+            <li key={faq.id} className="rounded-2xl border border-border bg-card p-4 transition hover:border-blue-200">
+              <div className="flex items-start justify-between gap-3">
+                <h3 className="min-w-0 break-words pt-1 font-semibold text-foreground">{faq.question}</h3>
+                <div className="flex shrink-0 gap-1.5 sm:gap-2">
                   <button
                     type="button"
                     onClick={() => openEditor(faq)}
                     className={`${landing.btnGhost} inline-flex items-center gap-1`}
                     aria-label={`Edit FAQ: ${faq.question}`}
                   >
-                    <FiEdit2 /> Edit
+                    <FiEdit2 /> <span className="hidden sm:inline">Edit</span>
                   </button>
                   <button
                     type="button"
@@ -216,16 +188,20 @@ export default function FaqManager() {
                     className={`${landing.btnGhost} inline-flex items-center gap-1 text-red-600 disabled:opacity-50`}
                     aria-label={`Delete FAQ: ${faq.question}`}
                   >
-                    <FiTrash2 /> {deletingId === faq.id ? "Deleting…" : "Delete"}
+                    <FiTrash2 /> <span className="hidden sm:inline">{deletingId === faq.id ? "Deleting…" : "Delete"}</span>
                   </button>
                 </div>
               </div>
+              <p className="mt-1.5 whitespace-pre-wrap break-words text-sm text-muted">{faq.answer}</p>
             </li>
           ))}
         </ul>
       )}
 
-      {draft && (
+      </div>
+      </section>
+
+      {draft && typeof document !== "undefined" && createPortal(
         <div className={landing.modalOverlay} role="dialog" aria-modal="true" aria-label={draft.id ? "Edit FAQ" : "Add FAQ"}>
           <div className={landing.modalBackdrop} onClick={() => !saving && setDraft(null)} />
           <form onSubmit={save} className={`${landing.modal} max-h-[90dvh] overflow-y-auto`}>
@@ -235,24 +211,6 @@ export default function FaqManager() {
                 <FiX />
               </button>
             </div>
-
-            <label className={landing.label} htmlFor="faq-category">
-              Topic
-            </label>
-            <input
-              id="faq-category"
-              list="faq-category-options"
-              value={draft.category}
-              onChange={(e) => setDraft({ ...draft, category: e.target.value })}
-              placeholder="Pick a topic, or type a new one"
-              className={`${landing.input} mb-1`}
-            />
-            <datalist id="faq-category-options">
-              {categoryOptions.map((c) => (
-                <option key={c} value={c} />
-              ))}
-            </datalist>
-            <p className="mb-3 text-[11px] text-muted">Blank files it under &ldquo;general&rdquo;.</p>
 
             <label className={landing.label} htmlFor="faq-question">
               Question
@@ -291,7 +249,7 @@ export default function FaqManager() {
             </div>
           </form>
         </div>
-      )}
+      , document.body)}
     </div>
   );
 }
