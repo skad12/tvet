@@ -14,6 +14,12 @@ type EscalateMenuProps = {
   // Which edge of the button the menu lines up with by default. If that
   // would run off the screen the menu flips to the other side.
   align?: "left" | "right";
+  // The same menu moves a ticket between categories ("Move", "Move to").
+  label?: string;
+  busyLabel?: string;
+  heading?: string;
+  // Left out of the list: the category the ticket is already in.
+  excludeId?: string | null;
 };
 
 /**
@@ -27,6 +33,10 @@ export default function EscalateMenu({
   disabled = false,
   buttonClassName = "",
   align = "left",
+  label = "Escalate",
+  busyLabel = "Escalating…",
+  heading = "Escalate to",
+  excludeId = null,
 }: EscalateMenuProps) {
   const [open, setOpen] = useState(false);
   const [categories, setCategories] = useState<EscalationCategory[]>([]);
@@ -101,11 +111,11 @@ export default function EscalateMenu({
         className={`inline-flex items-center gap-1 ${buttonClassName} ${
           escalating ? "cursor-not-allowed opacity-50" : ""
         }`}
-        aria-label="Escalate ticket"
+        aria-label={label === "Escalate" ? "Escalate ticket" : `${label} ticket to another category`}
         aria-haspopup="menu"
         aria-expanded={open}
       >
-        {escalating ? "Escalating…" : "Escalate"}
+        {escalating ? busyLabel : label}
         <svg className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
           <path
             fillRule="evenodd"
@@ -119,22 +129,22 @@ export default function EscalateMenu({
         <div
           ref={menuRef}
           role="menu"
-          aria-label="Escalate to category"
+          aria-label={`${heading} category`}
           className={`absolute ${side === "right" ? "right-0" : "left-0"} top-full z-50 mt-2 max-h-72 w-72 max-w-[80vw] overflow-y-auto rounded-lg border border-slate-200 bg-white p-1 shadow-lg`}
         >
           <div className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-            Escalate to
+            {heading}
           </div>
           {loading ? (
             <div className="px-2 py-3 text-center text-xs text-slate-500">
               Loading categories…
             </div>
-          ) : categories.length === 0 ? (
+          ) : categories.filter((c) => c.id !== excludeId).length === 0 ? (
             <div className="px-2 py-3 text-center text-xs text-slate-500">
               No categories set up yet
             </div>
           ) : (
-            categories.map((category) => (
+            categories.filter((c) => c.id !== excludeId).map((category) => (
               <button
                 key={category.id}
                 type="button"

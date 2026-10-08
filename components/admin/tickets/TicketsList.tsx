@@ -4,8 +4,12 @@ import React, { useEffect, useState, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { format, isValid } from "date-fns";
 import api from "@/lib/axios";
+import { apiErrorMessage } from "@/lib/apiError";
 import { calculateResolutionTime } from "@/lib/resolutionTime";
 import { NEW_MESSAGE_BADGE_CLASS, needsReply, sortByActivity } from "@/lib/ticketActivity";
+import SlaBadge from "@/components/tickets/SlaBadge";
+import TicketRef from "@/components/tickets/TicketRef";
+import TicketInsights from "@/components/tickets/TicketInsights";
 import Skeleton, { ChatListSkeleton } from "@/components/ui/Skeleton";
 import { toast } from "sonner";
 import {
@@ -78,19 +82,21 @@ export default function TicketsList({
   categoryId,
   categoryName,
   statusFilter = "all",
+  dateRange = null,
   onSelectTicket,
   selectedTicketId,
   pageSize = 11,
 }) {
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState(null);
 
-  // pagination control (start and stop are inclusive)
-  const [start, setStart] = useState(0);
-  const [stop, setStop] = useState(pageSize - 1);
-  const [hasMore, setHasMore] = useState(false);
+  // Numbered pages, counted on the server so they are exact under any filter.
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(pageSize);
+  const [count, setCount] = useState(0);
+  const [pages, setPages] = useState(1);
+  const listRef = useRef(null);
 
   // When the API is unreachable we keep showing the last tickets we saw.
   // staleSince is when that copy was saved; null means the list is live.
@@ -98,198 +104,94 @@ export default function TicketsList({
   // Bumped to re-run the loader when the server looks like it is back.
   const [retryTick, setRetryTick] = useState(0);
 
-  // Ref for infinite scroll observer
-  const observerTarget = useRef(null);
+  const dateFrom = dateRange?.from || "";
+  const dateTo = dateRange?.to || "";
+  const dateField = dateRange?.field === "activity" ? "activity" : "created";
 
-  // reset pagination on category change (status filtering is client-side, no reload needed)
+  // Category, status and dates are filtered on the server, so the counts and
+  // pages are right across the whole list.
+  const filterParams = React.useMemo(() => {
+    const p: Record<string, string> = {};
+    if (categoryId) p.category = String(categoryId);
+    if (statusFilter && statusFilter !== "all") p.state = statusFilter;
+    if (dateFrom) p.from = dateFrom;
+    if (dateTo) p.to = dateTo;
+    if ((dateFrom || dateTo) && dateField === "activity") p.date_field = "activity";
+    return p;
+  }, [categoryId, statusFilter, dateFrom, dateTo, dateField]);
+  const insightParams = filterParams;
+  const filterKey = JSON.stringify(filterParams);
+  // Only the unfiltered first page is saved for offline use.
+  const cacheable = Object.keys(filterParams).length === 0 && page === 1;
+
+  // Back to page 1 whenever the filters or the page size change.
   useEffect(() => {
-    setStart(0);
-    setStop(pageSize - 1);
-    setTickets([]);
-  }, [categoryId, pageSize]);
+    setPage(1);
+  }, [filterKey, perPage]);
+
+  const fetchPage = useCallback(
+    (signal?: AbortSignal) =>
+      api.get("/tickets/paged/", { params: { ...JSON.parse(filterKey), page, page_size: perPage }, signal }),
+    [filterKey, page, perPage]
+  );
 
   useEffect(() => {
     let mounted = true;
     const ac = new AbortController();
-
-    async function load() {
-      if (start === 0) {
-        setLoading(true);
-      } else {
-        setLoadingMore(true);
-      }
-      setError(null);
-
-      try {
-        let resData = null;
-        let usingFallback = false;
-        let totalCount = null;
-
-        // start/stop are inclusive here; the backend's stop is exclusive.
-        const genericPagedUrl = `/tickets/${start}/${stop + 1}/`;
-
-        if (categoryId !== null && categoryId !== undefined) {
-          // no-op; category included in query later
-        }
-
-        // Try GET requests to paginated endpoints first
-        try {
-          if (categoryId !== null && categoryId !== undefined) {
-            const res = await api.get(
-              `/filter-ticket/by-category-id/${categoryId}/`,
-              { signal: ac.signal }
-            );
-            // Assuming this endpoint returns ALL tickets for the category (not paginated)
-            // We perform client-side pagination here to avoid duplicates
-            const rawData = res?.data ?? [];
-            const fullList = Array.isArray(rawData)
-              ? rawData
-              : rawData?.tickets ?? rawData?.results ?? [];
-
-            totalCount = fullList.length;
-            resData = fullList.slice(start, stop + 1);
-            usingFallback = true; // Use totalCount logic for hasMore
-          } else {
-            const res = await api.get(genericPagedUrl, { signal: ac.signal });
-            resData = res?.data ?? null;
-          }
-        } catch (getErr) {
-          // fallback: fetch all and filter client-side
-          usingFallback = true;
-          const res3 = await api
-            .get("/tickets/", { signal: ac.signal })
-            .catch(() => null);
-
-          // Both the paged endpoint and the full list failed, so the server is
-          // not answering. Rethrow instead of letting a null response read as
-          // an empty-but-successful result, which would blank the list and
-          // overwrite the cached copy we want to fall back to.
-          if (!res3) throw getErr;
-
-          const all = res3?.data ?? [];
-          const arr = Array.isArray(all)
-            ? all
-            : all?.tickets ?? all?.results ?? [];
-          const filtered = categoryId
-            ? arr.filter((t) => {
-                const categoryName =
-                  t?.name ??
-                  t?.category?.name ??
-                  t?.category_name ??
-                  t?.categoryTitle ??
-                  t?.category_title ??
-                  t?.category ??
-                  null;
-                return (
-                  categoryName !== null &&
-                  String(categoryName).toLowerCase() ===
-                    String(categoryId).toLowerCase()
-                );
-              })
-            : arr;
-          totalCount = filtered.length;
-          const paged = filtered.slice(start, stop + 1);
-          resData = paged;
-        }
-
+    setLoading(true);
+    setError(null);
+    fetchPage(ac.signal)
+      .then((res) => {
         if (!mounted) return;
-
-        // Normalize to array
-        let arr = [];
-        if (!resData) arr = [];
-        else if (Array.isArray(resData)) arr = resData;
-        else if (Array.isArray(resData.results)) arr = resData.results;
-        else if (Array.isArray(resData.data)) arr = resData.data;
-        else if (Array.isArray(resData.tickets)) arr = resData.tickets;
-        else arr = [resData];
-
-        // Determine hasMore
-        if (usingFallback && typeof totalCount === "number") {
-          const hasMoreItems = totalCount > stop + 1;
-          setHasMore(hasMoreItems);
-        } else {
-          const totalMaybe = resData?.total ?? resData?.count ?? null;
-          if (typeof totalMaybe === "number") {
-            const nextStart = stop + 1;
-            setHasMore(totalMaybe > nextStart);
-          } else if (resData?.next) {
-            setHasMore(true);
-          } else {
-            const hasMoreItems = arr.length > 0;
-            setHasMore(hasMoreItems);
-          }
-        }
-
-        const normalized = arr.map(normalizeAdminTicket);
-
-        // if start == 0 -> replace list, else append
-        setTickets((prev) => {
-          const merged = uniqueById(start === 0 ? normalized : [...prev, ...normalized]);
-          // Keep a copy so a later outage still has something to show. An empty
-          // result is never cached: it is far more likely to be a half-failed
-          // request than a genuinely empty queue, and it would destroy the
-          // fallback we are keeping.
-          if (merged.length) {
-            writeCache(cacheKeys.adminTickets(categoryId), merged);
-          }
-          return merged;
-        });
+        const data = res?.data ?? {};
+        const rows = uniqueById((Array.isArray(data.results) ? data.results : []).map(normalizeAdminTicket));
+        setTickets(rows);
+        setCount(Number(data.count) || 0);
+        setPages(Math.max(1, Number(data.pages) || 1));
+        if (data.page && data.page !== page) setPage(data.page);
+        if (cacheable && rows.length) writeCache(cacheKeys.adminTickets(null), rows);
         setStaleSince(null);
-      } catch (err) {
-        const isCanceled =
-          err?.name === "AbortError" ||
-          err?.name === "CanceledError" ||
-          err?.code === "ERR_CANCELED" ||
-          err?.message === "canceled";
-        if (isCanceled) return;
+      })
+      .catch((err) => {
+        const canceled = err?.name === "AbortError" || err?.name === "CanceledError" || err?.code === "ERR_CANCELED";
+        if (canceled || !mounted) return;
         console.error("Failed to load tickets:", err);
-        const message = err?.message ?? "Failed to load tickets";
-
-        // The server is unreachable. Show the last tickets we managed to load
-        // rather than an empty screen, and leave hasMore alone so that paging
-        // can carry on once it answers again.
-        const cached = readCache(cacheKeys.adminTickets(categoryId));
+        // Server unreachable: show the last saved first page rather than nothing.
+        const cached = readCache(cacheKeys.adminTickets(null));
         const cachedList = Array.isArray(cached?.value) ? cached.value : [];
-
         if (cachedList.length) {
-          setTickets((prev) => (prev.length ? prev : cachedList));
+          setTickets(cachedList);
+          setCount(cachedList.length);
+          setPages(1);
           setStaleSince(cached.savedAt);
-          setError(null);
         } else {
+          const message = apiErrorMessage(err, "Failed to load tickets");
           setError(message);
           toast.error(message);
           setTickets([]);
         }
-      } finally {
-        if (mounted) {
-          setLoading(false);
-          setLoadingMore(false);
-        }
-      }
-    }
-
-    load();
+      })
+      .finally(() => mounted && setLoading(false));
     return () => {
       mounted = false;
       ac.abort();
     };
-  }, [categoryId, start, stop, pageSize, retryTick]);
+    // cacheable follows page and filterKey, which are already dependencies.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetchPage, retryTick]);
 
   // While we are showing a saved copy, keep an eye out for the server coming
   // back: on the browser's own online event, when the tab is focused again,
   // and on a slow poll so a server that recovers quietly is still noticed.
   useEffect(() => {
     if (!staleSince) return undefined;
-
     const retry = () => setRetryTick((n) => n + 1);
     const onVisible = () => {
       if (document.visibilityState === "visible") retry();
     };
-
     window.addEventListener("online", retry);
     document.addEventListener("visibilitychange", onVisible);
     const timer = window.setInterval(retry, 30000);
-
     return () => {
       window.removeEventListener("online", retry);
       document.removeEventListener("visibilitychange", onVisible);
@@ -297,37 +199,49 @@ export default function TicketsList({
     };
   }, [staleSince]);
 
-  // Re-read the rows already on screen every 15 seconds, so a ticket a
-  // trainee has just written to moves up and gets its badge without a reload.
+  // Re-read the page on screen every 15 seconds, so a ticket a trainee has
+  // just written to moves up and gets its badge without a reload.
   useEffect(() => {
     if (staleSince) return undefined;
-
     const refresh = async () => {
       if (document.visibilityState !== "visible") return;
-      const count = Math.max(stop + 1, pageSize);
       try {
-        let list;
-        if (categoryId !== null && categoryId !== undefined) {
-          const res = await api.get(`/filter-ticket/by-category-id/${categoryId}/`);
-          const raw = res?.data ?? [];
-          list = (Array.isArray(raw) ? raw : raw?.tickets ?? raw?.results ?? []).slice(0, count);
-        } else {
-          const res = await api.get(`/tickets/0/${count}/`);
-          list = Array.isArray(res?.data) ? res.data : [];
-        }
-        if (list.length) setTickets(uniqueById(list.map(normalizeAdminTicket)));
+        const res = await fetchPage();
+        const data = res?.data ?? {};
+        setTickets(uniqueById((Array.isArray(data.results) ? data.results : []).map(normalizeAdminTicket)));
+        setCount(Number(data.count) || 0);
+        setPages(Math.max(1, Number(data.pages) || 1));
       } catch {
         // The main loader handles outages; a missed refresh just waits for the next.
       }
     };
-
     const timer = window.setInterval(refresh, 15000);
     return () => window.clearInterval(timer);
-  }, [categoryId, stop, pageSize, staleSince]);
+  }, [fetchPage, staleSince]);
+
+  function goTo(next: number) {
+    const target = Math.min(Math.max(1, next), pages);
+    if (target === page) return;
+    setPage(target);
+    listRef.current?.scrollTo?.({ top: 0, behavior: "smooth" });
+  }
 
   // Apply status filter to displayed tickets (client-side filtering after load)
   const displayedTickets = React.useMemo(() => {
-    const byActivity = sortByActivity(tickets);
+    // The server already applied the dates; repeating it here keeps a saved
+    // offline copy honest too. Dates compare as local YYYY-MM-DD strings.
+    const dayOf = (v) => {
+      if (!v) return null;
+      const d = new Date(v);
+      return isValid(d) ? format(d, "yyyy-MM-dd") : null;
+    };
+    const inRange = (t) => {
+      if (!dateFrom && !dateTo) return true;
+      const day = dayOf(dateField === "activity" ? t.raw?.last_message_at : t.created_at);
+      if (!day) return false;
+      return (!dateFrom || day >= dateFrom) && (!dateTo || day <= dateTo);
+    };
+    const byActivity = sortByActivity(tickets).filter(inRange);
     if (!statusFilter || statusFilter === "all") return byActivity;
 
     function normalizeStatusForFilter(status) {
@@ -342,46 +256,15 @@ export default function TicketsList({
     }
 
     const wanted = statusFilter.toLowerCase();
+    // Escalated: handed up and not yet resolved, whatever its status word.
+    if (wanted === "escalated") {
+      return byActivity.filter((t) => t.raw?.escalated === true && normalizeStatusForFilter(t.status) !== "resolved");
+    }
     return byActivity.filter((t) => {
       const ticketStatusNormalized = normalizeStatusForFilter(t.status);
       return ticketStatusNormalized === wanted;
     });
-  }, [tickets, statusFilter]);
-
-  const loadMore = useCallback(() => {
-    if (loadingMore || loading || !hasMore) return;
-
-    const nextStart = stop + 1;
-    const nextStop = nextStart + (pageSize - 1);
-    setStart(nextStart);
-    setStop(nextStop);
-  }, [loadingMore, loading, hasMore, stop, pageSize]);
-
-  // Infinite scroll observer
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasMore && !loading && !loadingMore) {
-          loadMore();
-        }
-      },
-      {
-        threshold: 0.1,
-        rootMargin: "100px",
-      }
-    );
-
-    const target = observerTarget.current;
-    if (target) {
-      observer.observe(target);
-    }
-
-    return () => {
-      if (target) {
-        observer.unobserve(target);
-      }
-    };
-  }, [hasMore, loading, loadingMore, loadMore]);
+  }, [tickets, statusFilter, dateFrom, dateTo, dateField]);
 
   // Format date safely; prefer server's created_at_display if given
   // Uses same format as AgentChatList: PPpp
@@ -412,10 +295,11 @@ export default function TicketsList({
         <p className="text-sm text-slate-500 mt-1">
           {loading
             ? "Loading..."
-            : `${displayedTickets.length} ticket${
-                displayedTickets.length === 1 ? "" : "s"
-              }`}
+            : count === 0
+            ? "No tickets"
+            : `Showing ${(page - 1) * perPage + 1}–${Math.min(page * perPage, count)} of ${count} ticket${count === 1 ? "" : "s"}`}
         </p>
+        <TicketInsights params={insightParams} />
 
         {staleSince && (
           <div
@@ -432,7 +316,7 @@ export default function TicketsList({
         )}
       </div>
 
-      <div className="max-h-[600px] overflow-y-auto">
+      <div ref={listRef} className="max-h-[640px] overflow-y-auto">
         {loading ? (
           <div className="p-4">
             <ChatListSkeleton />
@@ -444,8 +328,9 @@ export default function TicketsList({
             <div className="text-4xl mb-2">📋</div>
             <p>
               No tickets found
-              {categoryId ? ` in category "${categoryId}"` : ""}
+              {categoryId ? ` in ${categoryName || "this category"}` : ""}
               {statusFilter !== "all" ? ` with status "${statusFilter}"` : ""}
+              {dateRange?.from || dateRange?.to ? " in the chosen dates" : ""}
             </p>
           </div>
         ) : (
@@ -485,6 +370,7 @@ export default function TicketsList({
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
+                            <TicketRef ticket={ticket} className="-ml-1 text-xs text-slate-500" />
                             <h4 className="font-semibold text-slate-800 truncate">
                               {ticket.name || ticket.subject || "From Widget"}
                             </h4>
@@ -533,6 +419,7 @@ export default function TicketsList({
                           {awaiting && (
                             <span className={NEW_MESSAGE_BADGE_CLASS}>● New message</span>
                           )}
+                          <SlaBadge ticket={ticket} />
                           <span
                             className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
                               ticket.status === "resolved"
@@ -574,24 +461,80 @@ export default function TicketsList({
               </AnimatePresence>
             </ul>
 
-            {/* Infinite scroll trigger */}
-            <div
-              ref={observerTarget}
-              className="p-4 border-t border-slate-100 text-center"
-            >
-              {loadingMore && (
-                <div className="flex items-center justify-center gap-2 text-sm text-slate-500">
-                  <div className="w-4 h-4 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
-                  <span>Loading more tickets...</span>
-                </div>
-              )}
-              {!loadingMore && !hasMore && displayedTickets.length > 0 && (
-                <span className="text-xs text-slate-400">No more tickets</span>
-              )}
-            </div>
           </>
         )}
       </div>
+
+      {count > 0 && !staleSince && (
+        <Pager page={page} pages={pages} perPage={perPage} onPage={goTo} onPerPage={setPerPage} busy={loading} />
+      )}
     </div>
+  );
+}
+
+/** Page numbers around the current one, with gaps shown as an ellipsis. */
+function pageList(page: number, pages: number): (number | "…")[] {
+  const keep = new Set([1, pages, page - 1, page, page + 1]);
+  if (page <= 3) [2, 3, 4].forEach((n) => keep.add(n));
+  if (page >= pages - 2) [pages - 1, pages - 2, pages - 3].forEach((n) => keep.add(n));
+  const nums = [...keep].filter((n) => n >= 1 && n <= pages).sort((a, b) => a - b);
+  const out: (number | "…")[] = [];
+  nums.forEach((n, i) => {
+    if (i && n - nums[i - 1] > 1) out.push("…");
+    out.push(n);
+  });
+  return out;
+}
+
+function Pager({ page, pages, perPage, onPage, onPerPage, busy }) {
+  const btn =
+    "inline-flex h-9 min-w-9 items-center justify-center rounded-lg border px-2.5 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-40";
+  return (
+    <nav
+      aria-label="Ticket pages"
+      className="flex flex-col gap-3 border-t border-slate-200 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+    >
+      <label className="inline-flex items-center gap-2 text-sm text-slate-500">
+        Per page
+        <select
+          value={perPage}
+          onChange={(e) => onPerPage(Number(e.target.value))}
+          className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm text-slate-800"
+        >
+          {[10, 20, 50, 100].map((n) => (
+            <option key={n} value={n}>
+              {n}
+            </option>
+          ))}
+        </select>
+      </label>
+      <div className="flex flex-wrap items-center gap-1.5">
+        <button type="button" onClick={() => onPage(page - 1)} disabled={page <= 1 || busy} className={`${btn} border-slate-200 bg-white text-slate-700 hover:bg-slate-50`}>
+          ‹ Prev
+        </button>
+        {pageList(page, pages).map((n, i) =>
+          n === "…" ? (
+            <span key={`gap-${i}`} className="px-1 text-sm text-slate-400" aria-hidden>
+              …
+            </span>
+          ) : (
+            <button
+              key={n}
+              type="button"
+              onClick={() => onPage(n)}
+              disabled={busy && n !== page}
+              aria-current={n === page ? "page" : undefined}
+              aria-label={`Page ${n}`}
+              className={`${btn} ${n === page ? "border-blue-600 bg-blue-600 text-white" : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"}`}
+            >
+              {n}
+            </button>
+          )
+        )}
+        <button type="button" onClick={() => onPage(page + 1)} disabled={page >= pages || busy} className={`${btn} border-slate-200 bg-white text-slate-700 hover:bg-slate-50`}>
+          Next ›
+        </button>
+      </div>
+    </nav>
   );
 }

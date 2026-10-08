@@ -134,57 +134,12 @@ export default function SuperAgentChatBox({
       });
   }
 
+  // A super agent replies as themselves. This used to send the reply as the
+  // ticket's assigned agent, and when none could be matched it reassigned the
+  // ticket to whichever agent was available first, or failed without sending.
   async function resolveAgentMessageSender() {
-    if (localAssignedAgent && isAgentAccount(localAssignedAgent)) {
-      return localAssignedAgent;
-    }
-
-    const assignedRaw =
-      selected?.assigned_to ??
-      selected?.assigned_to_id ??
-      selected?.agent_id ??
-      selected?.agentId ??
-      selected?.raw?.assigned_to ??
-      selected?.raw?.assigned_to_id ??
-      selected?.raw?.agent_id ??
-      selected?.raw?.agentId ??
-      null;
-
-    const assignedId =
-      typeof assignedRaw === "object" ? getUserId(assignedRaw) : assignedRaw;
-
-    if (assignedId) {
-      const assigned = usersDirectory.find(
-        (candidate) =>
-          isAgentAccount(candidate) &&
-          String(getUserId(candidate)) === String(assignedId)
-      );
-      if (assigned) return assigned;
-    }
-
-    if (!selected?.id) return null;
-
-    const headers = token ? { Authorization: `Bearer ${token}` } : {};
-    for (const agent of getAssignableAgents()) {
-      const agentId = getUserId(agent);
-      try {
-        await api.post(
-          "/assign-ticket/to-user/",
-          {
-            ticket_id: selected.id,
-            assigned_to_id: agentId,
-          },
-          { headers }
-        );
-        setLocalAssignedAgent(agent);
-        setLocalAssignedName(getAgentName(agent));
-        return agent;
-      } catch (err) {
-        console.warn("Auto-assign before send failed:", err);
-      }
-    }
-
-    return null;
+    if (!appUserId) return null;
+    return { id: appUserId, email: userEmail, username: user?.username };
   }
 
   const fetchChats = useCallback(

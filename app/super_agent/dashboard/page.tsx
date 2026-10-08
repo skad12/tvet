@@ -7,7 +7,8 @@ import { useAuth } from "@/context/AuthContext";
 import api from "@/lib/axios";
 
 import Navbar from "@/components/super_agent/Topbar";
-import SuperAgentChatBox from "@/components/super_agent/SuperAgentChatBox";
+import ChatModal from "@/components/admin/tickets/ChatModal";
+import StaffOverview from "@/components/tickets/StaffOverview";
 import SuperAgentChatList from "@/components/super_agent/SuperAgentChatList";
 
 export default function SuperAgentDashboardPage() {
@@ -47,27 +48,14 @@ export default function SuperAgentDashboardPage() {
     );
   }, [user]);
 
-  // Super agents only see escalated tickets - fetch all escalated tickets
+  // Super agents see escalated tickets in their own categories only. The
+  // API works out whose categories from the sign-in token sent with the call.
   async function fetchEscalatedTickets({ showLoading = true } = {}) {
     if (showLoading) setLoadingTickets(true);
     setTicketsError(null);
     try {
-      let data = null;
-
-      // Use the escalated tickets endpoint
-      if (api && typeof api.get === "function") {
-        const res = await api.get("/get-all-escalated-tickets/");
-        data = res?.data;
-      } else {
-        const res = await fetch("/get-all-escalated-tickets/", {
-          method: "GET",
-          headers: { "Content-Type": "application/json" },
-        });
-        if (!res.ok) {
-          throw new Error(`Failed to fetch escalated tickets (${res.status})`);
-        }
-        data = await res.json();
-      }
+      const res = await api.get("/super-agent/tickets/");
+      const data = res?.data;
 
       let escalatedTickets = Array.isArray(data)
         ? data
@@ -95,10 +83,9 @@ export default function SuperAgentDashboardPage() {
           );
           if (exists) return exists;
         }
-        const first = escalatedTickets.length > 0 ? escalatedTickets[0] : null;
-        const canAutoSelect =
-          typeof window === "undefined" ? true : window.innerWidth >= 1024;
-        return canAutoSelect ? first : null;
+        // Nothing opens automatically: a ticket opens as a popup only when
+        // the super agent picks one.
+        return null;
       });
     } catch (err) {
       console.error("Failed to load escalated tickets", err);
@@ -184,123 +171,33 @@ export default function SuperAgentDashboardPage() {
             </div>
           )}
 
-          <div className="grid grid-cols-1 gap-3 sm:gap-4 lg:grid-cols-3 lg:gap-6">
-            {/* Chat box - HIDDEN on mobile, shown on larger screens */}
-            <div className="hidden lg:block">
-              <SuperAgentChatBox
+          <StaffOverview tickets={tickets} role="super_agent" />
+
+          {/* The list takes the full width; a ticket opens as a popup chat,
+              the same one the admin dashboard uses, and replies are sent from it. */}
+          <SuperAgentChatList
+            tickets={tickets}
+            selected={selected}
+            setSelected={setSelected}
+            loading={loadingTickets}
+            onRefresh={handleManualRefresh}
+            refreshing={refreshing}
+            autoSelect={false}
+          />
+
+          <AnimatePresence>
+            {selected && (
+              <ChatModal
                 key={selected?.id}
-                selected={selected}
-                onResolved={(ticketId) => {
-                  try {
-                    setTickets((prev) =>
-                      (Array.isArray(prev) ? prev : []).filter((t) => {
-                        const id = t?.id ?? t?.pk;
-                        return String(id) !== String(ticketId);
-                      })
-                    );
-                    setSelected((prev) => {
-                      const remaining = tickets.filter(
-                        (t) => String(t.id ?? t.pk) !== String(ticketId)
-                      );
-                      return remaining.length > 0 ? remaining[0] : null;
-                    });
-                  } catch (e) {
-                    console.error("Error handling resolved ticket:", e);
-                  }
-                }}
+                ticket={selected}
+                open
+                canEscalate={false}
+                closeOnMove
+                onClose={() => setSelected(null)}
+                onMessageAdded={() => fetchEscalatedTickets({ showLoading: false })}
               />
-            </div>
-
-            {/* Chat list - full width on mobile, 2/3 on desktop */}
-            <div className="lg:col-span-2">
-              <SuperAgentChatList
-                tickets={tickets}
-                selected={selected}
-                setSelected={setSelected}
-                loading={loadingTickets}
-                onRefresh={handleManualRefresh}
-                refreshing={refreshing}
-              />
-            </div>
-
-            {/* Mobile chat box popup - shown when ticket selected on mobile */}
-            <AnimatePresence>
-              {selected && (
-                <>
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    /* do not close when clicking backdrop on mobile; user must press ✕ */
-                    className="lg:hidden fixed inset-0 bg-black/50 z-40"
-                    aria-hidden="true"
-                  />
-                  <motion.div
-                    initial={{ opacity: 0, y: 100 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 100 }}
-                    className="lg:hidden fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-2xl shadow-xl flex flex-col"
-                    style={{ maxHeight: "85vh" }}
-                    data-chat-box
-                  >
-                    <div className="flex shrink-0 items-center justify-between border-b border-slate-200 p-4">
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-medium text-slate-800 text-sm truncate">
-                          {selected.subject || selected.name || "Chat"}
-                        </h3>
-                        <p className="text-xs text-slate-500 mt-0.5">
-                          {selected.email || userEmail}
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => setSelected(null)}
-                        className="ml-2 shrink-0 rounded-lg p-2 text-slate-500 hover:bg-slate-100"
-                        aria-label="Close chat"
-                      >
-                        <svg
-                          className="w-5 h-5"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M6 18L18 6M6 6l12 12"
-                          />
-                        </svg>
-                      </button>
-                    </div>
-                    <div className="flex-1 overflow-hidden min-h-0">
-                      <SuperAgentChatBox
-                        key={selected?.id}
-                        selected={selected}
-                        onResolved={(ticketId) => {
-                          try {
-                            setTickets((prev) =>
-                              (Array.isArray(prev) ? prev : []).filter((t) => {
-                                const id = t?.id ?? t?.pk;
-                                return String(id) !== String(ticketId);
-                              })
-                            );
-                            setSelected((prev) => {
-                              const remaining = tickets.filter(
-                                (t) => String(t.id ?? t.pk) !== String(ticketId)
-                              );
-                              return remaining.length > 0 ? remaining[0] : null;
-                            });
-                          } catch (e) {
-                            console.error("Error handling resolved ticket:", e);
-                          }
-                        }}
-                      />
-                    </div>
-                  </motion.div>
-                </>
-              )}
-            </AnimatePresence>
-          </div>
+            )}
+          </AnimatePresence>
         </div>
       </motion.div>
     </ProtectedRoute>
