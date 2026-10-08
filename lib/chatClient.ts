@@ -534,9 +534,6 @@ export function normalizeChatEntries(
       role: ev.role,
       raw: ev.raw,
       status: ev.status ?? "sent",
-      // The trainee clicked this (an intake answer or a suggested question)
-      // rather than typing it.
-      picked: ev.meta === "message" && ev.raw?.picked === true,
     };
   });
 

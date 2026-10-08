@@ -4,10 +4,10 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  FileBarChart,
   LayoutDashboard,
   Ticket,
   Users,
+  Tags,
   HelpCircle,
   Settings,
   ChevronLeft,
@@ -20,11 +20,12 @@ import { useAuth } from "@/context/AuthContext"; // <-- adjust path if your Auth
 import { toast } from "sonner";
 
 const navItems = [
-  // The admin home: every category's coverage, workload and deadlines. Called
-  // Analytics in the menu; it replaced the old Analytics page.
-  { name: "Analytics", href: "/admin/dashboard/categories", icon: LayoutDashboard },
+  {
+    name: "Analytics",
+    href: "/admin/dashboard/analytics",
+    icon: LayoutDashboard,
+  },
   { name: "Tickets", href: "/admin/dashboard/tickets", icon: Ticket },
-  { name: "Reports", href: "/admin/dashboard/reports", icon: FileBarChart },
   { name: "Agents", href: "/admin/dashboard/agents", icon: Users },
   { name: "FAQs", href: "/admin/dashboard/faqs", icon: HelpCircle },
 

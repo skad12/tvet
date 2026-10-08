@@ -21,7 +21,7 @@ export default function LoginForm({ demoCredentials = true }) {
 
   // canonical route map (accepts 'agents' plural)
   const ROUTES = {
-    admin: "/admin/dashboard/categories",
+    admin: "/admin/dashboard/analytics",
     agent: "/agent/dashboard", // handle plural explicitly
     agents: "/agent/dashboard",
     super_agent: "/super_agent/dashboard",

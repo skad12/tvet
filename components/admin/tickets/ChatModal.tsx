@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { FiFileText, FiX, FiSend, FiUserPlus } from "react-icons/fi";
+import { FiX, FiPaperclip, FiSmile, FiSend, FiUserPlus } from "react-icons/fi";
 import { useAuth } from "@/context/AuthContext";
 import { useUsersDirectory } from "@/hooks/useUsersDirectory";
 import api from "@/lib/axios";
@@ -17,8 +17,6 @@ import { format, isValid } from "date-fns";
 import { toast } from "sonner";
 import { landing } from "@/components/ui/landingStyles";
 import EscalateMenu, { type EscalationCategory } from "@/components/tickets/EscalateMenu";
-import TicketTimeline from "@/components/tickets/TicketTimeline";
-import { apiErrorMessage } from "@/lib/apiError";
 import { formatMessageTime } from "@/lib/formatMessageTime";
 import { readCache, writeCache, cacheKeys } from "@/lib/offlineCache";
 
@@ -102,14 +100,6 @@ type ChatModalProps = {
   onClose?: () => void;
   onOpenUser?: (ticket: any) => void;
   onMessageAdded?: (message: any, ticket: any) => void;
-  // The popup serves admins, agents and super agents; these hide the actions a
-  // role should not take (agents do not reassign, super agents do not escalate).
-  canAssign?: boolean;
-  canEscalate?: boolean;
-  // Admins and super agents can move a ticket to another category.
-  canMove?: boolean;
-  // Close the popup after a move (a super agent's ticket leaves their queue).
-  closeOnMove?: boolean;
 };
 
 export default function ChatModal({
@@ -118,10 +108,6 @@ export default function ChatModal({
   onClose = () => {},
   onOpenUser = () => {},
   onMessageAdded,
-  canAssign = true,
-  canEscalate = true,
-  canMove = true,
-  closeOnMove = false,
 }: ChatModalProps) {
   const { token, user } = useAuth?.() ?? {};
   const currentUserId =
@@ -259,13 +245,8 @@ export default function ChatModal({
     return null;
   }, [agents, assignedAgentId, assignedAgentName]);
 
-  // Start afresh when a DIFFERENT ticket opens. Keyed on the id, not the
-  // object: the agent and super agent dashboards refresh their lists in the
-  // background and hand over a new object for the same ticket, which used to
-  // wipe the conversation; the digest below then saw nothing new and never
-  // put it back, leaving "No messages yet".
+  // initialize messages when ticket changes
   useEffect(() => {
-    digestRef.current = "";
     if (ticket && Array.isArray(ticket.messages)) {
       const fallback = normalizeChatEntries(ticket.messages, { ticketId });
       setMessages(fallback);
@@ -274,8 +255,7 @@ export default function ChatModal({
     }
     setText("");
     setError(null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ticketId]);
+  }, [ticket, ticketId]);
 
   const handleKeyDown = useCallback(
     (e) => {
@@ -308,9 +288,6 @@ export default function ChatModal({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showAssignMenu]);
 
-  // Only agents who cover this ticket's category can see it once assigned.
-  const ticketCategoryId = ticket?.raw?.category_id ?? ticket?.category_id ?? null;
-
   useEffect(() => {
     if (!showAssignMenu) return;
 
@@ -323,7 +300,6 @@ export default function ChatModal({
         const headers = token ? { Authorization: `Bearer ${token}` } : {};
         const res = await api.get("/get-all-users-available/", {
           headers,
-          params: ticketCategoryId ? { category: ticketCategoryId } : undefined,
           signal: controller.signal,
         });
         if (!mounted) return;
@@ -355,7 +331,7 @@ export default function ChatModal({
       mounted = false;
       controller.abort();
     };
-  }, [showAssignMenu, token, ticketCategoryId]);
+  }, [showAssignMenu, token]);
 
   useEffect(() => {
     if (!open || !ticketId) {
@@ -538,32 +514,6 @@ export default function ChatModal({
     }
   };
 
-  // Moving between categories: which one the ticket is in now, kept locally so
-  // the header updates straight after a move.
-  const [movedTo, setMovedTo] = useState<EscalationCategory | null>(null);
-  const [moving, setMoving] = useState(false);
-  const currentCategoryId = movedTo?.id ?? ticket?.raw?.category_id ?? ticket?.category_id ?? null;
-  const currentCategoryTitle =
-    movedTo?.title ?? ticket?.raw?.escalated_category ?? ticket?.raw?.category ?? ticket?.escalated_category ?? null;
-
-  const handleMove = async (category: EscalationCategory) => {
-    if (!ticketId || moving) return;
-    setMoving(true);
-    try {
-      await api.post("/tickets/move-category/", { ticket_id: ticketId, category_id: category.id });
-      setMovedTo(category);
-      toast.success(`Moved to ${category.title}`);
-      try {
-        onMessageAdded?.({}, ticket);
-      } catch (e) {}
-      if (closeOnMove) onClose?.();
-    } catch (err) {
-      toast.error(apiErrorMessage(err, "Couldn't move the ticket."));
-    } finally {
-      setMoving(false);
-    }
-  };
-
   // Escalate to the category picked from EscalateMenu.
   const handleEscalate = async (category: EscalationCategory) => {
     if (!ticketId || escalating || escalated || isResolved) return;
@@ -648,7 +598,7 @@ export default function ChatModal({
       ["Email", str(raw.email) ?? str(ticket?.email)],
       ["Phone", str(raw.phone)],
       ["Application / Reg. ID", str(raw.app_id)],
-      ["Registered as", str(raw.role)],
+      ["Enquiry type", str(raw.role)],
       ["Category", category ?? subject],
     ] as const;
   }, [ticket]);
@@ -738,8 +688,6 @@ export default function ChatModal({
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2 sm:shrink-0 sm:gap-3">
-                  {canAssign && (
-                  <>
                   {assignedAgent && (
                     <button
                       onClick={() => setShowAssignMenu(!showAssignMenu)}
@@ -843,12 +791,10 @@ export default function ChatModal({
                       </div>
                     )}
                   </div>
-                  </>
-                  )}
 
                   {/* Escalate: pick the category; once escalated or resolved
                       it is a plain disabled label. */}
-                  {!canEscalate ? null : !escalated && !isResolved ? (
+                  {!escalated && !isResolved ? (
                     <EscalateMenu
                       onSelect={handleEscalate}
                       escalating={escalating}
@@ -867,19 +813,6 @@ export default function ChatModal({
                   >
                     {escalated ? "Escalated" : "Escalate"}
                   </button>
-                  )}
-
-                  {canMove && (
-                    <EscalateMenu
-                      onSelect={handleMove}
-                      escalating={moving}
-                      label="Move"
-                      busyLabel="Moving…"
-                      heading={currentCategoryTitle ? `Move from ${currentCategoryTitle} to` : "Move to category"}
-                      excludeId={currentCategoryId}
-                      align="right"
-                      buttonClassName="text-xs px-2 py-1 rounded border transition-colors border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
-                    />
                   )}
 
                   {/* Resolve button */}
@@ -969,8 +902,6 @@ export default function ChatModal({
                         className={`p-3 rounded-lg max-w-[75%] shadow-sm ${
                           isSender
                             ? "bg-blue-600 text-white rounded-tr-none"
-                            : m.picked
-                            ? "bg-blue-50 text-slate-800 border border-blue-200 rounded-tl-none"
                             : "bg-gray-200 text-gray-800 rounded-tl-none"
                         }`}
                       >
@@ -1001,6 +932,21 @@ export default function ChatModal({
                 onSubmit={handleSend}
                 className="border-t border-border px-3 py-3 flex shrink-0 items-center gap-2 sm:px-4 sm:gap-3"
               >
+                <button
+                  type="button"
+                  className="hidden p-2 rounded-md text-slate-500 hover:bg-slate-100 sm:block"
+                  title="Attach file"
+                >
+                  <FiPaperclip />
+                </button>
+
+                <button
+                  type="button"
+                  className="hidden p-2 rounded-md text-slate-500 hover:bg-slate-100 sm:block"
+                  title="Emoji"
+                >
+                  <FiSmile />
+                </button>
 
                 <input
                   className={`${landing.input} flex-1 rounded-full`}
@@ -1164,16 +1110,12 @@ export default function ChatModal({
                 </div>
               </div>
 
-              <div className="mb-4">
-                <TicketTimeline ticket={ticket} />
-              </div>
-
               <div className="text-sm text-slate-600 space-y-4">
                 {/* What the widget collected before the conversation started:
                     who they are, how to reach them, and what it is about. */}
                 <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-                  <div className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    <FiFileText className="h-3.5 w-3.5" aria-hidden /> Submitted details
+                  <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Submitted details
                   </div>
                   {/* Label above value rather than beside it: emails and
                       category titles are long and were being squeezed into a

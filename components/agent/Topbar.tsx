@@ -6,11 +6,6 @@ import { toast } from "sonner";
 import api from "@/lib/axios";
 import { useAuth } from "@/context/AuthContext";
 import ThemeToggle from "@/components/ThemeToggle";
-import ChangePasswordButton from "@/components/account/ChangePassword";
-import MyCategoriesHeadline from "@/components/tickets/MyCategories";
-import TrackTicket from "@/components/tickets/TrackTicket";
-import BrandMark from "@/components/account/BrandMark";
-import usePresence from "@/components/account/usePresence";
 
 type AgentTopbarProps = {
   userEmail?: string;
@@ -21,7 +16,6 @@ export default function AgentTopbar({ userEmail }: AgentTopbarProps) {
   const { signOut, user } = useAuth();
   const [signingOut, setSigningOut] = useState(false);
   const [agentStatus, setAgentStatus] = useState("loading");
-  usePresence();
 
   const userId =
     user?.app_user_id ??
@@ -116,19 +110,18 @@ export default function AgentTopbar({ userEmail }: AgentTopbarProps) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
     >
-      <div className="mb-3 border-b border-border pb-3">
-        <BrandMark workspace="Agent workspace" href="/agent/dashboard" />
-      </div>
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-        <div className="min-w-0">
+        <div>
           <h2 className="text-lg sm:text-xl lg:text-2xl font-semibold">
             Hi {displayName} 👋
           </h2>
-          <MyCategoriesHeadline role="agent" />
           <div className="text-xs sm:text-sm text-muted mt-1 truncate">
             {displayEmail || "You are viewing your dashboard."}
           </div>
           <div className="mt-1 flex items-center gap-2">
+            <span className="uppercase text-[10px] sm:text-xs tracking-wide text-muted">
+              {String(accountType)}
+            </span>
 
             <span
               className={`rounded-full border px-2 py-0.5 text-[10px] font-medium capitalize sm:text-xs ${statusClass}`}
@@ -139,11 +132,7 @@ export default function AgentTopbar({ userEmail }: AgentTopbarProps) {
         </div>
 
         <div className="flex items-center gap-2 w-full sm:w-auto">
-          <div className="hidden w-64 sm:block">
-            <TrackTicket role="agent" compact />
-          </div>
           <ThemeToggle variant="ghost" />
-          <ChangePasswordButton />
           <button
             onClick={handleSignOut}
             disabled={signingOut}

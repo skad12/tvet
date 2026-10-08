@@ -7,11 +7,6 @@ import { toast } from "sonner";
 import api from "@/lib/axios";
 import { useAuth } from "@/context/AuthContext"; // adjust path if needed
 import ThemeToggle from "@/components/ThemeToggle";
-import ChangePasswordButton from "@/components/account/ChangePassword";
-import TrackTicket from "@/components/tickets/TrackTicket";
-import BrandMark from "@/components/account/BrandMark";
-import usePresence from "@/components/account/usePresence";
-import MyCategoriesHeadline from "@/components/tickets/MyCategories";
 // adjust path if you place CreateTicket elsewhere
 
 type NavbarProps = {
@@ -28,7 +23,6 @@ export default function Navbar({
   userStatus = null,
 }: NavbarProps) {
   const { signOut, user } = useAuth();
-  usePresence();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
 
@@ -77,15 +71,11 @@ export default function Navbar({
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
       >
-        <div className="mb-3 border-b border-border pb-3">
-          <BrandMark workspace="Super agent workspace" href="/super_agent/dashboard" />
-        </div>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex-1 min-w-0">
             <h2 className="text-xl sm:text-2xl font-semibold truncate">
               Hi {displayName} 👋
             </h2>
-            <MyCategoriesHeadline role="super_agent" />
             <div className="text-xs sm:text-sm text-muted mt-1 truncate">
               {displayEmail || "You are viewing your dashboard."}
             </div>
@@ -94,6 +84,9 @@ export default function Navbar({
                 ID: {userId ? String(userId) : "—"}
               </span> */}
 
+              <span className="uppercase tracking-wide text-muted">
+                {String(accountType || "user")}
+              </span>
 
               {/* {userStatus && (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
@@ -105,11 +98,7 @@ export default function Navbar({
           </div>
 
           <div className="flex items-center gap-3 shrink-0 flex-wrap justify-end">
-            <div className="hidden w-64 sm:block">
-              <TrackTicket role="super_agent" compact />
-            </div>
             <ThemeToggle variant="ghost" />
-            <ChangePasswordButton />
             {/* <div className="text-right text-xs sm:text-sm">
             <div className="font-semibold text-slate-800">{displayName}</div>
             <div className="uppercase tracking-wide text-slate-500">

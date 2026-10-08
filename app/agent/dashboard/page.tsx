@@ -7,8 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 import api from "@/lib/axios";
 
 import Navbar from "@/components/agent/Topbar";
-import ChatModal from "@/components/admin/tickets/ChatModal";
-import StaffOverview from "@/components/tickets/StaffOverview";
+import ChatBox from "@/components/agent/AgentChatBox";
 import ChatList from "@/components/agent/AgentChatList";
 import { readCache, writeCache, cacheKeys } from "@/lib/offlineCache";
 
@@ -139,9 +138,21 @@ export default function AgentDashboardPage() {
         }
       }
 
-      // Never fall back to the full ticket list: agents only see their own
-      // queue, in the categories they cover.
-      if (!data) data = [];
+      if (!data) {
+        if (api && typeof api.get === "function") {
+          const res = await api.get("/tickets/");
+          data = res?.data;
+        } else {
+          const res = await fetch("/tickets/", {
+            method: "GET",
+            headers: { "Content-Type": "application/json" },
+          });
+          if (!res.ok) {
+            throw new Error(`Failed to fetch tickets (${res.status})`);
+          }
+          data = await res.json();
+        }
+      }
 
       let allTickets = Array.isArray(data) ? data : data?.tickets ?? data ?? [];
 
@@ -180,9 +191,10 @@ export default function AgentDashboardPage() {
           if (exists) return exists;
         }
 
-        // Nothing is opened automatically: a ticket opens as a popup, which
-        // should appear only when the agent picks one.
-        return null;
+        // === DESKTOP-ONLY AUTO-SELECT ===
+        const canAutoSelect =
+          typeof window === "undefined" ? true : window.innerWidth >= 1024;
+        return canAutoSelect && filtered.length > 0 ? filtered[0] : null;
       });
     } catch (err) {
       console.error("Failed to load tickets", err);
@@ -247,32 +259,165 @@ export default function AgentDashboardPage() {
               {ticketsError}
             </div>
           )}
-          <StaffOverview tickets={tickets} role="agent" />
-
-          {/* The list takes the full width; a ticket opens as a popup chat,
-              the same one the admin dashboard uses. */}
-          <ChatList
-            tickets={tickets}
-            selected={selected}
-            setSelected={setSelected}
-            userId={userId ?? undefined}
-            userEmail={userEmail || undefined}
-            autoSelect={false}
-          />
-
-          <AnimatePresence>
-            {selected && (
-              <ChatModal
+          <div className="grid grid-cols-1 gap-3 sm:gap-4 lg:grid-cols-3 lg:gap-6">
+            {/* Chat box - HIDDEN on mobile, shown on larger screens */}
+            <div className="hidden lg:block">
+              <ChatBox
                 key={selected?.id}
-                ticket={selected}
-                open
-                canAssign={false}
-                canMove={false}
-                onClose={() => setSelected(null)}
-                onMessageAdded={() => fetchTickets(userId, userEmail, { showLoading: false })}
+                selected={selected}
+                onEscalated={(ticketId) => {
+                  try {
+                    setTickets((prev) =>
+                      (Array.isArray(prev) ? prev : []).map((t) => {
+                        const id = t?.id ?? t?.pk;
+                        if (String(id) === String(ticketId)) {
+                          return {
+                            ...t,
+                            status: "escalated",
+                            progress: "Escalated",
+                            statusDisplay: "Escalated",
+                            ticket_status: "Escalated",
+                            raw: {
+                              ...(t?.raw ?? {}),
+                              escalated: true,
+                              ticket_status: "Escalated",
+                            },
+                          };
+                        }
+                        return t;
+                      })
+                    );
+                    setSelected((prev) =>
+                      prev && String(prev.id) === String(ticketId)
+                        ? {
+                            ...prev,
+                            status: "escalated",
+                            progress: "Escalated",
+                            statusDisplay: "Escalated",
+                            ticket_status: "Escalated",
+                            raw: {
+                              ...(prev?.raw ?? {}),
+                              escalated: true,
+                              ticket_status: "Escalated",
+                            },
+                          }
+                        : prev
+                    );
+                  } catch (e) {}
+                }}
               />
-            )}
-          </AnimatePresence>
+            </div>
+            {/* Chat list - full width on mobile, 2/3 on desktop */}
+            <div className="lg:col-span-2">
+              <ChatList
+                tickets={tickets}
+                selected={selected}
+                setSelected={setSelected}
+                userId={userId ?? undefined}
+                userEmail={userEmail || undefined}
+              />
+              {/* Additional agent-specific components can be added here */}
+            </div>
+            {/* Mobile chat box popup - shown when ticket selected on mobile */}
+            <AnimatePresence>
+              {selected && (
+                <>
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    /* removed onClick so tapping the backdrop does NOT close the chat on mobile */
+                    className="lg:hidden fixed inset-0 bg-black/50 z-40"
+                    aria-hidden="true"
+                  />
+                  <motion.div
+                    initial={{ opacity: 0, y: 100 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 100 }}
+                    className="lg:hidden fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-2xl shadow-xl flex flex-col"
+                    style={{ maxHeight: "85vh" }}
+                    data-chat-box
+                  >
+                    <div className="flex shrink-0 items-center justify-between border-b border-slate-200 p-4">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-medium text-slate-800 text-sm truncate">
+                          {selected.subject || selected.name || "Chat"}
+                        </h3>
+                        <p className="text-xs text-slate-500 mt-0.5">
+                          {selected.email || userEmail}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => setSelected(null)}
+                        className="ml-2 shrink-0 rounded-lg p-2 text-slate-500 hover:bg-slate-100"
+                        aria-label="Close chat"
+                      >
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M6 18L18 6M6 6l12 12"
+                          />
+                        </svg>
+                      </button>
+                    </div>
+                    <div className="flex-1 overflow-hidden min-h-0">
+                      <ChatBox
+                        key={selected?.id}
+                        selected={selected}
+                        onEscalated={(ticketId) => {
+                          try {
+                            setTickets((prev) =>
+                              (Array.isArray(prev) ? prev : []).map((t) => {
+                                const id = t?.id ?? t?.pk;
+                                if (String(id) === String(ticketId)) {
+                                  return {
+                                    ...t,
+                                    status: "escalated",
+                                    progress: "Escalated",
+                                    statusDisplay: "Escalated",
+                                    ticket_status: "Escalated",
+                                    raw: {
+                                      ...(t?.raw ?? {}),
+                                      escalated: true,
+                                      ticket_status: "Escalated",
+                                    },
+                                  };
+                                }
+                                return t;
+                              })
+                            );
+                            setSelected((prev) =>
+                              prev && String(prev.id) === String(ticketId)
+                                ? {
+                                    ...prev,
+                                    status: "escalated",
+                                    progress: "Escalated",
+                                    statusDisplay: "Escalated",
+                                    ticket_status: "Escalated",
+                                    raw: {
+                                      ...(prev?.raw ?? {}),
+                                      escalated: true,
+                                      ticket_status: "Escalated",
+                                    },
+                                  }
+                                : prev
+                            );
+                          } catch (e) {}
+                        }}
+                      />
+                    </div>
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
       </motion.div>
     </ProtectedRoute>
