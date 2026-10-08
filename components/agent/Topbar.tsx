@@ -10,7 +10,7 @@ import ChangePasswordButton from "@/components/account/ChangePassword";
 import MyCategoriesHeadline from "@/components/tickets/MyCategories";
 import TrackTicket from "@/components/tickets/TrackTicket";
 import BrandMark from "@/components/account/BrandMark";
-import usePresence from "@/components/account/usePresence";
+import StatusControl, { clearStatusMode } from "@/components/account/StatusControl";
 
 type AgentTopbarProps = {
   userEmail?: string;
@@ -20,8 +20,6 @@ type AgentTopbarProps = {
 export default function AgentTopbar({ userEmail }: AgentTopbarProps) {
   const { signOut, user } = useAuth();
   const [signingOut, setSigningOut] = useState(false);
-  const [agentStatus, setAgentStatus] = useState("loading");
-  usePresence();
 
   const userId =
     user?.app_user_id ??
@@ -42,51 +40,6 @@ export default function AgentTopbar({ userEmail }: AgentTopbarProps) {
   const displayEmail = userEmail ?? user?.email ?? user?.username ?? "";
 
   /* --------------------------------------------
-     Fetch Agent Status
-  --------------------------------------------- */
-  useEffect(() => {
-    if (!userId) return;
-
-    let mounted = true;
-
-    const fetchStatus = async () => {
-      try {
-        const res = await api.get(`/get-user-status/${String(userId)}/`);
-        const status = res?.data?.status ?? res?.data?.user_status ?? "offline";
-        if (!mounted) return;
-        setAgentStatus(String(status).toLowerCase());
-      } catch (err) {
-        console.error("Failed to fetch agent status:", err);
-        if (!mounted) return;
-        setAgentStatus("error");
-      }
-    };
-
-    fetchStatus();
-
-    // keep status fresh
-    const interval = setInterval(fetchStatus, 10000);
-
-    return () => {
-      mounted = false;
-      clearInterval(interval);
-    };
-  }, [userId]);
-
-  /* --------------------------------------------
-     Status Pill Styling
-  --------------------------------------------- */
-  const statusStyles = {
-    available: "bg-green-100 text-green-700 border-green-200",
-    engaged: "bg-yellow-100 text-yellow-700 border-yellow-200",
-    offline: "bg-slate-100 text-slate-600 border-slate-200",
-    loading: "bg-blue-100 text-blue-700 border-blue-200",
-    error: "bg-red-100 text-red-700 border-red-200",
-  };
-
-  const statusClass = statusStyles[agentStatus] || statusStyles.error;
-
-  /* --------------------------------------------
      Sign Out
   --------------------------------------------- */
   async function handleSignOut(e) {
@@ -94,6 +47,8 @@ export default function AgentTopbar({ userEmail }: AgentTopbarProps) {
     if (signingOut) return;
     setSigningOut(true);
 
+    // The next sign-in starts on Automatic again.
+    clearStatusMode(userId ? String(userId) : null);
     try {
       if (userId) {
         await api.post("/sign-out/", {
@@ -128,13 +83,8 @@ export default function AgentTopbar({ userEmail }: AgentTopbarProps) {
           <div className="text-xs sm:text-sm text-muted mt-1 truncate">
             {displayEmail || "You are viewing your dashboard."}
           </div>
-          <div className="mt-1 flex items-center gap-2">
-
-            <span
-              className={`rounded-full border px-2 py-0.5 text-[10px] font-medium capitalize sm:text-xs ${statusClass}`}
-            >
-              {agentStatus}
-            </span>
+          <div className="mt-1.5 flex items-center gap-2">
+            <StatusControl userId={userId ? String(userId) : null} />
           </div>
         </div>
 
