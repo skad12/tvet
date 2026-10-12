@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { landing } from "@/components/ui/landingStyles";
 import EscalateMenu, { type EscalationCategory } from "@/components/tickets/EscalateMenu";
 import TicketTimeline from "@/components/tickets/TicketTimeline";
+import VerifiedBadge, { verification } from "@/components/tickets/VerifiedBadge";
 import { apiErrorMessage } from "@/lib/apiError";
 import { formatMessageTime } from "@/lib/formatMessageTime";
 import { readCache, writeCache, cacheKeys } from "@/lib/offlineCache";
@@ -643,7 +644,10 @@ export default function ChatModal({
         ? rawName
         : null;
 
+    const v = verification(ticket);
     return [
+      ["Verification", v.verified ? `Verified: logged in on ${v.by}` : "Not verified"],
+      ...(v.userId ? ([["Website user ID", v.userId]] as const) : []),
       ["Name", personName],
       ["Email", str(raw.email) ?? str(ticket?.email)],
       ["Phone", str(raw.phone)],
@@ -733,6 +737,7 @@ export default function ChatModal({
                           Escalated
                         </span>
                       )}
+                      <span className="ml-1"><VerifiedBadge ticket={ticket} /></span>
                     </div>
                   </div>
                 </div>

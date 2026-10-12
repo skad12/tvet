@@ -612,6 +612,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import ClientPager, { usePaged } from "@/components/tickets/ClientPager";
+import VerifiedBadge from "@/components/tickets/VerifiedBadge";
 import { motion } from "framer-motion";
 import { format, isValid } from "date-fns";
 import { useAuth } from "@/context/AuthContext";
@@ -1137,7 +1138,7 @@ export default function ChatList({
                 return (
                   <motion.li key={t.id ?? `${idx}-${email}`} initial="hidden" animate="visible" variants={listItem} className={ticketCardClass(selected?.id === t.id)} onClick={() => setSelected?.(t)}>
                     <div className="min-w-0 flex-1">
-                      <div className="flex min-w-0 items-center gap-1.5 text-xs font-medium text-foreground sm:text-sm"><TicketRef ticket={t} className="-ml-1 text-[10px] text-muted sm:text-xs" /><span className="truncate">{subject}</span></div>
+                      <div className="flex min-w-0 items-center gap-1.5 text-xs font-medium text-foreground sm:text-sm"><TicketRef ticket={t} className="-ml-1 text-[10px] text-muted sm:text-xs" /><span className="truncate">{subject}</span><VerifiedBadge ticket={t} compact /></div>
                       <div className="mt-0.5 truncate text-[10px] text-muted sm:mt-1 sm:text-xs">{email || t.name || "From Widget"}</div>
                       {isRecentlyAdded && <div className="text-[10px] uppercase tracking-wide font-semibold text-emerald-600">New</div>}
                     </div>

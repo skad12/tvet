@@ -481,6 +481,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import ClientPager, { usePaged } from "@/components/tickets/ClientPager";
+import VerifiedBadge from "@/components/tickets/VerifiedBadge";
 import { motion } from "framer-motion";
 import { format, isValid } from "date-fns";
 import { useAuth } from "@/context/AuthContext";
@@ -875,7 +876,7 @@ function formatMaybeDate(val: any, display?: any) {
                 return (
                   <motion.li key={t.id ?? `${idx}-${email}`} initial="hidden" animate="visible" variants={listItem} className={ticketCardClass(selected?.id === t.id)} onClick={() => setSelected?.(t)}>
                     <div className="min-w-0 flex-1">
-                      <div className="font-medium text-xs sm:text-sm text-foreground flex min-w-0 items-center gap-1.5"><TicketRef ticket={t} className="-ml-1 text-[10px] text-muted sm:text-xs" /><span className="truncate">{subject}</span></div>
+                      <div className="font-medium text-xs sm:text-sm text-foreground flex min-w-0 items-center gap-1.5"><TicketRef ticket={t} className="-ml-1 text-[10px] text-muted sm:text-xs" /><span className="truncate">{subject}</span><VerifiedBadge ticket={t} compact /></div>
                       <div className="text-[10px] sm:text-xs text-muted mt-0.5 sm:mt-1 truncate">{email || t.name || "From Widget"}</div>
 
                       <div className="text-[10px] sm:text-xs text-muted mt-1 truncate">

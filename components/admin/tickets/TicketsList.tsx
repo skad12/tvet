@@ -9,6 +9,7 @@ import { calculateResolutionTime } from "@/lib/resolutionTime";
 import { NEW_MESSAGE_BADGE_CLASS, needsReply, sortByActivity } from "@/lib/ticketActivity";
 import SlaBadge from "@/components/tickets/SlaBadge";
 import TicketRef from "@/components/tickets/TicketRef";
+import VerifiedBadge from "@/components/tickets/VerifiedBadge";
 import TicketInsights from "@/components/tickets/TicketInsights";
 import Skeleton, { ChatListSkeleton } from "@/components/ui/Skeleton";
 import { toast } from "sonner";
@@ -374,6 +375,7 @@ export default function TicketsList({
                             <h4 className="font-semibold text-slate-800 truncate">
                               {ticket.name || ticket.subject || "From Widget"}
                             </h4>
+                            <VerifiedBadge ticket={ticket} />
 
                             {/* Escalated icon shown when escalated === true */}
                             {ticket.escalated && (

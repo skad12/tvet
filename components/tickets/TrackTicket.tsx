@@ -11,6 +11,7 @@ import ChatModal from "@/components/admin/tickets/ChatModal";
 import TicketTimeline from "@/components/tickets/TicketTimeline";
 import SlaBadge, { ticketReference } from "@/components/tickets/SlaBadge";
 import TicketRef from "@/components/tickets/TicketRef";
+import VerifiedBadge from "@/components/tickets/VerifiedBadge";
 
 type Role = "admin" | "agent" | "super_agent";
 
@@ -78,6 +79,7 @@ function Result({ t, onClose, onViewConversation }: { t: any; onClose: () => voi
               {t.escalated && <Chip tone="red">Escalated</Chip>}
               {t.awaiting_reply && !resolved && <Chip tone="blue">Awaiting reply</Chip>}
               <SlaBadge ticket={t} />
+              <VerifiedBadge ticket={t} />
             </div>
           </div>
           <button type="button" onClick={onClose} aria-label="Close" className="rounded-full p-2 text-slate-500 hover:bg-slate-100">
