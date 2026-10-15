@@ -10,6 +10,7 @@ import { NEW_MESSAGE_BADGE_CLASS, needsReply, sortByActivity } from "@/lib/ticke
 import SlaBadge from "@/components/tickets/SlaBadge";
 import TicketRef from "@/components/tickets/TicketRef";
 import VerifiedBadge from "@/components/tickets/VerifiedBadge";
+import SourceTag, { sourceOf } from "@/components/tickets/SourceTag";
 import TicketInsights from "@/components/tickets/TicketInsights";
 import Skeleton, { ChatListSkeleton } from "@/components/ui/Skeleton";
 import { toast } from "sonner";
@@ -83,6 +84,7 @@ export default function TicketsList({
   categoryId,
   categoryName,
   statusFilter = "all",
+  sourceFilter = "all",
   dateRange = null,
   onSelectTicket,
   selectedTicketId,
@@ -107,7 +109,7 @@ export default function TicketsList({
 
   const dateFrom = dateRange?.from || "";
   const dateTo = dateRange?.to || "";
-  const dateField = dateRange?.field === "activity" ? "activity" : "created";
+  const dateField = dateRange?.field === "created" ? "created" : "activity";
 
   // Category, status and dates are filtered on the server, so the counts and
   // pages are right across the whole list.
@@ -115,11 +117,12 @@ export default function TicketsList({
     const p: Record<string, string> = {};
     if (categoryId) p.category = String(categoryId);
     if (statusFilter && statusFilter !== "all") p.state = statusFilter;
+    if (sourceFilter && sourceFilter !== "all") p.source = sourceFilter;
     if (dateFrom) p.from = dateFrom;
     if (dateTo) p.to = dateTo;
-    if ((dateFrom || dateTo) && dateField === "activity") p.date_field = "activity";
+    if (dateFrom || dateTo) p.date_field = dateField;
     return p;
-  }, [categoryId, statusFilter, dateFrom, dateTo, dateField]);
+  }, [categoryId, statusFilter, sourceFilter, dateFrom, dateTo, dateField]);
   const insightParams = filterParams;
   const filterKey = JSON.stringify(filterParams);
   // Only the unfiltered first page is saved for offline use.
@@ -236,13 +239,22 @@ export default function TicketsList({
       const d = new Date(v);
       return isValid(d) ? format(d, "yyyy-MM-dd") : null;
     };
+    // Same rule as the server: created only, or any activity (opened, a
+    // message, assigned, escalated, resolved) inside the dates.
     const inRange = (t) => {
       if (!dateFrom && !dateTo) return true;
-      const day = dayOf(dateField === "activity" ? t.raw?.last_message_at : t.created_at);
-      if (!day) return false;
-      return (!dateFrom || day >= dateFrom) && (!dateTo || day <= dateTo);
+      const r = t.raw ?? {};
+      const moments =
+        dateField === "created"
+          ? [t.created_at]
+          : [t.created_at, r.last_message_at, r.agent_assigned_at, r.escalated_at, r.resolved_at];
+      return moments.some((v) => {
+        const day = dayOf(v);
+        return Boolean(day) && (!dateFrom || day >= dateFrom) && (!dateTo || day <= dateTo);
+      });
     };
-    const byActivity = sortByActivity(tickets).filter(inRange);
+    const fromWanted = (t) => !sourceFilter || sourceFilter === "all" || sourceOf(t.raw?.role) === sourceFilter;
+    const byActivity = sortByActivity(tickets).filter(inRange).filter(fromWanted);
     if (!statusFilter || statusFilter === "all") return byActivity;
 
     function normalizeStatusForFilter(status) {
@@ -261,11 +273,15 @@ export default function TicketsList({
     if (wanted === "escalated") {
       return byActivity.filter((t) => t.raw?.escalated === true && normalizeStatusForFilter(t.status) !== "resolved");
     }
+    // Pending = not resolved yet, as on the server.
+    if (wanted === "pending") {
+      return byActivity.filter((t) => normalizeStatusForFilter(t.status) !== "resolved");
+    }
     return byActivity.filter((t) => {
       const ticketStatusNormalized = normalizeStatusForFilter(t.status);
       return ticketStatusNormalized === wanted;
     });
-  }, [tickets, statusFilter, dateFrom, dateTo, dateField]);
+  }, [tickets, statusFilter, sourceFilter, dateFrom, dateTo, dateField]);
 
   // Format date safely; prefer server's created_at_display if given
   // Uses same format as AgentChatList: PPpp
@@ -376,6 +392,7 @@ export default function TicketsList({
                               {ticket.name || ticket.subject || "From Widget"}
                             </h4>
                             <VerifiedBadge ticket={ticket} />
+                            <SourceTag role={ticket.raw?.role} />
 
                             {/* Escalated icon shown when escalated === true */}
                             {ticket.escalated && (
