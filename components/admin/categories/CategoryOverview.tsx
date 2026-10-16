@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { endOfMonth, format, startOfMonth, startOfWeek, subDays, subMonths } from "date-fns";
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
@@ -57,8 +56,6 @@ type RecentTicket = {
   last_message_at: string | null;
 };
 type Category = {
-  // The "Other category" row: tickets outside every category. Read-only.
-  other?: boolean;
   id: string;
   title: string;
   sla_hours: number;
@@ -776,24 +773,6 @@ function firstName(user: any) {
  * glance, with a detail panel per category. A ticket belongs to a category
  * once a trainee picks it, it is escalated there, or it is moved there.
  */
-// The page's period. Figures cover tickets worked on in it (any activity);
-// tickets at risk always show everything.
-const ymd = (d: Date) => format(d, "yyyy-MM-dd");
-function periodOptions() {
-  const today = new Date();
-  const lastMonth = subMonths(today, 1);
-  return [
-    { id: "today", label: "Today", from: ymd(today), to: ymd(today) },
-    { id: "yesterday", label: "Yesterday", from: ymd(subDays(today, 1)), to: ymd(subDays(today, 1)) },
-    { id: "week", label: "This week", from: ymd(startOfWeek(today, { weekStartsOn: 1 })), to: ymd(today) },
-    { id: "7", label: "Last 7 days", from: ymd(subDays(today, 6)), to: ymd(today) },
-    { id: "30", label: "Last 30 days", from: ymd(subDays(today, 29)), to: ymd(today) },
-    { id: "month", label: "This month", from: ymd(startOfMonth(today)), to: ymd(today) },
-    { id: "lastmonth", label: "Last month", from: ymd(startOfMonth(lastMonth)), to: ymd(endOfMonth(lastMonth)) },
-    { id: "all", label: "All time", from: "", to: "" },
-  ];
-}
-
 export default function CategoryOverview() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -808,21 +787,12 @@ export default function CategoryOverview() {
   const tableRef = useRef<HTMLElement | null>(null);
   const router = useRouter();
   const { user } = useAuth?.() ?? {};
-  // Worked out in the browser after load, so "this week" is the user's week.
-  const [periods, setPeriods] = useState<ReturnType<typeof periodOptions> | null>(null);
-  const [periodId, setPeriodId] = useState("week");
-  useEffect(() => setPeriods(periodOptions()), []);
-  const period = periods?.find((p) => p.id === periodId) ?? null;
-  const periodQuery = period && period.from ? `&from=${period.from}&to=${period.to}` : "";
 
   const load = useCallback(async () => {
-    if (!period) return;
     setLoading(true);
     setError(null);
     try {
-      const res = await api.get("/categories/overview/", {
-        params: period.from ? { from: period.from, to: period.to, date_field: "activity" } : {},
-      });
+      const res = await api.get("/categories/overview/");
       setCategories(Array.isArray(res?.data?.categories) ? res.data.categories : []);
       setAttention(Array.isArray(res?.data?.attention) ? res.data.attention : []);
     } catch (err) {
@@ -830,7 +800,7 @@ export default function CategoryOverview() {
     } finally {
       setLoading(false);
     }
-  }, [period]);
+  }, []);
 
   useEffect(() => {
     load();
@@ -866,16 +836,11 @@ export default function CategoryOverview() {
       awaiting: sum((c) => c.tickets.awaiting_reply),
       overdue,
       dueSoon: sum((c) => c.sla.due_soon),
-      // Only categories have a response-time target, so only their open tickets count here.
-      health: (() => {
-        const withTarget = categories.filter((c) => !c.other).reduce((s, c) => s + c.tickets.open, 0);
-        return withTarget ? Math.round(((withTarget - overdue) / withTarget) * 1000) / 10 : null;
-      })(),
+      health: open ? Math.round(((open - overdue) / open) * 1000) / 10 : null,
       rate: total ? Math.round((resolved / total) * 1000) / 10 : null,
       staff: staff.length,
       online: staff.filter(online).length,
-      uncovered: categories.filter((c) => !c.other && c.super_agents.length + c.agents.length === 0).length,
-      real: categories.filter((c) => !c.other).length,
+      uncovered: categories.filter((c) => c.super_agents.length + c.agents.length === 0).length,
     };
   }, [categories]);
 
@@ -921,7 +886,7 @@ export default function CategoryOverview() {
               {loading && !categories.length
                 ? "Checking how every category stands…"
                 : totals.overdue
-                ? `${totals.overdue} ticket${totals.overdue === 1 ? " is" : "s are"} past due${totals.dueSoon ? ` and ${totals.dueSoon} due soon` : ""} across ${totals.real} categories.`
+                ? `${totals.overdue} ticket${totals.overdue === 1 ? " is" : "s are"} past due${totals.dueSoon ? ` and ${totals.dueSoon} due soon` : ""} across ${categories.length} categories.`
                 : totals.dueSoon
                 ? `Nothing is overdue. ${totals.dueSoon} ticket${totals.dueSoon === 1 ? " is" : "s are"} due soon.`
                 : "Every open ticket is on time."}
@@ -980,35 +945,12 @@ export default function CategoryOverview() {
         </div>
       ) : (
         <>
-          {/* Period: what the figures below cover */}
-          <div className="flex flex-col gap-1">
-            <div role="radiogroup" aria-label="Period" className="flex min-w-0 gap-1.5 overflow-x-auto pb-1 [scrollbar-width:thin]">
-              {(periods ?? []).map((p) => (
-                <button
-                  key={p.id}
-                  type="button"
-                  role="radio"
-                  aria-checked={periodId === p.id}
-                  onClick={() => setPeriodId(p.id)}
-                  className={`shrink-0 whitespace-nowrap rounded-full border px-3 py-1.5 text-xs font-semibold transition sm:text-sm ${
-                    periodId === p.id ? "border-blue-600 bg-blue-600 text-white" : "border-border bg-card text-foreground hover:border-blue-200"
-                  }`}
-                >
-                  {p.label}
-                </button>
-              ))}
-            </div>
-            <p className="text-xs text-muted">
-              {period && period.from ? "Figures cover tickets worked on in this period" : "Figures cover all tickets"} · tickets at risk always show everything
-            </p>
-          </div>
-
           {/* KPIs */}
-          <div className={`grid grid-cols-2 gap-3 transition-opacity lg:grid-cols-5 ${loading ? "opacity-60" : ""}`}>
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
             <Kpi
               icon={<FiLayers />}
               label="Categories"
-              value={String(totals.real)}
+              value={String(categories.length)}
               hint={totals.uncovered ? `${totals.uncovered} without staff` : "All covered"}
               action="See the breakdown"
               onClick={() => tableRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
@@ -1020,7 +962,7 @@ export default function CategoryOverview() {
               value={totals.open.toLocaleString()}
               hint={`${totals.awaiting.toLocaleString()} awaiting a reply`}
               action="View open tickets"
-              onClick={() => router.push(`/admin/dashboard/tickets?status=pending${periodQuery}`)}
+              onClick={() => router.push("/admin/dashboard/tickets?status=pending")}
             />
             <Kpi
               icon={<FiAlertTriangle />}
@@ -1038,7 +980,7 @@ export default function CategoryOverview() {
               value={totals.rate == null ? "—" : `${totals.rate}%`}
               hint={`${totals.resolved.toLocaleString()} of ${totals.total.toLocaleString()} resolved`}
               action="View resolved tickets"
-              onClick={() => router.push(`/admin/dashboard/tickets?status=resolved${periodQuery}`)}
+              onClick={() => router.push("/admin/dashboard/tickets?status=resolved")}
             />
             <Kpi
               icon={<FiUsers />}
@@ -1070,15 +1012,14 @@ export default function CategoryOverview() {
               <p className="text-sm text-muted">Loading…</p>
             ) : (
               <ul className="space-y-2">
-                {categories
-                  .filter((c) => !c.other)
+                {[...categories]
                   .sort((a, b) => b.tickets.open - a.tickets.open)
                   .map((c, _i, list) => {
                     const s = slaSplit(c);
                     const most = Math.max(list[0]?.tickets.open ?? 0, 1);
                     return (
                       <li key={c.id}>
-                        <button type="button" onClick={() => !c.other && setOpenId(c.id)} className="group grid w-full grid-cols-1 items-center gap-1 text-left sm:grid-cols-[minmax(0,15rem)_1fr_7.5rem] sm:gap-4">
+                        <button type="button" onClick={() => setOpenId(c.id)} className="group grid w-full grid-cols-1 items-center gap-1 text-left sm:grid-cols-[minmax(0,15rem)_1fr_7.5rem] sm:gap-4">
                           <span className="truncate text-sm text-foreground group-hover:text-blue-700" title={c.title}>{c.title}</span>
                           <span className="block w-3/4">
                             <SlaBar c={c} height={8} scale={c.tickets.open / most} />
@@ -1145,7 +1086,7 @@ export default function CategoryOverview() {
                     </thead>
                     <tbody className="divide-y divide-border">
                       {shown.map((c) => (
-                        <tr key={c.id} onClick={() => !c.other && setOpenId(c.id)} className="cursor-pointer transition-colors hover:bg-blue-50/40">
+                        <tr key={c.id} onClick={() => setOpenId(c.id)} className="cursor-pointer transition-colors hover:bg-blue-50/40">
                           <td className="max-w-[18rem] px-4 py-3">
                             <p className="font-medium leading-snug text-foreground">{c.title}</p>
                             <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-700">
@@ -1182,7 +1123,7 @@ export default function CategoryOverview() {
                 <ul className="divide-y divide-border md:hidden">
                   {shown.map((c) => (
                     <li key={c.id}>
-                      <button type="button" onClick={() => !c.other && setOpenId(c.id)} className="w-full px-4 py-4 text-left">
+                      <button type="button" onClick={() => setOpenId(c.id)} className="w-full px-4 py-4 text-left">
                         <div className="flex items-start justify-between gap-3">
                           <p className="min-w-0 font-medium leading-snug text-foreground">{c.title}</p>
                           <span className="shrink-0 rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-700">SLA {c.sla_hours}h</span>

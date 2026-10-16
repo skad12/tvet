@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import ChatModal from "@/components/admin/tickets/ChatModal";
 import TrackTicket from "@/components/tickets/TrackTicket";
-import { FiAlertTriangle, FiCalendar, FiCheckCircle, FiChevronDown, FiClock, FiFilter, FiList, FiTag, FiUsers, FiX } from "react-icons/fi";
-import DateRangePanel, { EMPTY_RANGE, describeRange, todayRange } from "@/components/tickets/DateRangePanel";
+import { FiAlertTriangle, FiCalendar, FiCheckCircle, FiChevronDown, FiClock, FiFilter, FiList, FiTag, FiX } from "react-icons/fi";
+import DateRangePanel, { EMPTY_RANGE, describeRange } from "@/components/tickets/DateRangePanel";
 import UserModal from "@/components/admin/tickets/UserModal";
 import api from "@/lib/axios";
 import TicketsList from "@/components/admin/tickets/TicketsList";
@@ -24,31 +24,16 @@ export default function TicketPage() {
 
   // Status filter state
   const [statusFilter, setStatusFilter] = useState("all"); // 'all', 'pending', 'escalated', 'resolved'
-  const [sourceFilter, setSourceFilter] = useState("all"); // 'all', 'trainee', 'centre', 'other'
 
   // Advanced: a date range over when tickets were created or last active
   const [dateRange, setDateRange] = useState(EMPTY_RANGE);
   const [showDates, setShowDates] = useState(false);
   const dateActive = Boolean(dateRange.from || dateRange.to);
-  // The list waits for the starting filters, so it loads once, not twice.
-  const [ready, setReady] = useState(false);
 
-  // Opens on today's tickets (any activity), worked out in the browser so it
-  // is the user's today. The home page's summary cards link here with
-  // ?status=pending|resolved; their counts are all-time, so those links open
-  // with no date limit.
+  // The home page's summary cards link here with ?status=pending|resolved.
   useEffect(() => {
-    const query = new URLSearchParams(window.location.search);
-    const wanted = query.get("status");
-    const linkedFrom = query.get("from"), linkedTo = query.get("to");
+    const wanted = new URLSearchParams(window.location.search).get("status");
     if (wanted && ["all", "pending", "escalated", "resolved"].includes(wanted)) setStatusFilter(wanted);
-    if (linkedFrom || linkedTo) {
-      // A card on the Analytics page passes its period, so the list matches its number.
-      setDateRange({ from: linkedFrom || "", to: linkedTo || "", field: "activity" });
-    } else if (!wanted) {
-      setDateRange(todayRange());
-    }
-    setReady(true);
   }, []);
 
   // ticket selection / modal states
@@ -154,7 +139,7 @@ export default function TicketPage() {
               <div role="radiogroup" aria-label="Category" className="flex min-w-0 flex-1 gap-1.5 overflow-x-auto pb-2.5 pt-0.5 [scrollbar-width:thin]">
                 {catLoading
                   ? [0, 1, 2, 3].map((i) => <span key={i} className="h-8 w-32 shrink-0 animate-pulse rounded-full bg-slate-100" />)
-                  : [{ id: null, title: "All categories" }, ...categories, { id: "other", title: "Other category" }].map((c) => {
+                  : [{ id: null, title: "All categories" }, ...categories].map((c) => {
                       const on = activeCategory === c.id;
                       return (
                         <button
@@ -174,7 +159,7 @@ export default function TicketPage() {
               </div>
             </div>
 
-            <div className="mt-2 flex flex-col gap-3 border-t border-slate-100 pt-3 md:flex-row md:flex-wrap md:items-center md:justify-between">
+            <div className="mt-2 flex flex-col gap-3 border-t border-slate-100 pt-3 md:flex-row md:items-center md:justify-between">
               <div className="flex min-w-0 items-center gap-2">
                 <span className="inline-flex shrink-0 items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
                   <FiFilter className="h-3.5 w-3.5" aria-hidden /> Status
@@ -200,37 +185,6 @@ export default function TicketPage() {
                       >
                         <span className="h-3.5 w-3.5" aria-hidden>{status.icon}</span>
                         {status.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Who opened the ticket: a trainee or a training centre. */}
-              <div className="flex min-w-0 items-center gap-2">
-                <span className="inline-flex shrink-0 items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  <FiUsers className="h-3.5 w-3.5" aria-hidden /> From
-                </span>
-                <div role="radiogroup" aria-label="From" className="flex min-w-0 flex-1 overflow-x-auto rounded-xl bg-slate-100 p-1 md:flex-none">
-                  {[
-                    { id: "all", label: "All" },
-                    { id: "trainee", label: "Trainees" },
-                    { id: "centre", label: "Centres" },
-                    { id: "other", label: "Other" },
-                  ].map((s) => {
-                    const on = sourceFilter === s.id;
-                    return (
-                      <button
-                        key={s.id}
-                        type="button"
-                        role="radio"
-                        aria-checked={on}
-                        onClick={() => setSourceFilter(s.id)}
-                        className={`flex-1 whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-semibold transition sm:text-sm md:flex-none ${
-                          on ? "bg-white text-blue-700 shadow-sm" : "text-slate-600 hover:text-slate-900"
-                        }`}
-                      >
-                        {s.label}
                       </button>
                     );
                   })}
@@ -304,23 +258,20 @@ export default function TicketPage() {
           transition={{ duration: 0.3 }}
           className="mt-6"
         >
-          {ready && <TicketsList
+          <TicketsList
             categoryId={activeCategory}
             categoryName={
-              activeCategory === "other"
-                ? "Other category"
-                : activeCategory
+              activeCategory
                 ? categories.find((c) => c.id === activeCategory)?.title ??
                   categories.find((c) => c.id === activeCategory)?.name
                 : null
             }
             statusFilter={statusFilter}
-            sourceFilter={sourceFilter}
             dateRange={dateActive ? dateRange : null}
             onSelectTicket={openChat}
             selectedTicketId={selectedTicket?.id}
             pageSize={20}
-          />}
+          />
         </motion.div>
       </div>
     </div>

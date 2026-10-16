@@ -50,7 +50,6 @@ type Change = Partial<Record<"total" | "resolved" | "escalated" | "avg_resolutio
 type Report = {
   summary: { current: Metrics; previous: Metrics | null; change: Change | null; period?: { from: string; to: string } };
   by_category: { id: string | null; title: string; total: number; open: number; resolved: number; escalated: number; overdue: number; sla_compliance: number | null; resolution_rate: number | null; avg_resolution_seconds: number | null }[];
-  by_source: { id: string; title: string; total: number; open: number; resolved: number; escalated: number; resolution_rate: number | null; avg_resolution_seconds: number | null }[];
   by_staff: { id: string; name: string; role: string; assigned: number; open: number; resolved: number; resolution_rate: number | null; avg_resolution_seconds: number | null; avg_first_response_seconds: number | null }[];
   trend: { bucket: "day" | "week"; points: { date: string; opened: number; resolved: number; escalated: number }[] };
   busiest: { by_weekday: { day: string; count: number }[]; by_hour: { hour: number; count: number }[]; peak_day: string | null; peak_hour: number | null };
@@ -70,7 +69,6 @@ function periods() {
   const lastWeek = subWeeks(today, 1);
   const lastMonth = subMonths(today, 1);
   return [
-    { id: "today", label: "Today", from: iso(today), to: iso(today) },
     { id: "7", label: "Last 7 days", from: iso(subDays(today, 6)), to: iso(today) },
     { id: "week", label: "This week", from: iso(startOfWeek(today, { weekStartsOn: 1 })), to: iso(today) },
     { id: "lastweek", label: "Last week", from: iso(startOfWeek(lastWeek, { weekStartsOn: 1 })), to: iso(endOfWeek(lastWeek, { weekStartsOn: 1 })) },
@@ -216,14 +214,7 @@ function Narrative({ report, from, to }: { report: Report; from: string; to: str
   const ch = report.summary.change;
   const topCat = report.by_category.find((c) => c.total > 0);
   const topQ = report.top_questions[0];
-  const span =
-    from && to
-      ? from === to
-        ? `On ${nice(from)}`
-        : `Between ${nice(from)} and ${nice(to)}`
-      : from
-      ? `Since ${nice(from)}`
-      : "Over all time";
+  const span = from && to ? `Between ${nice(from)} and ${nice(to)}` : from ? `Since ${nice(from)}` : "Over all time";
   const trendWord = (v: number | null | undefined) =>
     v === null || v === undefined ? "" : v === 0 ? ", the same as the previous period" : `, ${v > 0 ? "up" : "down"} ${Math.abs(v)}% on the previous period`;
 
@@ -294,15 +285,13 @@ const STATES = [
 /** Admin Reports: a filterable summary of the help desk's tickets, with CSV exports. */
 export default function ReportsPage() {
   const presetList = useMemo(() => periods(), []);
-  const [period, setPeriod] = useState("today");
-  // Opens on today.
+  const [period, setPeriod] = useState("7");
   const [from, setFrom] = useState(presetList[0].from);
   const [to, setTo] = useState(presetList[0].to);
   const [dateField, setDateField] = useState<"created" | "activity">("created");
   const [category, setCategory] = useState("");
   const [state, setState] = useState("");
   const [staff, setStaff] = useState("");
-  const [source, setSource] = useState("");
 
   const [categories, setCategories] = useState<Option[]>([]);
   const [people, setPeople] = useState<StaffOption[]>([]);
@@ -320,9 +309,8 @@ export default function ReportsPage() {
     if (category) p.category = category;
     if (state) p.state = state;
     if (staff) p.staff = staff;
-    if (source) p.source = source;
     return p;
-  }, [from, to, dateField, category, state, staff, source]);
+  }, [from, to, dateField, category, state, staff]);
 
   useEffect(() => {
     api.get("/get-all-category/").then((r) => setCategories(Array.isArray(r?.data) ? r.data : [])).catch(() => {});
@@ -450,7 +438,7 @@ export default function ReportsPage() {
             </button>
           ))}
         </div>
-        <div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
+        <div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-6">
           <label className="block">
             <span className="mb-1 block text-xs font-medium text-muted">From</span>
             <input type="date" value={from} max={to || undefined} onChange={(e) => { setFrom(e.target.value); setPeriod("custom"); }} className={`${control} w-full`} />
@@ -463,7 +451,7 @@ export default function ReportsPage() {
             <span className="mb-1 block text-xs font-medium text-muted">Dates apply to</span>
             <select value={dateField} onChange={(e) => setDateField(e.target.value as "created" | "activity")} className={`${control} w-full`}>
               <option value="created">Date created</option>
-              <option value="activity">Any activity</option>
+              <option value="activity">Last activity</option>
             </select>
           </label>
           <label className="block">
@@ -475,16 +463,6 @@ export default function ReportsPage() {
                   {c.title}
                 </option>
               ))}
-              <option value="other">Other category</option>
-            </select>
-          </label>
-          <label className="block">
-            <span className="mb-1 block text-xs font-medium text-muted">From</span>
-            <select value={source} onChange={(e) => setSource(e.target.value)} className={`${control} w-full`}>
-              <option value="">Trainees and centres</option>
-              <option value="trainee">Trainees</option>
-              <option value="centre">Training centres</option>
-              <option value="other">Other / not stated</option>
             </select>
           </label>
           <label className="block">
@@ -527,7 +505,7 @@ export default function ReportsPage() {
       ) : (
         <div className={`space-y-6 transition-opacity ${loading ? "opacity-60" : ""}`}>
           {/* Written summary */}
-          <Section icon={<FiFileText />} title={period === "today" ? "Today's summary" : period === "7" || period === "week" || period === "lastweek" ? "Weekly summary" : "Summary"} hint={prevLabel ?? undefined} action={<ExportButton kind="summary" onExport={exportCsv} busy={exporting} />}>
+          <Section icon={<FiFileText />} title={period === "7" || period === "week" || period === "lastweek" ? "Weekly summary" : "Summary"} hint={prevLabel ?? undefined} action={<ExportButton kind="summary" onExport={exportCsv} busy={exporting} />}>
             <Narrative report={report} from={from} to={to} />
           </Section>
 
@@ -568,37 +546,6 @@ export default function ReportsPage() {
                       <p className="mt-1 text-[11px] text-muted">
                         Resolution {pct(c.resolution_rate)} · SLA met {pct(c.sla_compliance)} · avg {duration(c.avg_resolution_seconds)}
                       </p>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </Section>
-
-            {/* Who is asking */}
-            <Section icon={<FiUsers />} title="Who is asking" hint="Trainees and training centres, from the widget's first step">
-              {report.by_source.length === 0 ? (
-                <p className="text-sm text-muted">No tickets in this period.</p>
-              ) : (
-                <ul className="space-y-3">
-                  {report.by_source.map((s) => (
-                    <li key={s.id}>
-                      <button
-                        type="button"
-                        onClick={() => setSource(source === s.id ? "" : s.id)}
-                        className="block w-full text-left"
-                        title={source === s.id ? "Show everyone" : `Only ${s.title.toLowerCase()}`}
-                      >
-                        <div className="mb-1 flex items-baseline justify-between gap-3 text-sm">
-                          <span className={`min-w-0 truncate ${source === s.id ? "font-semibold text-blue-700" : "text-foreground"}`}>{s.title}</span>
-                          <span className="shrink-0 tabular-nums text-muted">
-                            <strong className="text-foreground">{s.total}</strong> · {s.resolved} resolved · {s.escalated} escalated
-                          </span>
-                        </div>
-                        <HBar value={s.total} max={Math.max(1, ...report.by_source.map((x) => x.total))} tone={s.id === "centre" ? "bg-violet-500" : s.id === "trainee" ? "bg-sky-500" : "bg-slate-400"} />
-                        <p className="mt-1 text-[11px] text-muted">
-                          Resolution {pct(s.resolution_rate)} · avg {duration(s.avg_resolution_seconds)}
-                        </p>
-                      </button>
                     </li>
                   ))}
                 </ul>
