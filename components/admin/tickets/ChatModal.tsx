@@ -653,7 +653,7 @@ export default function ChatModal({
       ["Phone", str(raw.phone)],
       ["Application / Reg. ID", str(raw.app_id)],
       ["Registered as", str(raw.role)],
-      ["Category", category ?? subject],
+      ["Category", category ?? subject ?? "Other category"],
     ] as const;
   }, [ticket]);
 

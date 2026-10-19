@@ -5,9 +5,29 @@ import { format, parseISO, startOfMonth, startOfWeek, subDays, subMonths, endOfM
 export type DateField = "created" | "activity";
 export type DateRange = { from: string; to: string; field: DateField };
 
-export const EMPTY_RANGE: DateRange = { from: "", to: "", field: "created" };
+// Default: any activity, so a ticket opened long ago but worked on in the
+// range is found too.
+export const EMPTY_RANGE: DateRange = { from: "", to: "", field: "activity" };
 
 const iso = (d: Date) => format(d, "yyyy-MM-dd");
+
+/**
+ * A typed or picked date, never later than today (and, for a start date,
+ * never later than the end date). The inputs' max only limits the calendar;
+ * a date typed by hand still passes through here.
+ */
+export function noFutureDate(value: string, latest?: string) {
+  if (!value) return value;
+  const today = iso(new Date());
+  const cap = latest && latest < today ? latest : today;
+  return value > cap ? cap : value;
+}
+
+/** Today, by any activity: what the Tickets page opens on. */
+export function todayRange(): DateRange {
+  const today = iso(new Date());
+  return { from: today, to: today, field: "activity" };
+}
 
 function presets(): { id: string; label: string; from: string; to: string }[] {
   const today = new Date();
@@ -27,7 +47,7 @@ const short = (v: string) => format(parseISO(v), "d MMM yyyy");
 
 /** "Created 1 Oct 2026 – 7 Oct 2026", for the chip that shows an active range. */
 export function describeRange(r: DateRange) {
-  const what = r.field === "activity" ? "Active" : "Created";
+  const what = r.field === "activity" ? "Activity" : "Created";
   if (r.from && r.to) return r.from === r.to ? `${what} ${short(r.from)}` : `${what} ${short(r.from)} – ${short(r.to)}`;
   if (r.from) return `${what} from ${short(r.from)}`;
   if (r.to) return `${what} up to ${short(r.to)}`;
@@ -50,11 +70,16 @@ export default function DateRangePanel({ value, onChange }: { value: DateRange; 
     <div className="mt-3 space-y-3 rounded-2xl border border-slate-200 bg-slate-50/70 p-3 sm:p-4">
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Filter on</span>
+        <span className="order-last basis-full text-xs text-slate-500">
+          {value.field === "activity"
+            ? "Tickets opened, replied to, assigned, escalated or resolved in these dates, however old they are."
+            : "Only tickets opened in these dates."}
+        </span>
         <div role="radiogroup" aria-label="Date to filter on" className="flex rounded-xl bg-white p-1 ring-1 ring-slate-200">
           {(
             [
+              ["activity", "Any activity"],
               ["created", "Date created"],
-              ["activity", "Last activity"],
             ] as const
           ).map(([id, label]) => (
             <button
@@ -96,7 +121,7 @@ export default function DateRangePanel({ value, onChange }: { value: DateRange; 
             type="date"
             value={value.from}
             max={value.to || today}
-            onChange={(e) => onChange({ ...value, from: e.target.value })}
+            onChange={(e) => onChange({ ...value, from: noFutureDate(e.target.value, value.to || undefined) })}
             className={input}
           />
         </label>
@@ -107,7 +132,7 @@ export default function DateRangePanel({ value, onChange }: { value: DateRange; 
             value={value.to}
             min={value.from || undefined}
             max={today}
-            onChange={(e) => onChange({ ...value, to: e.target.value })}
+            onChange={(e) => onChange({ ...value, to: noFutureDate(e.target.value) })}
             className={input}
           />
         </label>

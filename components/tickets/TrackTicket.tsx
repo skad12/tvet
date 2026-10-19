@@ -107,7 +107,7 @@ function Result({ t, onClose, onViewConversation }: { t: any; onClose: () => voi
                 <FiBriefcase className="h-4 w-4 text-slate-500" aria-hidden /> Handling
               </h3>
               <dl className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
-                <Field label="Category" value={t.escalated_category || t.category} />
+                <Field label="Category" value={t.escalated_category || t.category || "Other category"} />
                 <Field label="Assigned agent" value={t.assigned_to_name || t.assigned_to} />
                 <Field label="Last activity" value={when(t.last_message_at)} />
                 <Field
