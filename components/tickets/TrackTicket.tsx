@@ -180,26 +180,30 @@ export default function TrackTicket({ role, compact = false }: { role: Role; com
 
   const overlays = (
     <>
-      {/* On <body>, so the result is never drawn under a dashboard's top bar. */}
+      {/* Both popups go on <body>: inside the top bar (blurred, sticky) a
+          fixed popup is drawn within the bar instead of over the page. */}
       {typeof document !== "undefined" &&
         createPortal(
-          <AnimatePresence>
-            {ticket && !chatOpen && (
-              <Result t={ticket} onClose={() => setTicket(null)} onViewConversation={() => setChatOpen(true)} />
-            )}
-          </AnimatePresence>,
+          <>
+            <AnimatePresence>
+              {ticket && !chatOpen && (
+                <Result t={ticket} onClose={() => setTicket(null)} onViewConversation={() => setChatOpen(true)} />
+              )}
+            </AnimatePresence>
+            <AnimatePresence>
+              {chatTicket && chatOpen && (
+                <ChatModal key={chatTicket.id} ticket={chatTicket} open onClose={() => setChatOpen(false)} {...CHAT_FLAGS[role]} />
+              )}
+            </AnimatePresence>
+          </>,
           document.body
         )}
-      <AnimatePresence>
-        {chatTicket && chatOpen && (
-          <ChatModal key={chatTicket.id} ticket={chatTicket} open onClose={() => setChatOpen(false)} {...CHAT_FLAGS[role]} />
-        )}
-      </AnimatePresence>
     </>
   );
 
   if (compact) {
     return (
+      <>
       <form onSubmit={track} role="search" aria-label="Track a ticket" className="relative">
         <FiCrosshair className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-blue-600" aria-hidden />
         <input
@@ -223,8 +227,10 @@ export default function TrackTicket({ role, compact = false }: { role: Role; com
             {error}
           </p>
         )}
-        {overlays}
       </form>
+      {/* Outside the form: events from the popups must not submit the search. */}
+      {overlays}
+      </>
     );
   }
 

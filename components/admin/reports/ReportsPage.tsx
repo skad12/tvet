@@ -212,7 +212,7 @@ function HBar({ value, max, tone = "bg-blue-500" }: { value: number; max: number
 }
 
 /** The plain-language summary at the top: the numbers that matter, in a sentence or five. */
-function Narrative({ report, from, to }: { report: Report; from: string; to: string }) {
+function Narrative({ report, from, to, activity }: { report: Report; from: string; to: string; activity: boolean }) {
   const m = report.summary.current;
   const ch = report.summary.change;
   const topCat = report.by_category.find((c) => c.total > 0);
@@ -232,7 +232,15 @@ function Narrative({ report, from, to }: { report: Report; from: string; to: str
   return (
     <div className="space-y-1.5 text-sm leading-relaxed text-foreground">
       <p>
-        {span}, trainees opened <strong>{m.total}</strong> ticket{m.total === 1 ? "" : "s"}
+        {activity ? (
+          <>
+            {span}, <strong>{m.total}</strong> ticket{m.total === 1 ? " was" : "s were"} worked on (opened, answered, assigned, escalated or resolved)
+          </>
+        ) : (
+          <>
+            {span}, trainees opened <strong>{m.total}</strong> ticket{m.total === 1 ? "" : "s"}
+          </>
+        )}
         {trendWord(ch?.total)}. <strong>{m.resolved}</strong> {m.resolved === 1 ? "was" : "were"} resolved ({pct(m.resolution_rate)}), <strong>{m.open}</strong>{" "}
         {m.open === 1 ? "is" : "are"} still open and <strong>{m.escalated}</strong> {m.escalated === 1 ? "was" : "were"} escalated to a super agent.
       </p>
@@ -300,7 +308,10 @@ export default function ReportsPage() {
   // Opens on today.
   const [from, setFrom] = useState(presetList[0].from);
   const [to, setTo] = useState(presetList[0].to);
-  const [dateField, setDateField] = useState<"created" | "activity">("created");
+  // Same default as the Tickets and Analytics pages, so the same period gives
+  // the same count everywhere: any activity (opened, answered, assigned,
+  // escalated or resolved) in the dates. "Date created" is the other choice.
+  const [dateField, setDateField] = useState<"created" | "activity">("activity");
   const [category, setCategory] = useState("");
   const [state, setState] = useState("");
   const [staff, setStaff] = useState("");
@@ -318,7 +329,7 @@ export default function ReportsPage() {
     const p: Record<string, string> = {};
     if (from) p.from = from;
     if (to) p.to = to;
-    if (dateField === "activity") p.date_field = "activity";
+    p.date_field = dateField;
     if (category) p.category = category;
     if (state) p.state = state;
     if (staff) p.staff = staff;
@@ -469,8 +480,8 @@ export default function ReportsPage() {
           <label className="block">
             <span className="mb-1 block text-xs font-medium text-muted">Dates apply to</span>
             <select value={dateField} onChange={(e) => setDateField(e.target.value as "created" | "activity")} className={`${control} w-full`}>
-              <option value="created">Date created</option>
               <option value="activity">Any activity</option>
+              <option value="created">Date created</option>
             </select>
           </label>
           <label className="block">
@@ -535,7 +546,7 @@ export default function ReportsPage() {
         <div className={`space-y-6 transition-opacity ${loading ? "opacity-60" : ""}`}>
           {/* Written summary */}
           <Section icon={<FiFileText />} title={period === "today" ? "Today's summary" : period === "7" || period === "week" || period === "lastweek" ? "Weekly summary" : "Summary"} hint={prevLabel ?? undefined} action={<ExportButton kind="summary" onExport={exportCsv} busy={exporting} />}>
-            <Narrative report={report} from={from} to={to} />
+            <Narrative report={report} from={from} to={to} activity={dateField === "activity" && Boolean(from || to)} />
           </Section>
 
           {/* Headline figures */}

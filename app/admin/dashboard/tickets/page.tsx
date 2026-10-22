@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import ChatModal from "@/components/admin/tickets/ChatModal";
 import TrackTicket from "@/components/tickets/TrackTicket";
-import { FiAlertTriangle, FiCalendar, FiCheckCircle, FiChevronDown, FiClock, FiFilter, FiList, FiTag, FiUsers, FiX } from "react-icons/fi";
+import { FiAlertTriangle, FiCalendar, FiCheckCircle, FiChevronDown, FiClock, FiFilter, FiInbox, FiList, FiTag, FiUsers, FiX } from "react-icons/fi";
+import { landing } from "@/components/ui/landingStyles";
 import DateRangePanel, { EMPTY_RANGE, describeRange, todayRange } from "@/components/tickets/DateRangePanel";
 import UserModal from "@/components/admin/tickets/UserModal";
 import api from "@/lib/axios";
@@ -116,24 +117,16 @@ export default function TicketPage() {
   }
 
   return (
-    <div className="min-h-screen py-2">
-      <div className="mx-auto max-w-7xl px-1 sm:px-2">
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-          className="mb-6 rounded-4xl border border-white/70 bg-white/90 p-5 shadow-xl shadow-slate-950/5"
-        >
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-blue-700">
-            Ticket operations
-          </p>
-          <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-950 lg:text-3xl">
-            Tickets
+    // Same frame and header as the other admin pages (Reports, Agents, FAQs).
+    <div className={`min-h-screen ${landing.card} p-4 sm:p-6`}>
+      <div>
+        <div className="mb-6">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-600">Ticket operations</p>
+          <h1 className="mt-1 inline-flex items-center gap-2 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+            <FiInbox className="h-7 w-7 text-blue-600" aria-hidden /> Tickets
           </h1>
-          <p className="mt-1 text-xs text-slate-500 sm:text-sm">
-            Filter by category, status and dates, and open conversations
-          </p>
-        </motion.div>
+          <p className="mt-1 text-sm text-muted">Filter by category, status, who is asking and dates, and open conversations.</p>
+        </div>
 
         {/* Wider screens have the tracker in the top bar. */}
         <div className="mb-4 sm:hidden">
@@ -141,7 +134,7 @@ export default function TicketPage() {
         </div>
 
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-          <div className="mb-4 rounded-3xl border border-white/70 bg-white/90 p-4 shadow-lg shadow-slate-950/5">
+          <div className="mb-4 rounded-2xl border border-border bg-card p-4 shadow-sm">
             {catError && (
               <div className="text-red-600 text-sm mb-2">{catError}</div>
             )}
