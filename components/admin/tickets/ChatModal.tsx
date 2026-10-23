@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { FiFileText, FiX, FiSend, FiUserPlus } from "react-icons/fi";
 import { useAuth } from "@/context/AuthContext";
@@ -657,7 +658,10 @@ export default function ChatModal({
     ] as const;
   }, [ticket]);
 
-  return (
+  // Drawn on <body>: inside a page card (blurred) or a moving container, a
+  // fixed popup would be pinned to that container and scroll away with it.
+  if (typeof document === "undefined") return null;
+  return createPortal(
     <AnimatePresence>
       {open && (
         <motion.div
@@ -1247,5 +1251,7 @@ export default function ChatModal({
         </motion.div>
       )}
     </AnimatePresence>
+    ,
+    document.body
   );
 }

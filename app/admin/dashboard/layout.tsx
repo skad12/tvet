@@ -10,7 +10,10 @@ export default function AdminLayout({ children }) {
 
   return (
     <ProtectedRoute allowed={["admin"]}>
-      <div className="flex min-h-screen flex-col app-shell md:flex-row">
+      {/* The frame is exactly the screen's height and never moves: the
+          sidebar and top bar stay put and only the content area scrolls.
+          dvh follows mobile browser bars as they show and hide. */}
+      <div className="flex h-dvh flex-col overflow-hidden app-shell md:flex-row">
         {/* Mobile sidebar overlay */}
         {sidebarOpen && (
           <div
@@ -22,7 +25,7 @@ export default function AdminLayout({ children }) {
         {/* Sidebar */}
         <aside
           className={`
-            fixed md:sticky top-0 left-0 h-screen z-50
+            fixed md:static top-0 left-0 h-dvh z-50 md:shrink-0
             transform transition-transform duration-300 ease-in-out
             ${
               sidebarOpen
@@ -35,12 +38,12 @@ export default function AdminLayout({ children }) {
         </aside>
 
         {/* Main content area */}
-        <div className="flex-1 flex flex-col min-w-0">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           {/* Topbar with mobile menu button */}
           <Topbar onSidebarOpen={() => setSidebarOpen(!sidebarOpen)} />
 
           {/* Scrollable content */}
-          <main className="flex-1 overflow-y-auto">
+          <main className="app-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain">
             <div className="p-4 md:p-6">{children}</div>
           </main>
         </div>

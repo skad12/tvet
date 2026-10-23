@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { FiX } from "react-icons/fi";
 import { format, isValid } from "date-fns";
@@ -62,9 +63,12 @@ export default function UserModal({ user = null, open, onClose }) {
   const statusNorm = normalizeStatusValue(statusLabel);
   const escalated = info?.escalated === true;
 
-  return (
+  // Drawn on <body>: inside a page card (blurred) or a moving container, a
+  // fixed popup would be pinned to that container and scroll away with it.
+  if (typeof document === "undefined") return null;
+  return createPortal(
     <AnimatePresence>
-      <motion.div className="fixed inset-0 z-60 flex items-center justify-center">
+      <motion.div className="fixed inset-0 z-60 flex items-center justify-center p-3" role="dialog" aria-modal="true" aria-label="Trainee details">
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 0.5 }}
@@ -159,5 +163,7 @@ export default function UserModal({ user = null, open, onClose }) {
         </motion.div>
       </motion.div>
     </AnimatePresence>
+    ,
+    document.body
   );
 }

@@ -527,3 +527,24 @@ body {
 .dark .ring-white {
   --tw-ring-color: var(--card);
 }
+
+
+/* ---------------------------------------------------------------------------
+   Screens stay put; only content scrolls (admin frame, popups).
+   - No rubber-band bounce or scroll chaining moving the whole page.
+   - While a popup is open (any element marked aria-modal), the page behind it
+     is locked; the popup scrolls inside itself.
+--------------------------------------------------------------------------- */
+html,
+body {
+  overscroll-behavior: none;
+}
+
+body:has([aria-modal="true"]),
+body:has([aria-modal="true"]) .app-scroll {
+  overflow: hidden !important;
+}
+
+[aria-modal="true"] {
+  overscroll-behavior: contain;
+}
