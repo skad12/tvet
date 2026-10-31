@@ -32,6 +32,7 @@ import TrackTicket from "@/components/tickets/TrackTicket";
 import ChatModal from "@/components/admin/tickets/ChatModal";
 import { useAuth } from "@/context/AuthContext";
 import TicketRef from "@/components/tickets/TicketRef";
+import ReportCharts, { type ChartReport } from "@/components/admin/charts/ReportCharts";
 
 // ---------------------------------------------------------------------------
 // Data (GET /categories/overview/)
@@ -810,7 +811,10 @@ export default function CategoryOverview() {
   const { user } = useAuth?.() ?? {};
   // Worked out in the browser after load, so "this week" is the user's week.
   const [periods, setPeriods] = useState<ReturnType<typeof periodOptions> | null>(null);
-  const [periodId, setPeriodId] = useState("week");
+  // Opens on all time, as the Reports page does.
+  const [periodId, setPeriodId] = useState("all");
+  // The same period's report, for the charts.
+  const [charts, setCharts] = useState<ChartReport | null>(null);
   useEffect(() => setPeriods(periodOptions()), []);
   const period = periods?.find((p) => p.id === periodId) ?? null;
   const periodQuery = period && period.from ? `&from=${period.from}&to=${period.to}` : "";
@@ -835,6 +839,18 @@ export default function CategoryOverview() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    if (!period) return;
+    let live = true;
+    api
+      .get("/reports/", { params: period.from ? { from: period.from, to: period.to, date_field: "activity" } : {} })
+      .then((res) => live && setCharts(res.data))
+      .catch(() => live && setCharts(null));
+    return () => {
+      live = false;
+    };
+  }, [period]);
 
   // Agents and super agents who can be added to a category.
   useEffect(() => {
@@ -1091,6 +1107,22 @@ export default function CategoryOverview() {
                     );
                   })}
               </ul>
+            )}
+          </section>
+
+          {/* Charts */}
+          <section aria-label="Charts" className={`space-y-3 transition-opacity ${loading ? "opacity-60" : ""}`}>
+            <h2 className="inline-flex items-center gap-1.5 text-sm font-semibold text-foreground">
+              <FiActivity className="h-4 w-4 text-blue-600" aria-hidden /> Charts
+            </h2>
+            {charts ? (
+              <ReportCharts report={charts} />
+            ) : (
+              <div className="grid gap-4 lg:grid-cols-2">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="h-56 animate-pulse rounded-2xl bg-surface-muted" />
+                ))}
+              </div>
             )}
           </section>
 

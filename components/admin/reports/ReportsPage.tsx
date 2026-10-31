@@ -52,8 +52,11 @@ type Report = {
   summary: { current: Metrics; previous: Metrics | null; change: Change | null; period?: { from: string; to: string } };
   by_category: { id: string | null; title: string; total: number; open: number; resolved: number; escalated: number; overdue: number; sla_compliance: number | null; resolution_rate: number | null; avg_resolution_seconds: number | null }[];
   by_source: { id: string; title: string; total: number; open: number; resolved: number; escalated: number; resolution_rate: number | null; avg_resolution_seconds: number | null }[];
-  by_staff: { id: string; name: string; role: string; assigned: number; open: number; resolved: number; resolution_rate: number | null; avg_resolution_seconds: number | null; avg_first_response_seconds: number | null }[];
-  trend: { bucket: "day" | "week"; points: { date: string; opened: number; resolved: number; escalated: number }[] };
+  by_staff: {
+    id: string; name: string; role: string; assigned: number; assigned_in_period: number; open: number; resolved: number;
+    resolution_rate: number | null; replied: number; avg_resolution_seconds: number | null;
+    avg_first_response_seconds: number | null; median_first_response_seconds: number | null;
+  }[];
   busiest: { by_weekday: { day: string; count: number }[]; by_hour: { hour: number; count: number }[]; peak_day: string | null; peak_hour: number | null };
   top_questions: { question: string; count: number; tickets: number; top_category: string | null }[];
 };
@@ -158,51 +161,6 @@ function ExportButton({ kind, label = "CSV", onExport, busy }: { kind: string; l
   );
 }
 
-const SERIES = [
-  { key: "opened", label: "Opened", color: "bg-blue-500" },
-  { key: "resolved", label: "Resolved", color: "bg-emerald-500" },
-  { key: "escalated", label: "Escalated", color: "bg-amber-400" },
-] as const;
-
-function TrendChart({ trend }: { trend: Report["trend"] }) {
-  const points = trend.points;
-  const max = Math.max(1, ...points.flatMap((p) => [p.opened, p.resolved, p.escalated]));
-  const every = Math.max(1, Math.ceil(points.length / 10));
-  if (!points.length) return <p className="text-sm text-muted">No tickets in this period.</p>;
-  return (
-    <div>
-      <div className="mb-3 flex flex-wrap gap-3 text-xs text-muted">
-        {SERIES.map((s) => (
-          <span key={s.key} className="inline-flex items-center gap-1.5">
-            <i className={`h-2.5 w-2.5 rounded-sm ${s.color}`} /> {s.label}
-          </span>
-        ))}
-        <span className="ml-auto">Per {trend.bucket}</span>
-      </div>
-      <div className="flex h-48 items-end gap-1 border-b border-border sm:gap-1.5" role="img" aria-label="Tickets opened, resolved and escalated over time">
-        {points.map((p) => (
-          <div
-            key={p.date}
-            className="group relative flex h-full min-w-0 flex-1 items-end justify-center gap-px rounded-t hover:bg-surface-muted/60"
-            title={`${trend.bucket === "week" ? "Week of " : ""}${nice(p.date)}: ${p.opened} opened, ${p.resolved} resolved, ${p.escalated} escalated`}
-          >
-            {SERIES.map((s) => (
-              <span key={s.key} className={`w-full max-w-[10px] rounded-t-sm ${s.color}`} style={{ height: `${(p[s.key] / max) * 100}%`, minHeight: p[s.key] ? 2 : 0 }} />
-            ))}
-          </div>
-        ))}
-      </div>
-      <div className="mt-1.5 flex gap-1 sm:gap-1.5">
-        {points.map((p, i) => (
-          <span key={p.date} className="min-w-0 flex-1 truncate text-center text-[10px] text-muted">
-            {i % every === 0 ? format(parseISO(p.date), "d MMM") : ""}
-          </span>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 function HBar({ value, max, tone = "bg-blue-500" }: { value: number; max: number; tone?: string }) {
   return (
     <span className="block h-2 w-full overflow-hidden rounded-full bg-surface-muted">
@@ -212,8 +170,11 @@ function HBar({ value, max, tone = "bg-blue-500" }: { value: number; max: number
 }
 
 /** The plain-language summary at the top: the numbers that matter, in a sentence or five. */
-function Narrative({ report, from, to, activity }: { report: Report; from: string; to: string; activity: boolean }) {
+function Narrative({ report, from, to, activity, past }: { report: Report; from: string; to: string; activity: boolean; past: boolean }) {
   const m = report.summary.current;
+  // A period that ended before today is described as it stood at its end.
+  const isAre = (n: number) => (past ? (n === 1 ? "was" : "were") : n === 1 ? "is" : "are");
+  const atEnd = past ? " at the end of the period" : " now";
   const ch = report.summary.change;
   const topCat = report.by_category.find((c) => c.total > 0);
   const topQ = report.top_questions[0];
@@ -242,7 +203,7 @@ function Narrative({ report, from, to, activity }: { report: Report; from: strin
           </>
         )}
         {trendWord(ch?.total)}. <strong>{m.resolved}</strong> {m.resolved === 1 ? "was" : "were"} resolved ({pct(m.resolution_rate)}), <strong>{m.open}</strong>{" "}
-        {m.open === 1 ? "is" : "are"} still open and <strong>{m.escalated}</strong> {m.escalated === 1 ? "was" : "were"} escalated to a super agent.
+        {isAre(m.open)} still open{past ? atEnd : ""} and <strong>{m.escalated}</strong> {m.escalated === 1 ? "was" : "were"} escalated to a super agent.
       </p>
       <p>
         The AI handled <strong>{m.ai_only}</strong> on its own ({pct(m.ai_only_rate)}). Staff first replied after{" "}
@@ -256,7 +217,7 @@ function Narrative({ report, from, to, activity }: { report: Report; from: strin
         )}
         {m.sla.overdue > 0 ? (
           <>
-            , and <strong className="text-rose-600">{m.sla.overdue}</strong> open {m.sla.overdue === 1 ? "is" : "are"} overdue now.
+            , and <strong className="text-rose-600">{m.sla.overdue}</strong> open {isAre(m.sla.overdue)} overdue{atEnd}.
           </>
         ) : (
           "."
@@ -304,10 +265,10 @@ const STATES = [
 export default function ReportsPage() {
   const presetList = useMemo(() => periods(), []);
   const todayIso = presetList[0].to;   // "Today" preset: no date after it can be chosen
-  const [period, setPeriod] = useState("today");
-  // Opens on today.
-  const [from, setFrom] = useState(presetList[0].from);
-  const [to, setTo] = useState(presetList[0].to);
+  // Opens on all time, as the Analytics page does.
+  const [period, setPeriod] = useState("all");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
   // Same default as the Tickets and Analytics pages, so the same period gives
   // the same count everywhere: any activity (opened, answered, assigned,
   // escalated or resolved) in the dates. "Date created" is the other choice.
@@ -403,6 +364,8 @@ export default function ReportsPage() {
   }
 
   const m = report?.summary.current;
+  // Figures for a period that ended before today are as they stood at its end.
+  const pastPeriod = Boolean(to && to < todayIso);
   const ch = report?.summary.change ?? null;
   const prevLabel = report?.summary.period ? `vs ${nice(report.summary.period.from)} – ${nice(report.summary.period.to)}` : null;
   const catMax = Math.max(1, ...(report?.by_category ?? []).map((c) => c.total));
@@ -546,25 +509,20 @@ export default function ReportsPage() {
         <div className={`space-y-6 transition-opacity ${loading ? "opacity-60" : ""}`}>
           {/* Written summary */}
           <Section icon={<FiFileText />} title={period === "today" ? "Today's summary" : period === "7" || period === "week" || period === "lastweek" ? "Weekly summary" : "Summary"} hint={prevLabel ?? undefined} action={<ExportButton kind="summary" onExport={exportCsv} busy={exporting} />}>
-            <Narrative report={report} from={from} to={to} activity={dateField === "activity" && Boolean(from || to)} />
+            <Narrative report={report} from={from} to={to} activity={dateField === "activity" && Boolean(from || to)} past={pastPeriod} />
           </Section>
 
           {/* Headline figures */}
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             <Kpi icon={<FiInbox />} label="Tickets" value={m.total} sub={prevLabel ? "vs previous" : undefined} delta={<Delta value={ch?.total} />} />
             <Kpi icon={<FiCheckCircle />} label="Resolved" value={m.resolved} sub={`${pct(m.resolution_rate)} of tickets`} delta={<Delta value={ch?.resolved} />} />
-            <Kpi icon={<FiActivity />} label="Still open" value={m.open} sub={`${m.awaiting_reply} awaiting a staff reply`} />
+            <Kpi icon={<FiActivity />} label={pastPeriod ? "Open at period end" : "Still open"} value={m.open} sub={`${m.awaiting_reply} awaiting a staff reply now`} />
             <Kpi icon={<FiAlertTriangle />} label="Escalated" value={m.escalated} sub={`${pct(m.escalation_rate)} · ${m.escalated_open} open`} delta={<Delta value={ch?.escalated} goodWhenDown />} />
             <Kpi icon={<FiCpu />} label="Handled by AI alone" value={m.ai_only} sub={`${pct(m.ai_only_rate)} of tickets`} />
             <Kpi icon={<FiZap />} label="First staff reply" value={duration(m.avg_staff_first_response_seconds)} sub="average" delta={<Delta value={ch?.avg_staff_first_response_seconds} goodWhenDown />} />
             <Kpi icon={<FiClock />} label="Time to resolve" value={duration(m.avg_resolution_seconds)} sub={`median ${duration(m.median_resolution_seconds)}`} delta={<Delta value={ch?.avg_resolution_seconds} goodWhenDown />} />
             <Kpi icon={<FiShield />} label="SLA met" value={pct(m.sla.compliance)} sub={`${m.sla.met} met · ${m.sla.missed} missed`} />
           </div>
-
-          {/* Trend */}
-          <Section icon={<FiTrendingUp />} title="Over time" hint="Tickets opened, resolved and escalated">
-            <TrendChart trend={report.trend} />
-          </Section>
 
           <div className="grid gap-6 xl:grid-cols-2">
             {/* Categories */}
@@ -722,42 +680,55 @@ export default function ReportsPage() {
             )}
           </Section>
 
-          {/* Staff */}
-          <Section icon={<FiUsers />} title="Staff" hint="Tickets assigned to each person in this period" action={<ExportButton kind="staff" onExport={exportCsv} busy={exporting} />}>
+          {/* Agents and super agents */}
+          <Section icon={<FiUsers />} title="Agents" hint="Agents: tickets assigned to them. Super agents: tickets escalated into their categories." action={<ExportButton kind="staff" onExport={exportCsv} busy={exporting} />}>
             {report.by_staff.length === 0 ? (
-              <p className="text-sm text-muted">No tickets were assigned to staff in this period.</p>
+              <p className="text-sm text-muted">No tickets reached agents or super agents in this period.</p>
             ) : (
-              <div className="-mx-4 overflow-x-auto px-4">
-                <table className="w-full min-w-[36rem] text-sm">
-                  <thead>
-                    <tr className="border-b border-border text-left text-xs font-medium uppercase tracking-wide text-muted">
-                      <th className="py-2 pr-3">Person</th>
-                      <th className="px-3 py-2 text-right">Assigned</th>
-                      <th className="px-3 py-2 text-right">Open</th>
-                      <th className="px-3 py-2 text-right">Resolved</th>
-                      <th className="px-3 py-2 text-right">First reply</th>
-                      <th className="py-2 pl-3 text-right">Time to resolve</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {report.by_staff.map((s) => (
-                      <tr key={s.id}>
-                        <td className="py-2 pr-3">
-                          <p className="font-medium text-foreground">{s.name}</p>
-                          <p className="text-xs capitalize text-muted">{s.role.replace("_", " ") || "—"}</p>
-                        </td>
-                        <td className="px-3 py-2 text-right tabular-nums text-foreground">{s.assigned}</td>
-                        <td className="px-3 py-2 text-right tabular-nums text-foreground">{s.open}</td>
-                        <td className="px-3 py-2 text-right tabular-nums text-foreground">
-                          {s.resolved} <span className="text-xs text-muted">({pct(s.resolution_rate)})</span>
-                        </td>
-                        <td className="px-3 py-2 text-right tabular-nums text-foreground">{duration(s.avg_first_response_seconds)}</td>
-                        <td className="py-2 pl-3 text-right tabular-nums text-foreground">{duration(s.avg_resolution_seconds)}</td>
+              <>
+                <div className="-mx-4 overflow-x-auto px-4">
+                  <table className="w-full min-w-[46rem] text-sm">
+                    <thead>
+                      <tr className="border-b border-border text-left text-xs font-medium uppercase tracking-wide text-muted">
+                        <th className="py-2 pr-3">Person</th>
+                        <th className="px-3 py-2 text-right">Tickets</th>
+                        <th className="px-3 py-2 text-right">Reached them</th>
+                        <th className="px-3 py-2 text-right">Open</th>
+                        <th className="px-3 py-2 text-right">Resolved</th>
+                        <th className="px-3 py-2 text-right">First reply</th>
+                        <th className="py-2 pl-3 text-right">Time to resolve</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {report.by_staff.map((s) => (
+                        <tr key={`${s.role}-${s.id}`}>
+                          <td className="py-2 pr-3">
+                            <p className="font-medium text-foreground">{s.name}</p>
+                            <p className="text-xs capitalize text-muted">{s.role.replace("_", " ") || "—"}</p>
+                          </td>
+                          <td className="px-3 py-2 text-right tabular-nums text-foreground">{s.assigned}</td>
+                          <td className="px-3 py-2 text-right tabular-nums text-foreground">{s.assigned_in_period}</td>
+                          <td className="px-3 py-2 text-right tabular-nums text-foreground">{s.open}</td>
+                          <td className="px-3 py-2 text-right tabular-nums text-foreground">
+                            {s.resolved} <span className="text-xs text-muted">({pct(s.resolution_rate)})</span>
+                          </td>
+                          <td className="px-3 py-2 text-right tabular-nums text-foreground">
+                            {duration(s.median_first_response_seconds)}
+                            <span className="block text-[11px] text-muted">
+                              avg {duration(s.avg_first_response_seconds)} · {s.replied} repl{s.replied === 1 ? "y" : "ies"}
+                            </span>
+                          </td>
+                          <td className="py-2 pl-3 text-right tabular-nums text-foreground">{duration(s.avg_resolution_seconds)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <p className="mt-3 text-xs text-muted">
+                  First reply: from when the ticket reached the person to their own first reply, for replies made in this period. The big figure is the
+                  median (the typical reply); a few very late replies raise the average but not the median.
+                </p>
+              </>
             )}
           </Section>
         </div>
