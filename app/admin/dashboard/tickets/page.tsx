@@ -177,6 +177,8 @@ export default function TicketPage() {
                     { id: "all", label: "All", icon: <FiList /> },
                     { id: "pending", label: "Pending", icon: <FiClock /> },
                     { id: "escalated", label: "Escalated", icon: <FiAlertTriangle /> },
+                    // Staff replied last: nothing to do until the user answers.
+                    { id: "awaiting_user", label: "Waiting on user", icon: <FiClock /> },
                     { id: "resolved", label: "Resolved", icon: <FiCheckCircle /> },
                   ].map((status) => {
                     const on = statusFilter === status.id;

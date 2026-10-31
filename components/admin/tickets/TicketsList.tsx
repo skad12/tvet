@@ -273,6 +273,9 @@ export default function TicketsList({
     if (wanted === "escalated") {
       return byActivity.filter((t) => t.raw?.escalated === true && normalizeStatusForFilter(t.status) !== "resolved");
     }
+    if (wanted === "awaiting_user") {
+      return byActivity.filter((t) => t.raw?.waiting_on === "user");
+    }
     // Pending = not resolved yet, as on the server.
     if (wanted === "pending") {
       return byActivity.filter((t) => normalizeStatusForFilter(t.status) !== "resolved");

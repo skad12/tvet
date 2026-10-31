@@ -66,6 +66,18 @@ export default function SlaBadge({ ticket, className = "" }: { ticket: any; clas
   const sla = ticketSla(ticket);
   const open = !!sla && sla.status !== "met" && sla.status !== "missed";
   const now = useNow(open);
+  // Staff replied last: the ticket waits on the user, not on staff, so show that
+  // rather than a deadline nobody on staff can act on.
+  if ((ticket?.waiting_on ?? ticket?.raw?.waiting_on) === "user") {
+    return (
+      <span
+        className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[10px] font-semibold text-sky-700 sm:text-xs ${className}`}
+        title="Staff replied last; waiting for the user to answer"
+      >
+        Waiting on user
+      </span>
+    );
+  }
   const view = slaView(sla, now);
   if (!view) return null;
   return (
