@@ -6,7 +6,7 @@ import ChatModal from "@/components/admin/tickets/ChatModal";
 import TrackTicket from "@/components/tickets/TrackTicket";
 import { FiAlertTriangle, FiCalendar, FiCheckCircle, FiChevronDown, FiClock, FiFilter, FiInbox, FiList, FiTag, FiUsers, FiX } from "react-icons/fi";
 import { landing } from "@/components/ui/landingStyles";
-import DateRangePanel, { EMPTY_RANGE, describeRange, todayRange } from "@/components/tickets/DateRangePanel";
+import DateRangePanel, { EMPTY_RANGE, describeRange } from "@/components/tickets/DateRangePanel";
 import UserModal from "@/components/admin/tickets/UserModal";
 import api from "@/lib/axios";
 import TicketsList from "@/components/admin/tickets/TicketsList";
@@ -34,10 +34,8 @@ export default function TicketPage() {
   // The list waits for the starting filters, so it loads once, not twice.
   const [ready, setReady] = useState(false);
 
-  // Opens on today's tickets (any activity), worked out in the browser so it
-  // is the user's today. The home page's summary cards link here with
-  // ?status=pending|resolved; their counts are all-time, so those links open
-  // with no date limit.
+  // Opens on all tickets, with no date limit, so earlier days' tickets are
+  // not hidden. A card on the Analytics page passes its period instead.
   useEffect(() => {
     const query = new URLSearchParams(window.location.search);
     const wanted = query.get("status");
@@ -46,8 +44,6 @@ export default function TicketPage() {
     if (linkedFrom || linkedTo) {
       // A card on the Analytics page passes its period, so the list matches its number.
       setDateRange({ from: linkedFrom || "", to: linkedTo || "", field: "activity" });
-    } else if (!wanted) {
-      setDateRange(todayRange());
     }
     setReady(true);
   }, []);
