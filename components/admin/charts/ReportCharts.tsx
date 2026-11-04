@@ -141,13 +141,12 @@ export default function ReportCharts({ report }: { report: ChartReport }) {
   return (
     <div className="grid gap-4 lg:grid-cols-2">
       <div className="lg:col-span-2">
-        <Frame title="Tickets by category" hint="Each bar is the category's tickets; open at the end of the period beside it">
+        <Frame title="Tickets by category" hint="Tickets in each category">
           <HorizontalBars
             unit="Tickets"
             items={report.by_category.map((c) => ({
               label: c.title,
               value: c.total,
-              note: `${fmt(c.open)} open`,
               tone: c.id === "other" ? "bg-slate-400" : "bg-blue-500",
             }))}
           />

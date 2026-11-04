@@ -459,7 +459,7 @@ export default function ReportsPage() {
                   {c.title}
                 </option>
               ))}
-              <option value="other">Other category</option>
+              <option value="other">No category</option>
             </select>
           </label>
           <label className="block">

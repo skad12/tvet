@@ -58,7 +58,7 @@ type RecentTicket = {
   last_message_at: string | null;
 };
 type Category = {
-  // The "Other category" row: tickets outside every category. Read-only.
+  // The "No category" row: tickets outside every category. Read-only.
   other?: boolean;
   id: string;
   title: string;
