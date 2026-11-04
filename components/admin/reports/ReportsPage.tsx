@@ -47,7 +47,7 @@ type Metrics = {
   median_resolution_seconds: number | null;
   avg_staff_first_response_seconds: number | null;
   avg_ai_first_response_seconds: number | null;
-  sla: { on_track: number; due_soon: number; overdue: number; met: number; missed: number; compliance: number | null };
+  sla: { on_track: number; overdue: number; met: number; missed: number; compliance: number | null };
 };
 type Change = Partial<Record<"total" | "resolved" | "escalated" | "avg_resolution_seconds" | "avg_staff_first_response_seconds", number | null>>;
 type Report = {
@@ -589,7 +589,6 @@ export default function ReportsPage() {
                   { label: "Met", v: m.sla.met, tone: "bg-emerald-500" },
                   { label: "Missed", v: m.sla.missed, tone: "bg-rose-400" },
                   { label: "On track", v: m.sla.on_track, tone: "bg-blue-500" },
-                  { label: "Due soon", v: m.sla.due_soon, tone: "bg-amber-400" },
                   { label: "Overdue", v: m.sla.overdue, tone: "bg-rose-600" },
                 ];
                 const sum = parts.reduce((a, p) => a + p.v, 0);

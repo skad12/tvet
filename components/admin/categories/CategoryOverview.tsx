@@ -63,7 +63,7 @@ type Category = {
   id: string;
   title: string;
   sla_hours: number;
-  sla: { overdue: number; due_soon: number; met: number; missed: number };
+  sla: { overdue: number; met: number; missed: number };
   super_agents: Person[];
   agents: Person[];
   tickets: Figures;
@@ -73,12 +73,11 @@ type Category = {
 type SortKey = "attention" | "title" | "open" | "overdue" | "rate";
 
 // Open tickets split by SLA position. Every ticket counted here sits in a
-// category, so each open one is on track, due soon or overdue.
+// category, so each open one is on track or overdue.
 function slaSplit(c: Category) {
   const overdue = c.sla.overdue;
-  const dueSoon = c.sla.due_soon;
-  const onTrack = Math.max(c.tickets.open - overdue - dueSoon, 0);
-  return { onTrack, dueSoon, overdue };
+  const onTrack = Math.max(c.tickets.open - overdue, 0);
+  return { onTrack, overdue };
 }
 
 function online(p: Person) {
@@ -161,8 +160,8 @@ function AvatarStack({ people, max = 4 }: { people: Person[]; max?: number }) {
 // `scale` (0 to 1) sets how much of the track the bar fills, so in a chart of
 // several categories the bar length shows how many open tickets each has.
 function SlaBar({ c, height = 8, scale = 1 }: { c: Category; height?: number; scale?: number }) {
-  const { onTrack, dueSoon, overdue } = slaSplit(c);
-  const total = onTrack + dueSoon + overdue;
+  const { onTrack, overdue } = slaSplit(c);
+  const total = onTrack + overdue;
   if (!total) return <div className="w-full rounded-full bg-slate-100" style={{ height }} title="No open tickets" />;
   const seg = (n: number, cls: string, label: string) =>
     n ? <div className={cls} style={{ width: `${(n / total) * 100}%` }} title={`${n} ${label}`} /> : null;
@@ -170,7 +169,6 @@ function SlaBar({ c, height = 8, scale = 1 }: { c: Category; height?: number; sc
     <div className="w-full rounded-full bg-slate-100" style={{ height }}>
       <div className="flex h-full overflow-hidden rounded-full" style={{ width: `${Math.max(scale, 0.06) * 100}%` }}>
         {seg(onTrack, "bg-emerald-500", "on track")}
-        {seg(dueSoon, "bg-amber-400", "due soon")}
         {seg(overdue, "bg-rose-400", "overdue")}
       </div>
     </div>
@@ -393,7 +391,6 @@ function DetailPanel({
             <SlaBar c={category} height={10} />
             <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs">
               <span className="inline-flex items-center gap-1.5 text-muted"><i className="h-2 w-2 rounded-full bg-emerald-500" />{split.onTrack} on track</span>
-              <span className="inline-flex items-center gap-1.5 text-muted"><i className="h-2 w-2 rounded-full bg-amber-400" />{split.dueSoon} due soon</span>
               <span className="inline-flex items-center gap-1.5 text-muted"><i className="h-2 w-2 rounded-full bg-rose-400" />{split.overdue} overdue</span>
             </div>
             <div className="mt-3 grid grid-cols-2 gap-3 border-t border-border pt-3 text-sm">
@@ -881,7 +878,6 @@ export default function CategoryOverview() {
       open,
       awaiting: sum((c) => c.tickets.awaiting_reply),
       overdue,
-      dueSoon: sum((c) => c.sla.due_soon),
       // Only categories have a response-time target, so only their open tickets count here.
       health: (() => {
         const withTarget = categories.filter((c) => !c.other).reduce((s, c) => s + c.tickets.open, 0);
@@ -937,21 +933,19 @@ export default function CategoryOverview() {
               {loading && !categories.length
                 ? "Checking how every category stands…"
                 : totals.overdue
-                ? `${totals.overdue} ticket${totals.overdue === 1 ? " is" : "s are"} past due${totals.dueSoon ? ` and ${totals.dueSoon} due soon` : ""} across ${totals.real} categories.`
-                : totals.dueSoon
-                ? `Nothing is overdue. ${totals.dueSoon} ticket${totals.dueSoon === 1 ? " is" : "s are"} due soon.`
+                ? `${totals.overdue} ticket${totals.overdue === 1 ? " is" : "s are"} past due across ${totals.real} categories.`
                 : "Every open ticket is on time."}
               {totals.uncovered ? ` ${totals.uncovered} ${totals.uncovered === 1 ? "category has" : "categories have"} no staff.` : ""}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            {totals.overdue + totals.dueSoon > 0 && (
+            {totals.overdue > 0 && (
               <button
                 type="button"
                 onClick={() => setPopup("attention")}
                 className="inline-flex items-center gap-2 rounded-xl bg-white px-3.5 py-2 text-sm font-semibold text-blue-700 shadow-sm hover:bg-blue-50"
               >
-                <FiAlertTriangle /> Needs attention · {totals.overdue + totals.dueSoon}
+                <FiAlertTriangle /> Needs attention · {totals.overdue}
               </button>
             )}
             <button
@@ -1015,7 +1009,7 @@ export default function CategoryOverview() {
               ))}
             </div>
             <p className="text-xs text-muted">
-              {period && period.from ? "Figures cover tickets worked on in this period" : "Figures cover all tickets"} · tickets at risk always show everything
+              {period && period.from ? "Figures cover tickets worked on in this period" : "Figures cover all tickets"} · overdue tickets always show everything
             </p>
           </div>
 
@@ -1043,8 +1037,8 @@ export default function CategoryOverview() {
               tone={totals.overdue ? "red" : "emerald"}
               label="SLA health"
               value={totals.health == null ? "—" : `${totals.health}%`}
-              hint={`${totals.overdue} overdue · ${totals.dueSoon} due soon`}
-              action="See tickets at risk"
+              hint={`${totals.overdue} overdue`}
+              action="See overdue tickets"
               onClick={() => setPopup("attention")}
             />
             <Kpi
@@ -1074,11 +1068,10 @@ export default function CategoryOverview() {
                 <h2 className="inline-flex items-center gap-1.5 text-sm font-semibold text-foreground">
                   <FiActivity className="h-4 w-4 text-blue-600" aria-hidden /> SLA health by category
                 </h2>
-                <p className="text-xs text-muted">Open tickets by how close they are to their deadline</p>
+                <p className="text-xs text-muted">Open tickets on track or past their deadline</p>
               </div>
               <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
                 <span className="inline-flex items-center gap-1.5"><i className="h-2 w-2 rounded-full bg-emerald-500" />On track</span>
-                <span className="inline-flex items-center gap-1.5"><i className="h-2 w-2 rounded-full bg-amber-400" />Due soon</span>
                 <span className="inline-flex items-center gap-1.5"><i className="h-2 w-2 rounded-full bg-rose-400" />Overdue</span>
               </div>
             </div>
@@ -1264,8 +1257,8 @@ export default function CategoryOverview() {
             {popup === "attention" && !chatTicket && (
               <Popup
                 key="attention"
-                title="Tickets at risk"
-                subtitle={`${totals.overdue} overdue · ${totals.dueSoon} due soon, most urgent first`}
+                title="Overdue tickets"
+                subtitle={`${totals.overdue} overdue, most overdue first`}
                 onClose={() => setPopup(null)}
               >
                 <AttentionList tickets={attention} onOpen={(t) => setChatTicket({ ...t, raw: t })} />

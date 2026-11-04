@@ -16,7 +16,7 @@ type Metrics = {
   ai_only_rate: number | null;
   avg_resolution_seconds: number | null;
   avg_staff_first_response_seconds: number | null;
-  sla: { overdue: number; due_soon: number; compliance: number | null };
+  sla: { overdue: number; compliance: number | null };
 };
 
 function duration(seconds: number | null | undefined) {

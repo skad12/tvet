@@ -9,7 +9,7 @@
 type Item = { label: string; value: number; tone?: string; note?: string };
 
 export type ChartReport = {
-  summary: { current: { sla: { on_track: number; due_soon: number; overdue: number; met: number; missed: number } } };
+  summary: { current: { sla: { on_track: number; overdue: number; met: number; missed: number } } };
   by_category: { id: string | null; title: string; total: number; open: number }[];
   by_source: { id: string; title: string; total: number }[];
   busiest: { by_weekday: { day: string; count: number }[]; by_hour: { hour: number; count: number }[] };
@@ -159,14 +159,13 @@ export default function ReportCharts({ report }: { report: ChartReport }) {
           items={report.by_source.map((s) => ({ label: s.title, value: s.total, tone: SOURCE_TONE[s.id] }))}
         />
       </Frame>
-      <Frame title="SLA" hint="Tickets with a deadline: resolved (met, missed) and open (on track, due soon, overdue)">
+      <Frame title="SLA" hint="Tickets with a deadline: resolved (met, missed) and open (on track, overdue)">
         <Columns
           unit="Tickets"
           items={[
             { label: "Met", value: sla.met, tone: "bg-emerald-500" },
             { label: "Missed", value: sla.missed, tone: "bg-rose-400" },
             { label: "On track", value: sla.on_track, tone: "bg-blue-500" },
-            { label: "Due soon", value: sla.due_soon, tone: "bg-amber-400" },
             { label: "Overdue", value: sla.overdue, tone: "bg-rose-600" },
           ]}
         />

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { FiAlertTriangle, FiCheckCircle, FiClock, FiInbox, FiMessageCircle } from "react-icons/fi";
+import { FiAlertTriangle, FiCheckCircle, FiInbox, FiMessageCircle } from "react-icons/fi";
 
 import { needsReply } from "@/lib/ticketActivity";
 import { slaView, ticketSla } from "@/components/tickets/SlaBadge";
@@ -35,16 +35,14 @@ export default function StaffOverview({ tickets, role }: { tickets: any[]; role:
   const stats = useMemo(() => {
     const list = Array.isArray(tickets) ? tickets : [];
     const now = Date.now();
-    let dueSoon = 0, overdue = 0;
+    let overdue = 0;
     list.forEach((t) => {
       const v = slaView(ticketSla(t), now);
-      if (v?.tone === "warn") dueSoon += 1;
       if (v?.label.startsWith("Overdue")) overdue += 1;
     });
     return {
       total: list.length,
       awaiting: list.filter((t) => needsReply(t)).length,
-      dueSoon,
       overdue,
       resolved: list.filter(isResolved).length,
     };
@@ -57,10 +55,9 @@ export default function StaffOverview({ tickets, role }: { tickets: any[]; role:
         <TrackTicket role={role} />
       </div>
 
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-5 sm:gap-3">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
         <Tile icon={<FiInbox />} label={role === "super_agent" ? "Escalated to you" : "My tickets"} value={stats.total} />
         <Tile icon={<FiMessageCircle />} label="Awaiting reply" value={stats.awaiting} tone="warn" />
-        <Tile icon={<FiClock />} label="SLA due soon" value={stats.dueSoon} tone="warn" />
         <Tile icon={<FiAlertTriangle />} label="SLA overdue" value={stats.overdue} tone="bad" />
         <Tile icon={<FiCheckCircle />} label="Resolved" value={stats.resolved} tone="good" />
       </div>

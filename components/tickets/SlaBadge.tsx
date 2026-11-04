@@ -8,11 +8,9 @@ export type Sla = {
   hours: number;
   started_at: string;
   due_at: string;
-  status: "on_track" | "due_soon" | "overdue" | "met" | "missed";
+  status: "on_track" | "overdue" | "met" | "missed";
   seconds_left: number | null;
 } | null;
-
-const DUE_SOON_SHARE = 0.25;
 
 /** "#A1B2C3": the last 6 characters of the ticket id, for people to quote. */
 export function ticketReference(t: any): string {
@@ -51,7 +49,6 @@ export function slaView(sla: Sla, now: number) {
   if (sla.status === "missed") return { label: "SLA missed", tone: "bad" as const };
   const left = (new Date(sla.due_at).getTime() - now) / 1000;
   if (left <= 0) return { label: `Overdue · ${span(left)}`, tone: "bad" as const };
-  if (left <= sla.hours * 3600 * DUE_SOON_SHARE) return { label: `Due soon · ${span(left)} left`, tone: "warn" as const };
   return { label: `SLA · ${span(left)} left`, tone: "neutral" as const };
 }
 
