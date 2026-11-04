@@ -459,7 +459,6 @@ export default function ReportsPage() {
                   {c.title}
                 </option>
               ))}
-              <option value="other">No category</option>
             </select>
           </label>
           <label className="block">
@@ -468,7 +467,6 @@ export default function ReportsPage() {
               <option value="">Trainees and centres</option>
               <option value="trainee">Trainees</option>
               <option value="centre">Training centres</option>
-              <option value="other">Other / not stated</option>
             </select>
           </label>
           <label className="block">

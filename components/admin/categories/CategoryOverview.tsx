@@ -58,7 +58,7 @@ type RecentTicket = {
   last_message_at: string | null;
 };
 type Category = {
-  // The "No category" row: tickets outside every category. Read-only.
+  // Never set now (every ticket has a category); kept for older API replies.
   other?: boolean;
   id: string;
   title: string;

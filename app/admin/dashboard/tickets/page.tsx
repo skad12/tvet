@@ -143,7 +143,7 @@ export default function TicketPage() {
               <div role="radiogroup" aria-label="Category" className="flex min-w-0 flex-1 gap-1.5 overflow-x-auto pb-2.5 pt-0.5 [scrollbar-width:thin]">
                 {catLoading
                   ? [0, 1, 2, 3].map((i) => <span key={i} className="h-8 w-32 shrink-0 animate-pulse rounded-full bg-slate-100" />)
-                  : [{ id: null, title: "All categories" }, ...categories, { id: "other", title: "No category" }].map((c) => {
+                  : [{ id: null, title: "All categories" }, ...categories].map((c) => {
                       const on = activeCategory === c.id;
                       return (
                         <button
@@ -207,7 +207,6 @@ export default function TicketPage() {
                     { id: "all", label: "All" },
                     { id: "trainee", label: "Trainees" },
                     { id: "centre", label: "Centres" },
-                    { id: "other", label: "Other" },
                   ].map((s) => {
                     const on = sourceFilter === s.id;
                     return (
@@ -298,9 +297,7 @@ export default function TicketPage() {
           {ready && <TicketsList
             categoryId={activeCategory}
             categoryName={
-              activeCategory === "other"
-                ? "No category"
-                : activeCategory
+              activeCategory
                 ? categories.find((c) => c.id === activeCategory)?.title ??
                   categories.find((c) => c.id === activeCategory)?.name
                 : null

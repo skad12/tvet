@@ -129,7 +129,7 @@ export function Columns({ items, unit, highlight }: { items: Item[]; unit: strin
   );
 }
 
-const SOURCE_TONE: Record<string, string> = { trainee: "bg-sky-500", centre: "bg-violet-500", other: "bg-slate-400" };
+const SOURCE_TONE: Record<string, string> = { trainee: "bg-sky-500", centre: "bg-violet-500" };
 
 /** The report's charts, laid out in a responsive grid. */
 export default function ReportCharts({ report }: { report: ChartReport }) {
@@ -147,7 +147,7 @@ export default function ReportCharts({ report }: { report: ChartReport }) {
             items={report.by_category.map((c) => ({
               label: c.title,
               value: c.total,
-              tone: c.id === "other" ? "bg-slate-400" : "bg-blue-500",
+              tone: "bg-blue-500",
             }))}
           />
         </Frame>

@@ -3,18 +3,14 @@
 import { FiHome, FiUser } from "react-icons/fi";
 
 /** Which widget role opened the ticket. Matches the backend's Ticket.role values. */
-export function sourceOf(role: unknown): "trainee" | "centre" | "other" {
-  const r = String(role ?? "").trim().toLowerCase();
-  if (r === "registered trainee / applicant") return "trainee";
-  if (r === "registered training centre") return "centre";
-  return "other";
+export function sourceOf(role: unknown): "trainee" | "centre" {
+  // Trainee or training centre only: older "Other" and blank roles count as trainees.
+  return String(role ?? "").trim().toLowerCase() === "registered training centre" ? "centre" : "trainee";
 }
 
 /** A small tag saying whether a trainee or a training centre opened the ticket. */
 export default function SourceTag({ role }: { role: unknown }) {
-  const source = sourceOf(role);
-  if (source === "other") return null;
-  const centre = source === "centre";
+  const centre = sourceOf(role) === "centre";
   return (
     <span
       className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${
