@@ -141,7 +141,7 @@ export default function ReportCharts({ report }: { report: ChartReport }) {
   return (
     <div className="grid gap-4 lg:grid-cols-2">
       <div className="lg:col-span-2">
-        <Frame title="Tickets by category" hint="Tickets in each category">
+        <Frame title="Ticket volume by category" hint="Tickets in each category">
           <HorizontalBars
             unit="Tickets"
             items={report.by_category.map((c) => ({

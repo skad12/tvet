@@ -1162,7 +1162,7 @@ export default function CategoryOverview() {
                         <th className="px-4 py-3">Team</th>
                         <th className="px-4 py-3 text-right">Tickets</th>
                         <th className="px-4 py-3 text-right">Open</th>
-                        <th className="px-4 py-3 text-right">Awaiting</th>
+                        <th className="px-4 py-3 text-right">Awaiting reply</th>
                         <th className="px-4 py-3 text-right">Overdue</th>
                         <th className="px-4 py-3">Resolution</th>
                         <th className="w-8 px-2 py-3" aria-hidden />
