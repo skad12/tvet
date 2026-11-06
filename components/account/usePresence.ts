@@ -8,8 +8,9 @@ const EVERY_MS = 60_000;
 
 /**
  * Tells the server this person still has their dashboard open: once on load,
- * every minute while the tab is visible, and again on coming back to it. The
- * server counts anyone silent for three minutes as offline.
+ * every minute, and again on coming back to the tab. The server counts anyone
+ * silent for three minutes as offline, so this keeps going while the tab is in
+ * the background: agents work in other tabs and still need tickets.
  *
  * `paused` stops the heartbeats, for someone who has set themselves Offline:
  * a heartbeat would otherwise mark them available again.
@@ -24,7 +25,6 @@ export default function usePresence(paused = false) {
     if (!hasToken) return;
 
     const beat = () => {
-      if (document.visibilityState !== "visible") return;
       api.post("/me/heartbeat/").catch(() => {});
     };
     beat();
