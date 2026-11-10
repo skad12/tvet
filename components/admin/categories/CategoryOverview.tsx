@@ -645,6 +645,74 @@ function PeopleManager({
 // ---------------------------------------------------------------------------
 // Popups behind the summary cards
 // ---------------------------------------------------------------------------
+/** "Add category": a name and a response time; staff are added on the category afterwards. */
+function AddCategoryForm({ onAdded, onCancel }: { onAdded: (id: string) => void; onCancel: () => void }) {
+  const [title, setTitle] = useState("");
+  const [hours, setHours] = useState("12");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function save(e: React.FormEvent) {
+    e.preventDefault();
+    const name = title.trim();
+    if (!name) {
+      setError("Enter a name for the category.");
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await api.post("/category/create/", { title: name, sla_hours: Number(hours) || 12 });
+      toast.success(`${res.data.title} added`);
+      onAdded(String(res.data.id));
+    } catch (err) {
+      setError(apiErrorMessage(err, "Couldn't add the category."));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <form onSubmit={save} className="space-y-4 p-5">
+      <label className="block">
+        <span className="mb-1 block text-sm font-medium text-slate-700">Category name</span>
+        <input
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          maxLength={150}
+          autoFocus
+          placeholder="e.g. Kit Dispute"
+          className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-400"
+        />
+      </label>
+      <label className="block">
+        <span className="mb-1 block text-sm font-medium text-slate-700">Response time (SLA), in hours</span>
+        <input
+          type="number"
+          min={1}
+          max={720}
+          value={hours}
+          onChange={(e) => setHours(e.target.value)}
+          className="w-32 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-400"
+        />
+        <span className="mt-1 block text-xs text-slate-500">How long a ticket may stay open once it reaches staff. You can change it later.</span>
+      </label>
+      <p className="text-xs text-slate-500">
+        It appears in the chat widget&apos;s category list straight away. Add its agents and super agents next, so its tickets reach someone.
+      </p>
+      {error && <p className="text-sm text-red-600">{error}</p>}
+      <div className="flex justify-end gap-2">
+        <button type="button" onClick={onCancel} disabled={saving} className="rounded-xl px-4 py-2 text-sm text-slate-600 hover:bg-slate-100">
+          Cancel
+        </button>
+        <button type="submit" disabled={saving} className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50">
+          <FiPlus /> {saving ? "Adding…" : "Add category"}
+        </button>
+      </div>
+    </form>
+  );
+}
+
 function Popup({ title, subtitle, onClose, children }: { title: string; subtitle?: string; onClose: () => void; children: React.ReactNode }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -800,7 +868,7 @@ export default function CategoryOverview() {
   const [sort, setSort] = useState<SortKey>("attention");
   const [openId, setOpenId] = useState<string | null>(null);
   const [attention, setAttention] = useState<any[]>([]);
-  const [popup, setPopup] = useState<"attention" | "staff" | null>(null);
+  const [popup, setPopup] = useState<"attention" | "staff" | "add" | null>(null);
   const [chatTicket, setChatTicket] = useState<any | null>(null);
   const [staff, setStaff] = useState<StaffUser[] | null>(null);
   const tableRef = useRef<HTMLElement | null>(null);
@@ -1147,6 +1215,13 @@ export default function CategoryOverview() {
                   <option value="title">Name</option>
                 </select>
               </label>
+              <button
+                type="button"
+                onClick={() => setPopup("add")}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-3.5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
+              >
+                <FiPlus /> Add category
+              </button>
             </div>
 
             {shown.length === 0 ? (
@@ -1262,6 +1337,18 @@ export default function CategoryOverview() {
                 onClose={() => setPopup(null)}
               >
                 <AttentionList tickets={attention} onOpen={(t) => setChatTicket({ ...t, raw: t })} />
+              </Popup>
+            )}
+            {popup === "add" && (
+              <Popup key="add" title="Add category" onClose={() => setPopup(null)}>
+                <AddCategoryForm
+                  onCancel={() => setPopup(null)}
+                  onAdded={async (id) => {
+                    setPopup(null);
+                    await load();
+                    setOpenId(id);   // straight to the new category, to add its staff
+                  }}
+                />
               </Popup>
             )}
             {popup === "staff" && (
