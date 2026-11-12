@@ -42,6 +42,8 @@ type Metrics = {
   awaiting_agent: number | null;
   awaiting_super_agent: number | null;
   awaiting_customer: number | null;
+  // Who resolved the resolved tickets (agent, super_agent, admin, ai, auto).
+  resolved_by?: Record<string, number>;
   ai_only: number;
   resolution_rate: number | null;
   escalation_rate: number | null;
@@ -259,6 +261,17 @@ function Narrative({ report, from, to, activity, past }: { report: Report; from:
 // ---------------------------------------------------------------------------
 // Page
 // ---------------------------------------------------------------------------
+/** "3 by agents · 1 by super agents · 5 by the AI · 2 closed automatically", leaving out the zeros. */
+function resolvedBy(m: { resolved_by?: Record<string, number> }) {
+  const by = m.resolved_by;
+  if (!by) return "";
+  const parts: [string, string][] = [
+    ["agent", "by agents"], ["super_agent", "by super agents"], ["admin", "by admins"],
+    ["ai", "by the AI"], ["auto", "closed automatically"],
+  ];
+  return parts.filter(([k]) => by[k]).map(([k, words]) => `${by[k]} ${words}`).join(" · ");
+}
+
 const STATES = [
   { id: "", label: "All statuses" },
   { id: "pending", label: "Pending" },
@@ -521,7 +534,7 @@ export default function ReportsPage() {
           {/* Headline figures */}
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             <Kpi icon={<FiInbox />} label="Tickets" value={m.total} sub={prevLabel ? "vs previous" : undefined} delta={<Delta value={ch?.total} />} />
-            <Kpi icon={<FiCheckCircle />} label="Resolved" value={m.resolved} sub={`${pct(m.resolution_rate)} of tickets`} delta={<Delta value={ch?.resolved} />} />
+            <Kpi icon={<FiCheckCircle />} label="Resolved" value={m.resolved} sub={resolvedBy(m) || `${pct(m.resolution_rate)} of tickets`} delta={<Delta value={ch?.resolved} />} />
             <Kpi icon={<FiActivity />} label={pastPeriod ? "Open at period end" : "Still open"} value={m.open} sub={m.awaiting_agent == null ? "as it stood when the period ended" : `now: ${m.awaiting_agent} on agent · ${m.awaiting_super_agent} on super agent · ${m.awaiting_customer} on customer`} />
             <Kpi icon={<FiAlertTriangle />} label="Escalated" value={m.escalated} sub={`${pct(m.escalation_rate)} · ${m.escalated_open} open`} delta={<Delta value={ch?.escalated} goodWhenDown />} />
             <Kpi icon={<FiCpu />} label="Handled by AI alone" value={m.ai_only} sub={`${pct(m.ai_only_rate)} of tickets`} />
