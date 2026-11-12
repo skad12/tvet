@@ -61,6 +61,9 @@ type Report = {
   by_source: { id: string; title: string; total: number; open: number; resolved: number; escalated: number; resolution_rate: number | null; avg_resolution_seconds: number | null }[];
   by_staff: {
     id: string; name: string; role: string; assigned: number; assigned_in_period: number; open: number; resolved: number;
+    // Their tickets someone else, the AI or the automatic follow-up closed:
+    // open + resolved + resolved_by_others = assigned.
+    resolved_by_others: number;
     resolution_rate: number | null; replied: number; avg_resolution_seconds: number | null;
     avg_first_response_seconds: number | null; median_first_response_seconds: number | null;
   }[];
@@ -705,7 +708,7 @@ export default function ReportsPage() {
             ) : (
               <>
                 <div className="-mx-4 overflow-x-auto px-4">
-                  <table className="w-full min-w-[46rem] text-sm">
+                  <table className="w-full min-w-[50rem] text-sm">
                     <thead>
                       <tr className="border-b border-border text-left text-xs font-medium uppercase tracking-wide text-muted">
                         <th className="py-2 pr-3">Person</th>
@@ -713,6 +716,7 @@ export default function ReportsPage() {
                         <th className="px-3 py-2 text-right">Reached them</th>
                         <th className="px-3 py-2 text-right">Open</th>
                         <th className="px-3 py-2 text-right">Resolved</th>
+                        <th className="px-3 py-2 text-right">By others</th>
                         <th className="px-3 py-2 text-right">First reply</th>
                         <th className="py-2 pl-3 text-right">Time to resolve</th>
                       </tr>
@@ -730,6 +734,7 @@ export default function ReportsPage() {
                           <td className="px-3 py-2 text-right tabular-nums text-foreground">
                             {s.resolved} <span className="text-xs text-muted">({pct(s.resolution_rate)})</span>
                           </td>
+                          <td className="px-3 py-2 text-right tabular-nums text-foreground">{s.resolved_by_others ?? 0}</td>
                           <td className="px-3 py-2 text-right tabular-nums text-foreground">
                             {duration(s.median_first_response_seconds)}
                             <span className="block text-[11px] text-muted">
