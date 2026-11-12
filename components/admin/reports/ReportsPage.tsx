@@ -36,9 +36,12 @@ type Metrics = {
   resolved: number;
   escalated: number;
   escalated_open: number;
-  awaiting_reply: number;
-  awaiting_staff: number;
-  awaiting_user: number;
+  // Who open tickets wait on right now; null for a period that has ended,
+  // as it cannot be known for a past moment.
+  awaiting_reply: number | null;
+  awaiting_agent: number | null;
+  awaiting_super_agent: number | null;
+  awaiting_customer: number | null;
   ai_only: number;
   resolution_rate: number | null;
   escalation_rate: number | null;
@@ -260,7 +263,9 @@ const STATES = [
   { id: "", label: "All statuses" },
   { id: "pending", label: "Pending" },
   { id: "escalated", label: "Escalated" },
-  { id: "awaiting_user", label: "Waiting on user" },
+  { id: "awaiting_agent", label: "Waiting on agent (now)" },
+  { id: "awaiting_super_agent", label: "Waiting on super agent (now)" },
+  { id: "awaiting_customer", label: "Waiting on customer (now)" },
   { id: "resolved", label: "Resolved" },
 ];
 
@@ -517,7 +522,7 @@ export default function ReportsPage() {
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             <Kpi icon={<FiInbox />} label="Tickets" value={m.total} sub={prevLabel ? "vs previous" : undefined} delta={<Delta value={ch?.total} />} />
             <Kpi icon={<FiCheckCircle />} label="Resolved" value={m.resolved} sub={`${pct(m.resolution_rate)} of tickets`} delta={<Delta value={ch?.resolved} />} />
-            <Kpi icon={<FiActivity />} label={pastPeriod ? "Open at period end" : "Still open"} value={m.open} sub={`now: ${m.awaiting_staff} waiting on staff · ${m.awaiting_user} on the user`} />
+            <Kpi icon={<FiActivity />} label={pastPeriod ? "Open at period end" : "Still open"} value={m.open} sub={m.awaiting_agent == null ? "as it stood when the period ended" : `now: ${m.awaiting_agent} on agent · ${m.awaiting_super_agent} on super agent · ${m.awaiting_customer} on customer`} />
             <Kpi icon={<FiAlertTriangle />} label="Escalated" value={m.escalated} sub={`${pct(m.escalation_rate)} · ${m.escalated_open} open`} delta={<Delta value={ch?.escalated} goodWhenDown />} />
             <Kpi icon={<FiCpu />} label="Handled by AI alone" value={m.ai_only} sub={`${pct(m.ai_only_rate)} of tickets`} />
             <Kpi icon={<FiZap />} label="First staff reply" value={duration(m.avg_staff_first_response_seconds)} sub="average" delta={<Delta value={ch?.avg_staff_first_response_seconds} goodWhenDown />} />

@@ -173,8 +173,10 @@ export default function TicketPage() {
                     { id: "all", label: "All", icon: <FiList /> },
                     { id: "pending", label: "Pending", icon: <FiClock /> },
                     { id: "escalated", label: "Escalated", icon: <FiAlertTriangle /> },
-                    // Staff replied last: nothing to do until the user answers.
-                    { id: "awaiting_user", label: "Waiting on user", icon: <FiClock /> },
+                    // Who must act next: the agent, the super agent (escalated) or the customer (staff replied last).
+                    { id: "awaiting_agent", label: "Waiting on agent", icon: <FiClock /> },
+                    { id: "awaiting_super_agent", label: "Waiting on super agent", icon: <FiClock /> },
+                    { id: "awaiting_customer", label: "Waiting on customer", icon: <FiClock /> },
                     { id: "resolved", label: "Resolved", icon: <FiCheckCircle /> },
                   ].map((status) => {
                     const on = statusFilter === status.id;

@@ -63,26 +63,36 @@ export default function SlaBadge({ ticket, className = "" }: { ticket: any; clas
   const sla = ticketSla(ticket);
   const open = !!sla && sla.status !== "met" && sla.status !== "missed";
   const now = useNow(open);
-  // Staff replied last: the ticket waits on the user, not on staff, so show that
-  // rather than a deadline nobody on staff can act on.
-  if ((ticket?.waiting_on ?? ticket?.raw?.waiting_on) === "user") {
+  // Who must act next (Ticket.waiting_for): the agent, the super agent (it was
+  // escalated) or the customer (staff replied last).
+  const waiting = ticket?.waiting_for ?? ticket?.raw?.waiting_for ?? ((ticket?.waiting_on ?? ticket?.raw?.waiting_on) === "user" ? "customer" : null);
+  // Waiting on the customer: show that rather than a deadline nobody on staff can act on.
+  if (waiting === "customer") {
     return (
       <span
         className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[10px] font-semibold text-sky-700 sm:text-xs ${className}`}
-        title="Staff replied last; waiting for the user to answer"
+        title="Staff replied last; waiting for the customer to answer"
       >
-        Waiting on user
+        Waiting on customer
       </span>
     );
   }
+  const who = waiting === "super_agent" ? "Super agent" : waiting === "agent" ? "Agent" : null;
   const view = slaView(sla, now);
-  if (!view) return null;
+  if (!view) {
+    if (!who) return null;
+    return (
+      <span className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full border px-2 py-0.5 text-[10px] font-semibold sm:text-xs ${TONES.neutral} ${className}`}>
+        Waiting on {who.toLowerCase()}
+      </span>
+    );
+  }
   return (
     <span
       className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full border px-2 py-0.5 text-[10px] font-semibold tabular-nums sm:text-xs ${TONES[view.tone]} ${className}`}
-      title={sla ? `SLA ${sla.hours}h · due ${new Date(sla.due_at).toLocaleString()}` : undefined}
+      title={`${who ? `Waiting on the ${who.toLowerCase()} · ` : ""}${sla ? `SLA ${sla.hours}h · due ${new Date(sla.due_at).toLocaleString()}` : ""}`}
     >
-      {view.label}
+      {who && open ? `${who} · ${view.label}` : view.label}
     </span>
   );
 }
